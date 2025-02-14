@@ -5,6 +5,7 @@ edition = "2021"
 
 [dependencies]
 anyhow = "1.0.95"
+bytemuck = { version =  "1.21.0", features = ["derive"] }
 deno_core = "0.338.0"
 deno_error = "0.5.6"
 env_logger = "0.11.6"

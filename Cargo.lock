@@ -1883,6 +1883,7 @@ name = "react-native-wgpu"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "bytemuck",
  "deno_core",
  "deno_error",
  "env_logger",
