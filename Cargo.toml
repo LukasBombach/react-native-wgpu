@@ -1,0 +1,15 @@
+[package]
+name = "react-native-wgpu"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+anyhow = "1.0.95"
+deno_core = "0.338.0"
+env_logger = "0.11.6"
+pollster = "0.4.0"
+serde = { version = "1.0.217", features = ["derive"] }
+serde_json = "1.0.138"
+tokio = { version = "1.43.0", features = ["full"] }
+wgpu = "24.0.1"
+winit = "0.29"
