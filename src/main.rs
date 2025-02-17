@@ -159,7 +159,6 @@ struct Renderer<'a> {
     instance_capacity: usize,
     uniform_buffer: wgpu::Buffer,
     uniform_bind_group: wgpu::BindGroup,
-    window: Arc<Window>,
 }
 
 impl Renderer<'_> {
@@ -318,7 +317,6 @@ impl Renderer<'_> {
             instance_capacity,
             uniform_buffer,
             uniform_bind_group,
-            window,
         }
     }
 
