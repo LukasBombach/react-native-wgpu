@@ -451,7 +451,9 @@ async fn main() -> anyhow::Result<()> {
                         // Hole die aktuellen Dreiecke aus dem globalen Zustand
                         let triangles = {
                             let state = app_state_render.lock().unwrap();
-                            state.triangles.clone()
+                            let triangles = state.triangles.clone();
+                            println!("Current triangles: {:?}", triangles);
+                            triangles
                         };
                         // Wandele sie in Instanz-Daten um
                         let instances: Vec<Instance> = triangles
