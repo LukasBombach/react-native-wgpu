@@ -37,7 +37,6 @@ fn op_create_triangle(
     state: &mut OpState,
     #[serde] input: TriangleInput,
 ) -> Result<(), deno_error::JsErrorBox> {
-    // Hole den globalen Zustand aus dem OpState.
     let app_state = state.borrow::<Arc<Mutex<AppState>>>().clone();
     {
         let mut app_state = app_state.lock().unwrap();
@@ -160,17 +159,18 @@ struct Renderer<'a> {
     instance_capacity: usize,
     uniform_buffer: wgpu::Buffer,
     uniform_bind_group: wgpu::BindGroup,
-    window: Window,
+    window: Arc<Window>,
 }
 
 impl Renderer<'_> {
     async fn new(window: Window) -> Self {
+        let window = Arc::new(window);
         let size = window.inner_size();
         let instance_wgpu = wgpu::Instance::new(&wgpu::InstanceDescriptor {
             backends: wgpu::Backends::all(),
             ..Default::default()
         });
-        let surface = instance_wgpu.create_surface(&window).unwrap();
+        let surface = instance_wgpu.create_surface(window.clone()).unwrap();
         let adapter = instance_wgpu
             .request_adapter(&wgpu::RequestAdapterOptions {
                 power_preference: wgpu::PowerPreference::HighPerformance,
@@ -184,7 +184,6 @@ impl Renderer<'_> {
                 &wgpu::DeviceDescriptor {
                     label: None,
                     required_features: wgpu::Features::empty(),
-                    // Make sure we use the texture resolution limits from the adapter, so we can support images the size of the swapchain.
                     required_limits: wgpu::Limits::downlevel_webgl2_defaults()
                         .using_resolution(adapter.limits()),
                     memory_hints: wgpu::MemoryHints::MemoryUsage,
@@ -323,10 +322,6 @@ impl Renderer<'_> {
         }
     }
 
-    fn window(&self) -> &Window {
-        &self.window
-    }
-
     fn resize(&mut self, new_size: winit::dpi::PhysicalSize<u32>) {
         self.config.width = new_size.width;
         self.config.height = new_size.height;
@@ -375,7 +370,7 @@ impl Renderer<'_> {
             render_pass.set_bind_group(0, &self.uniform_bind_group, &[]);
             render_pass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
             render_pass.set_vertex_buffer(1, self.instance_buffer.slice(..));
-            // Zeichnet alle Instanzen – wir nutzen hier als Instanzanzahl die Länge des übergebenen Arrays.
+            // Zeichnet alle Instanzen – hier nutzen wir als Instanzanzahl die Kapazität (kann auch dynamisch anhand der tatsächlichen Anzahl gesetzt werden)
             render_pass.draw(0..VERTICES.len() as u32, 0..self.instance_capacity as u32);
         }
 
@@ -436,54 +431,54 @@ async fn main() -> anyhow::Result<()> {
     let mut renderer = Renderer::new(window).await;
     let app_state_render = app_state.clone();
 
-    event_loop
-        .run(move |event, target| {
-            // *control_flow = ControlFlow::Poll;
+    event_loop.run(move |event, target| {
+        // Have the closure take ownership of the resources.
+        // `event_loop.run` never returns, therefore we must do this to ensure
+        // the resources are properly cleaned up.
+
+        //let _ = (&instance, &adapter, &shader, &pipeline_layout);
+
+        if let Event::WindowEvent {
+            window_id: _,
+            event,
+        } = event
+        {
             match event {
-                Event::WindowEvent {
-                    ref event,
-                    window_id,
-                } if window_id == renderer.window().id() => match event {
-                    WindowEvent::CloseRequested => target.exit(),
-                    WindowEvent::Resized(physical_size) => renderer.resize(*physical_size),
-                    // WindowEvent::ScaleFactorChanged { new_inner_size, .. } => {
-                    //     renderer.resize(**new_inner_size)
-                    // }
-                    WindowEvent::RedrawRequested if window_id == renderer.window().id() => {
-                        // Hole die aktuellen Dreiecke aus dem globalen Zustand
-                        let triangles = {
-                            let state = app_state_render.lock().unwrap();
-                            state.triangles.clone()
-                        };
-                        // Wandele sie in Instanz-Daten um
-                        let instances: Vec<Instance> = triangles
-                            .iter()
-                            .map(|tri| Instance {
-                                position: [tri.position.0, tri.position.1],
-                                size: tri.size,
-                                _padding: 0.0,
-                                color: tri.color,
-                            })
-                            .collect();
-                        renderer.update(&instances);
-                        match renderer.render() {
-                            Ok(_) => {}
-                            Err(wgpu::SurfaceError::Lost) => {
-                                renderer.resize(renderer.window().inner_size())
-                            }
-                            Err(wgpu::SurfaceError::OutOfMemory) => target.exit(),
-                            Err(e) => eprintln!("{:?}", e),
+                WindowEvent::CloseRequested => target.exit(),
+                // WindowEvent::Resized(physical_size) => renderer.resize(*physical_size),
+                WindowEvent::RedrawRequested => {
+                    // Hole die aktuellen Dreiecke aus dem globalen Zustand
+                    let triangles = {
+                        let state = app_state_render.lock().unwrap();
+                        state.triangles.clone()
+                    };
+                    // Wandele sie in Instanz-Daten um
+                    let instances: Vec<Instance> = triangles
+                        .iter()
+                        .map(|tri| Instance {
+                            position: [tri.position.0, tri.position.1],
+                            size: tri.size,
+                            _padding: 0.0,
+                            color: tri.color,
+                        })
+                        .collect();
+                    renderer.update(&instances);
+                    match renderer.render() {
+                        Ok(_) => {}
+                        Err(wgpu::SurfaceError::Lost) => {
+                            // renderer.resize(renderer.window.inner_size())
                         }
+                        Err(wgpu::SurfaceError::OutOfMemory) => target.exit(),
+                        Err(e) => eprintln!("{:?}", e),
                     }
-                    _ => {}
-                },
+                }
 
                 // Event::MainEventsCleared => {
-                //     renderer.window().request_redraw();
+                //     window.request_redraw();
                 // }
                 _ => {}
             }
-        })
-        .unwrap();
+        }
+    });
     Ok(())
 }
