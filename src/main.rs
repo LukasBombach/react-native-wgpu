@@ -431,54 +431,56 @@ async fn main() -> anyhow::Result<()> {
     let mut renderer = Renderer::new(window).await;
     let app_state_render = app_state.clone();
 
-    event_loop.run(move |event, target| {
-        // Have the closure take ownership of the resources.
-        // `event_loop.run` never returns, therefore we must do this to ensure
-        // the resources are properly cleaned up.
+    event_loop
+        .run(move |event, target| {
+            // Have the closure take ownership of the resources.
+            // `event_loop.run` never returns, therefore we must do this to ensure
+            // the resources are properly cleaned up.
 
-        //let _ = (&instance, &adapter, &shader, &pipeline_layout);
+            //let _ = (&instance, &adapter, &shader, &pipeline_layout);
 
-        if let Event::WindowEvent {
-            window_id: _,
-            event,
-        } = event
-        {
-            match event {
-                WindowEvent::CloseRequested => target.exit(),
-                // WindowEvent::Resized(physical_size) => renderer.resize(*physical_size),
-                WindowEvent::RedrawRequested => {
-                    // Hole die aktuellen Dreiecke aus dem globalen Zustand
-                    let triangles = {
-                        let state = app_state_render.lock().unwrap();
-                        state.triangles.clone()
-                    };
-                    // Wandele sie in Instanz-Daten um
-                    let instances: Vec<Instance> = triangles
-                        .iter()
-                        .map(|tri| Instance {
-                            position: [tri.position.0, tri.position.1],
-                            size: tri.size,
-                            _padding: 0.0,
-                            color: tri.color,
-                        })
-                        .collect();
-                    renderer.update(&instances);
-                    match renderer.render() {
-                        Ok(_) => {}
-                        Err(wgpu::SurfaceError::Lost) => {
-                            // renderer.resize(renderer.window.inner_size())
+            if let Event::WindowEvent {
+                window_id: _,
+                event,
+            } = event
+            {
+                match event {
+                    WindowEvent::CloseRequested => target.exit(),
+                    WindowEvent::Resized(physical_size) => renderer.resize(physical_size),
+                    WindowEvent::RedrawRequested => {
+                        // Hole die aktuellen Dreiecke aus dem globalen Zustand
+                        let triangles = {
+                            let state = app_state_render.lock().unwrap();
+                            state.triangles.clone()
+                        };
+                        // Wandele sie in Instanz-Daten um
+                        let instances: Vec<Instance> = triangles
+                            .iter()
+                            .map(|tri| Instance {
+                                position: [tri.position.0, tri.position.1],
+                                size: tri.size,
+                                _padding: 0.0,
+                                color: tri.color,
+                            })
+                            .collect();
+                        renderer.update(&instances);
+                        match renderer.render() {
+                            Ok(_) => {}
+                            Err(wgpu::SurfaceError::Lost) => {
+                                // renderer.resize(renderer.window.inner_size())
+                            }
+                            Err(wgpu::SurfaceError::OutOfMemory) => target.exit(),
+                            Err(e) => eprintln!("{:?}", e),
                         }
-                        Err(wgpu::SurfaceError::OutOfMemory) => target.exit(),
-                        Err(e) => eprintln!("{:?}", e),
                     }
-                }
 
-                // Event::MainEventsCleared => {
-                //     window.request_redraw();
-                // }
-                _ => {}
+                    // Event::MainEventsCleared => {
+                    //     window.request_redraw();
+                    // }
+                    _ => {}
+                }
             }
-        }
-    });
+        })
+        .unwrap();
     Ok(())
 }
