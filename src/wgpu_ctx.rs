@@ -62,6 +62,7 @@ impl<'window> WgpuCtx<'window> {
             })
             .await
             .expect("Failed to find an appropriate adapter");
+
         // Create the logical device and command queue
         let (device, queue) = adapter
             .request_device(
@@ -80,11 +81,14 @@ impl<'window> WgpuCtx<'window> {
 
         // Get the internal physical pixel dimensions of the window (without title bar)
         let size = window.inner_size();
+
         // At least (w = 1, h = 1), otherwise Wgpu will panic
         let width = size.width.max(1);
         let height = size.height.max(1);
+
         // Get a default configuration
         let surface_config = surface.get_default_config(&adapter, width, height).unwrap();
+
         // Complete first configuration
         surface.configure(&device, &surface_config);
 
@@ -125,9 +129,11 @@ impl<'window> WgpuCtx<'window> {
             .surface
             .get_current_texture()
             .expect("Failed to acquire next swap chain texture");
+
         let texture_view = surface_texture
             .texture
             .create_view(&wgpu::TextureViewDescriptor::default());
+
         let mut encoder = self
             .device
             .create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
@@ -151,10 +157,12 @@ impl<'window> WgpuCtx<'window> {
                 timestamp_writes: None,
                 occlusion_query_set: None,
             });
+
             rpass.set_pipeline(&self.render_pipeline);
             rpass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
             rpass.draw(0..self.num_vertices, 0..1);
         }
+
         self.queue.submit(Some(encoder.finish()));
         surface_texture.present();
     }
@@ -169,6 +177,7 @@ fn create_pipeline(
         label: None,
         source: ShaderSource::Wgsl(Cow::Borrowed(include_str!("shader.wgsl"))),
     });
+
     device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
         label: None,
         layout: None,
