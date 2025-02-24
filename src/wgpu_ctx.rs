@@ -1,5 +1,8 @@
+use bytemuck::Pod;
+use bytemuck::Zeroable;
 use std::borrow::Cow;
 use std::sync::Arc;
+use wgpu::util::DeviceExt;
 use wgpu::MemoryHints::Performance;
 use wgpu::ShaderSource;
 use winit::window::Window;
@@ -10,7 +13,52 @@ pub struct WgpuCtx<'window> {
     device: wgpu::Device,
     queue: wgpu::Queue,
     render_pipeline: wgpu::RenderPipeline,
+    vertex_buffer: wgpu::Buffer,
+    num_vertices: u32,
 }
+
+#[repr(C)]
+#[derive(Copy, Clone, Debug, Pod, Zeroable)]
+struct Vertex {
+    position: [f32; 3],
+    color: [f32; 3],
+}
+
+impl Vertex {
+    fn desc() -> wgpu::VertexBufferLayout<'static> {
+        wgpu::VertexBufferLayout {
+            array_stride: std::mem::size_of::<Vertex>() as wgpu::BufferAddress,
+            step_mode: wgpu::VertexStepMode::Vertex,
+            attributes: &[
+                wgpu::VertexAttribute {
+                    offset: 0,
+                    shader_location: 0,
+                    format: wgpu::VertexFormat::Float32x3,
+                },
+                wgpu::VertexAttribute {
+                    offset: std::mem::size_of::<[f32; 3]>() as wgpu::BufferAddress,
+                    shader_location: 1,
+                    format: wgpu::VertexFormat::Float32x3,
+                },
+            ],
+        }
+    }
+}
+
+const VERTICES: &[Vertex] = &[
+    Vertex {
+        position: [0.0, 0.5, 0.0],
+        color: [1.0, 0.0, 0.0],
+    },
+    Vertex {
+        position: [-0.5, -0.5, 0.0],
+        color: [0.0, 1.0, 0.0],
+    },
+    Vertex {
+        position: [0.5, -0.5, 0.0],
+        color: [0.0, 0.0, 1.0],
+    },
+];
 
 impl<'window> WgpuCtx<'window> {
     pub async fn new_async(window: Arc<Window>) -> WgpuCtx<'window> {
@@ -51,7 +99,15 @@ impl<'window> WgpuCtx<'window> {
         // Complete first configuration
         surface.configure(&device, &surface_config);
 
+        let vertex_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: Some("Vertex Buffer"),
+            contents: bytemuck::cast_slice(VERTICES),
+            usage: wgpu::BufferUsages::VERTEX,
+        });
+
         let render_pipeline = create_pipeline(&device, surface_config.format);
+
+        let num_vertices = VERTICES.len() as u32;
 
         WgpuCtx {
             surface,
@@ -59,6 +115,8 @@ impl<'window> WgpuCtx<'window> {
             device,
             queue,
             render_pipeline,
+            vertex_buffer,
+            num_vertices,
         }
     }
 
@@ -105,7 +163,8 @@ impl<'window> WgpuCtx<'window> {
                 occlusion_query_set: None,
             });
             rpass.set_pipeline(&self.render_pipeline);
-            rpass.draw(0..3, 0..1);
+            rpass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
+            rpass.draw(0..self.num_vertices, 0..1);
         }
         self.queue.submit(Some(encoder.finish()));
         surface_texture.present();
@@ -127,7 +186,7 @@ fn create_pipeline(
         vertex: wgpu::VertexState {
             module: &shader,
             entry_point: Some("vs_main"),
-            buffers: &[],
+            buffers: &[Vertex::desc()],
             compilation_options: Default::default(),
         },
         fragment: Some(wgpu::FragmentState {
