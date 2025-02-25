@@ -17,8 +17,6 @@ pub struct WgpuCtx<'window> {
     index_buffer: wgpu::Buffer,
     num_indices: u32,
     instance_buffer: wgpu::Buffer,
-    surface_uniform: SurfaceUniform,
-    surface_buffer: wgpu::Buffer,
     surface_bind_group: wgpu::BindGroup,
 }
 
@@ -259,8 +257,6 @@ impl<'window> WgpuCtx<'window> {
             index_buffer,
             num_indices,
             instance_buffer,
-            surface_uniform,
-            surface_buffer,
             surface_bind_group,
         }
     }
