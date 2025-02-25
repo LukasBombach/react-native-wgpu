@@ -1,5 +1,5 @@
 struct SurfaceUniform {
-    dimensions: vec2<u32>,
+    size: vec2<f32>,
 };
 
 @group(0) @binding(0) 
@@ -21,7 +21,7 @@ struct InstanceInput {
 
 @vertex
 fn vs_main(
-    model: VertexInput,
+    vertex: VertexInput,
     instance: InstanceInput,
     @builtin(vertex_index) vertex_index: u32
 ) -> VertexOutput {
@@ -32,8 +32,13 @@ fn vs_main(
         vec4f(0, 0, 1, 1), // blue
     );
 
+    let ndc_pos = vec2<f32>(
+        (instance.position.x / surface.size.x) * 2.0 - 1.0,
+        1.0 - (instance.position.y / surface.size.y) * 2.0
+    );
+
     var output: VertexOutput;
-    output.clip_position = vec4<f32>(model.position + instance.position, 1.0, 1.0);
+    output.clip_position = vec4<f32>(vertex.position + ndc_pos, 1.0, 1.0);
     output.color = color[vertex_index];
     return output;
 }

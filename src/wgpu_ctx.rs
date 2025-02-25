@@ -26,7 +26,7 @@ pub struct WgpuCtx<'window> {
 // This is so we can store this in a buffer
 #[derive(Debug, Copy, Clone, bytemuck::Pod, bytemuck::Zeroable)]
 struct SurfaceUniform {
-    dimensions: [u32; 2],
+    size: [f32; 2],
 }
 
 #[repr(C)]
@@ -49,7 +49,7 @@ impl Vertex {
     }
 }
 
-const VERTICES: &[Vertex] = &[
+/* const VERTICES: &[Vertex] = &[
     Vertex {
         position: [-1.0, -1.0],
     },
@@ -61,6 +61,21 @@ const VERTICES: &[Vertex] = &[
     },
     Vertex {
         position: [-1.0, 0.0],
+    },
+]; */
+
+const VERTICES: &[Vertex] = &[
+    Vertex {
+        position: [-0.5, -0.5],
+    },
+    Vertex {
+        position: [0.5, -0.5],
+    },
+    Vertex {
+        position: [0.5, 0.5],
+    },
+    Vertex {
+        position: [-0.5, 0.5],
     },
 ];
 
@@ -86,20 +101,9 @@ impl Instance {
     }
 }
 
-const INSTANCES: &[Instance] = &[
-    Instance {
-        position: [0.0, 0.0],
-    },
-    Instance {
-        position: [1.0, 1.0],
-    },
-    Instance {
-        position: [0.0, 1.0],
-    },
-    Instance {
-        position: [1.0, 0.0],
-    },
-];
+const INSTANCES: &[Instance] = &[Instance {
+    position: [500.0, 300.0],
+}];
 
 impl<'window> WgpuCtx<'window> {
     pub async fn new_async(window: Arc<Window>) -> WgpuCtx<'window> {
@@ -145,7 +149,7 @@ impl<'window> WgpuCtx<'window> {
         surface.configure(&device, &surface_config);
 
         let surface_uniform = SurfaceUniform {
-            dimensions: [width, height],
+            size: [width as f32, height as f32],
         };
 
         let surface_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
