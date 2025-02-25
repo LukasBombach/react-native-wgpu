@@ -39,8 +39,10 @@ fn vs_main(
 
     let ndc_pos = instance.position / surface.size;
 
+    let bs_scale = vec2<f32>(1.0, 1.0);
+
     var output: VertexOutput;
-    output.clip_position = vec4<f32>(vertex.position + ndc_pos, 1.0, 1.0);
+    output.clip_position = vec4<f32>((vertex.position * bs_scale) + ndc_pos, 1.0, 1.0);
     output.color = color[vertex_index];
     return output;
 }

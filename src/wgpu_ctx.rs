@@ -70,16 +70,16 @@ impl Instance {
 
 const VERTICES: &[Vertex] = &[
     Vertex {
-        position: [-1.0, -1.0],
-    },
-    Vertex {
-        position: [0.0, -1.0],
-    },
-    Vertex {
         position: [0.0, 0.0],
     },
     Vertex {
-        position: [-1.0, 0.0],
+        position: [1.0, 0.0],
+    },
+    Vertex {
+        position: [1.0, 1.0],
+    },
+    Vertex {
+        position: [0.0, 1.0],
     },
 ];
 
