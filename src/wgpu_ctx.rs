@@ -116,7 +116,7 @@ const VERTICES: &[Vertex] = &[
 const INDICES: &[u16] = &[0, 1, 2, 0, 2, 3];
 
 const INSTANCES: &[Instance] = &[Instance {
-    position: [500.0, 100.0],
+    position: [20.0, 20.0],
 }];
 
 impl<'window> WgpuCtx<'window> {

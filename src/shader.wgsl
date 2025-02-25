@@ -33,8 +33,8 @@ fn vs_main(
     );
 
     let ndc_pos = vec2<f32>(
-        (instance.position.x / surface.size.x) * 2.0 - 1.0,
-        1.0 - (instance.position.y / surface.size.y) * 2.0
+        (instance.position.x / surface.size.x) * 2.0 ,
+        (instance.position.y / surface.size.y) * 2.0
     );
 
     var output: VertexOutput;
