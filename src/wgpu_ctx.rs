@@ -18,6 +18,7 @@ pub struct WgpuCtx<'window> {
     num_indices: u32,
     instance_buffer: wgpu::Buffer,
     surface_bind_group: wgpu::BindGroup,
+    surface_buffer: wgpu::Buffer,
 }
 
 #[repr(C)]
@@ -47,38 +48,6 @@ impl Vertex {
     }
 }
 
-/* const VERTICES: &[Vertex] = &[
-    Vertex {
-        position: [-1.0, -1.0],
-    },
-    Vertex {
-        position: [0.0, -1.0],
-    },
-    Vertex {
-        position: [0.0, 0.0],
-    },
-    Vertex {
-        position: [-1.0, 0.0],
-    },
-]; */
-
-const VERTICES: &[Vertex] = &[
-    Vertex {
-        position: [-0.5, -0.5],
-    },
-    Vertex {
-        position: [0.5, -0.5],
-    },
-    Vertex {
-        position: [0.5, 0.5],
-    },
-    Vertex {
-        position: [-0.5, 0.5],
-    },
-];
-
-const INDICES: &[u16] = &[0, 1, 2, 0, 2, 3];
-
 #[repr(C)]
 #[derive(Copy, Clone, Debug, Pod, Zeroable)]
 struct Instance {
@@ -99,8 +68,55 @@ impl Instance {
     }
 }
 
+/* const VERTICES: &[Vertex] = &[
+    Vertex {
+        position: [-1.0, -1.0],
+    },
+    Vertex {
+        position: [0.0, -1.0],
+    },
+    Vertex {
+        position: [0.0, 0.0],
+    },
+    Vertex {
+        position: [-1.0, 0.0],
+    },
+]; */
+
+/* const VERTICES: &[Vertex] = &[
+    Vertex {
+        position: [-0.5, -0.5],
+    },
+    Vertex {
+        position: [0.5, -0.5],
+    },
+    Vertex {
+        position: [0.5, 0.5],
+    },
+    Vertex {
+        position: [-0.5, 0.5],
+    },
+]; */
+
+const VERTICES: &[Vertex] = &[
+    Vertex {
+        position: [-1.0, -1.0],
+    },
+    Vertex {
+        position: [0.0, -1.0],
+    },
+    Vertex {
+        position: [0.0, 0.0],
+    },
+    Vertex {
+        position: [-1.0, 0.0],
+    },
+];
+
+const INDICES: &[u16] = &[0, 1, 2, 0, 2, 3];
+
 const INSTANCES: &[Instance] = &[Instance {
-    position: [500.0, 300.0],
+    position: [500.0, 100.0],
 }];
 
 impl<'window> WgpuCtx<'window> {
@@ -258,6 +274,7 @@ impl<'window> WgpuCtx<'window> {
             num_indices,
             instance_buffer,
             surface_bind_group,
+            surface_buffer,
         }
     }
 
@@ -270,6 +287,17 @@ impl<'window> WgpuCtx<'window> {
         self.surface_config.width = width.max(1);
         self.surface_config.height = height.max(1);
         self.surface.configure(&self.device, &self.surface_config);
+
+        // update surface buffer with the new size
+        let surface_uniform = SurfaceUniform {
+            size: [width as f32, height as f32],
+        };
+
+        self.queue.write_buffer(
+            &self.surface_buffer,
+            0,
+            bytemuck::cast_slice(&[surface_uniform]),
+        );
     }
 
     pub fn draw(&mut self) {
@@ -285,6 +313,7 @@ impl<'window> WgpuCtx<'window> {
         let mut encoder = self
             .device
             .create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
+
         {
             let mut rpass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                 label: None,
