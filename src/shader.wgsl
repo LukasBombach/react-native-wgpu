@@ -1,3 +1,10 @@
+struct SurfaceUniform {
+    dimensions: vec2<u32>,
+};
+
+@group(0) @binding(0) 
+var<uniform> surface: SurfaceUniform;
+
 struct VertexInput {
     @location(0) position: vec2<f32>,
 };
