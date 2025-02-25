@@ -32,10 +32,12 @@ fn vs_main(
         vec4f(0, 0, 1, 1), // blue
     );
 
-    let ndc_pos = vec2<f32>(
-        (instance.position.x / surface.size.x) * 2.0,
-        (instance.position.y / surface.size.y) * 2.0
-    );
+    // let ndc_pos = vec2<f32>(
+    //     (instance.position.x / surface.size.x),
+    //     (instance.position.y / surface.size.y)
+    // );
+
+    let ndc_pos = instance.position / surface.size;
 
     var output: VertexOutput;
     output.clip_position = vec4<f32>(vertex.position + ndc_pos, 1.0, 1.0);
