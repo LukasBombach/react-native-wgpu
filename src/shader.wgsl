@@ -7,9 +7,15 @@ struct VertexOutput {
     @location(0) color: vec4f,
 };
 
+struct InstanceInput {
+    @location(1) position: vec2<f32>,
+};
+
+
 @vertex
 fn vs_main(
     model: VertexInput,
+    instance: InstanceInput,
     @builtin(vertex_index) vertex_index: u32
 ) -> VertexOutput {
 
@@ -20,7 +26,7 @@ fn vs_main(
     );
 
     var output: VertexOutput;
-    output.clip_position = vec4<f32>(model.position, 1.0, 1.0);
+    output.clip_position = vec4<f32>(model.position + instance.position, 1.0, 1.0);
     output.color = color[vertex_index];
     return output;
 }

@@ -16,6 +16,7 @@ pub struct WgpuCtx<'window> {
     vertex_buffer: wgpu::Buffer,
     index_buffer: wgpu::Buffer,
     num_indices: u32,
+    instance_buffer: wgpu::Buffer,
 }
 
 #[repr(C)]
@@ -40,20 +41,55 @@ impl Vertex {
 
 const VERTICES: &[Vertex] = &[
     Vertex {
-        position: [-0.5, 0.5],
+        position: [-1.0, -1.0],
     },
     Vertex {
-        position: [0.5, 0.5],
+        position: [0.0, -1.0],
     },
     Vertex {
-        position: [0.5, -0.5],
+        position: [0.0, 0.0],
     },
     Vertex {
-        position: [-0.5, -0.5],
+        position: [-1.0, 0.0],
     },
 ];
 
 const INDICES: &[u16] = &[0, 1, 2, 0, 2, 3];
+
+#[repr(C)]
+#[derive(Copy, Clone, Debug, Pod, Zeroable)]
+struct Instance {
+    position: [f32; 2],
+}
+
+impl Instance {
+    fn desc() -> wgpu::VertexBufferLayout<'static> {
+        wgpu::VertexBufferLayout {
+            array_stride: std::mem::size_of::<Instance>() as wgpu::BufferAddress,
+            step_mode: wgpu::VertexStepMode::Instance,
+            attributes: &[wgpu::VertexAttribute {
+                offset: 0,
+                shader_location: 1,
+                format: wgpu::VertexFormat::Float32x2,
+            }],
+        }
+    }
+}
+
+const INSTANCES: &[Instance] = &[
+    Instance {
+        position: [0.0, 0.0],
+    },
+    Instance {
+        position: [1.0, 1.0],
+    },
+    Instance {
+        position: [0.0, 1.0],
+    },
+    Instance {
+        position: [1.0, 0.0],
+    },
+];
 
 impl<'window> WgpuCtx<'window> {
     pub async fn new_async(window: Arc<Window>) -> WgpuCtx<'window> {
@@ -114,6 +150,12 @@ impl<'window> WgpuCtx<'window> {
 
         let num_indices = INDICES.len() as u32;
 
+        let instance_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: Some("Instance Buffer"),
+            contents: bytemuck::cast_slice(&INSTANCES),
+            usage: wgpu::BufferUsages::VERTEX,
+        });
+
         WgpuCtx {
             surface,
             surface_config,
@@ -123,6 +165,7 @@ impl<'window> WgpuCtx<'window> {
             vertex_buffer,
             index_buffer,
             num_indices,
+            instance_buffer,
         }
     }
 
@@ -173,8 +216,9 @@ impl<'window> WgpuCtx<'window> {
 
             rpass.set_pipeline(&self.render_pipeline);
             rpass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
-            rpass.set_index_buffer(self.index_buffer.slice(..), wgpu::IndexFormat::Uint16); // 1.
-            rpass.draw_indexed(0..self.num_indices, 0, 0..1);
+            rpass.set_vertex_buffer(1, self.instance_buffer.slice(..));
+            rpass.set_index_buffer(self.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
+            rpass.draw_indexed(0..self.num_indices, 0, 0..INSTANCES.len() as _);
         }
 
         self.queue.submit(Some(encoder.finish()));
@@ -198,7 +242,7 @@ fn create_pipeline(
         vertex: wgpu::VertexState {
             module: &shader,
             entry_point: Some("vs_main"),
-            buffers: &[Vertex::desc()],
+            buffers: &[Vertex::desc(), Instance::desc()],
             compilation_options: Default::default(),
         },
         fragment: Some(wgpu::FragmentState {
