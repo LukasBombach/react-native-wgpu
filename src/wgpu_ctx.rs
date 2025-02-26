@@ -70,23 +70,23 @@ impl Instance {
 
 const VERTICES: &[Vertex] = &[
     Vertex {
-        position: [0.0, 0.0],
+        position: [0.0, 1.0], // left top
     },
     Vertex {
-        position: [1.0, 0.0],
+        position: [0.0, 0.0], // left bottom
     },
     Vertex {
-        position: [1.0, 1.0],
+        position: [1.0, 0.0], // right bottom
     },
     Vertex {
-        position: [0.0, 1.0],
+        position: [1.0, 1.0], // right top
     },
 ];
 
 const INDICES: &[u16] = &[0, 1, 2, 0, 2, 3];
 
 const INSTANCES: &[Instance] = &[Instance {
-    position: [20.0, 20.0],
+    position: [50.0, 50.0],
 }];
 
 impl<'window> WgpuCtx<'window> {
