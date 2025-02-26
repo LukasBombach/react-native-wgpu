@@ -19,10 +19,10 @@ pub struct WgpuCtx<'window> {
     instance_buffer: wgpu::Buffer,
     surface_bind_group: wgpu::BindGroup,
     surface_buffer: wgpu::Buffer,
+    rects: Vec<Instance>,
 }
 
 #[repr(C)]
-// This is so we can store this in a buffer
 #[derive(Debug, Copy, Clone, bytemuck::Pod, bytemuck::Zeroable)]
 struct SurfaceUniform {
     size: [f32; 2],
@@ -93,23 +93,23 @@ const VERTICES: &[Vertex] = &[
 
 const INDICES: &[u16] = &[0, 1, 2, 0, 2, 3];
 
-const INSTANCES: &[Instance] = &[
-    Instance {
-        position: [100.0, 100.0],
-        size: [200.0, 200.0],
-    },
-    Instance {
-        position: [400.0, 100.0],
-        size: [200.0, 200.0],
-    },
-    Instance {
-        position: [700.0, 100.0],
-        size: [200.0, 200.0],
-    },
-];
-
 impl<'window> WgpuCtx<'window> {
     pub async fn new_async(window: Arc<Window>) -> WgpuCtx<'window> {
+        let rects: Vec<Instance> = vec![
+            Instance {
+                position: [100.0, 100.0],
+                size: [200.0, 200.0],
+            },
+            Instance {
+                position: [400.0, 100.0],
+                size: [200.0, 200.0],
+            },
+            Instance {
+                position: [700.0, 100.0],
+                size: [200.0, 200.0],
+            },
+        ];
+
         let instance = wgpu::Instance::default();
         let surface = instance.create_surface(Arc::clone(&window)).unwrap();
         let adapter = instance
@@ -177,7 +177,7 @@ impl<'window> WgpuCtx<'window> {
 
         let instance_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("Instance Buffer"),
-            contents: bytemuck::cast_slice(&INSTANCES),
+            contents: bytemuck::cast_slice(&rects),
             usage: wgpu::BufferUsages::VERTEX,
         });
 
@@ -264,6 +264,7 @@ impl<'window> WgpuCtx<'window> {
             instance_buffer,
             surface_bind_group,
             surface_buffer,
+            rects,
         }
     }
 
@@ -329,7 +330,7 @@ impl<'window> WgpuCtx<'window> {
             rpass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
             rpass.set_vertex_buffer(1, self.instance_buffer.slice(..));
             rpass.set_index_buffer(self.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
-            rpass.draw_indexed(0..self.num_indices, 0, 0..INSTANCES.len() as _);
+            rpass.draw_indexed(0..self.num_indices, 0, 0..self.rects.len() as _);
         }
 
         self.queue.submit(Some(encoder.finish()));
