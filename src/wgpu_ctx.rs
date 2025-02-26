@@ -52,6 +52,7 @@ impl Vertex {
 #[derive(Copy, Clone, Debug, Pod, Zeroable)]
 struct Instance {
     position: [f32; 2],
+    size: [f32; 2],
 }
 
 impl Instance {
@@ -59,11 +60,18 @@ impl Instance {
         wgpu::VertexBufferLayout {
             array_stride: std::mem::size_of::<Instance>() as wgpu::BufferAddress,
             step_mode: wgpu::VertexStepMode::Instance,
-            attributes: &[wgpu::VertexAttribute {
-                offset: 0,
-                shader_location: 1,
-                format: wgpu::VertexFormat::Float32x2,
-            }],
+            attributes: &[
+                wgpu::VertexAttribute {
+                    offset: 0,
+                    shader_location: 1,
+                    format: wgpu::VertexFormat::Float32x2,
+                },
+                wgpu::VertexAttribute {
+                    offset: std::mem::size_of::<[f32; 2]>() as wgpu::BufferAddress,
+                    shader_location: 2,
+                    format: wgpu::VertexFormat::Float32x2,
+                },
+            ],
         }
     }
 }
@@ -87,6 +95,7 @@ const INDICES: &[u16] = &[0, 1, 2, 0, 2, 3];
 
 const INSTANCES: &[Instance] = &[Instance {
     position: [50.0, 50.0],
+    size: [100.0, 100.0],
 }];
 
 impl<'window> WgpuCtx<'window> {

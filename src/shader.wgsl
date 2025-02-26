@@ -16,6 +16,7 @@ struct VertexOutput {
 
 struct InstanceInput {
     @location(1) position: vec2<f32>,
+    @location(2) size: vec2<f32>,
 };
 
 
