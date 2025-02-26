@@ -93,10 +93,20 @@ const VERTICES: &[Vertex] = &[
 
 const INDICES: &[u16] = &[0, 1, 2, 0, 2, 3];
 
-const INSTANCES: &[Instance] = &[Instance {
-    position: [50.0, 50.0],
-    size: [100.0, 100.0],
-}];
+const INSTANCES: &[Instance] = &[
+    Instance {
+        position: [100.0, 100.0],
+        size: [200.0, 200.0],
+    },
+    Instance {
+        position: [400.0, 100.0],
+        size: [200.0, 200.0],
+    },
+    Instance {
+        position: [700.0, 100.0],
+        size: [200.0, 200.0],
+    },
+];
 
 impl<'window> WgpuCtx<'window> {
     pub async fn new_async(window: Arc<Window>) -> WgpuCtx<'window> {
