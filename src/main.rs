@@ -3,7 +3,7 @@ use winit::error::EventLoopError;
 use winit::event_loop::{ControlFlow, EventLoop};
 
 mod app;
-mod wgpu_ctx;
+mod gpu;
 
 fn main() -> Result<(), EventLoopError> {
     let event_loop = EventLoop::new().unwrap();

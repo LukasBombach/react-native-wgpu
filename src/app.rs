@@ -5,12 +5,12 @@ use winit::event::WindowEvent;
 use winit::event_loop::ActiveEventLoop;
 use winit::window::{Window, WindowId};
 
-use crate::wgpu_ctx::WgpuCtx;
+use crate::gpu::Gpu;
 
 #[derive(Default)]
 pub struct App<'window> {
     window: Option<Arc<Window>>,
-    wgpu_ctx: Option<WgpuCtx<'window>>,
+    gpu: Option<Gpu<'window>>,
 }
 
 impl<'window> ApplicationHandler for App<'window> {
@@ -24,8 +24,8 @@ impl<'window> ApplicationHandler for App<'window> {
                     .expect("create window err."),
             );
             self.window = Some(window.clone());
-            let wgpu_ctx = WgpuCtx::new(window.clone());
-            self.wgpu_ctx = Some(wgpu_ctx);
+            let gpu = Gpu::new(window.clone());
+            self.gpu = Some(gpu);
         }
     }
 
@@ -42,16 +42,14 @@ impl<'window> ApplicationHandler for App<'window> {
                 event_loop.exit();
             }
             WindowEvent::Resized(new_size) => {
-                if let (Some(wgpu_ctx), Some(window)) =
-                    (self.wgpu_ctx.as_mut(), self.window.as_ref())
-                {
-                    wgpu_ctx.resize((new_size.width, new_size.height));
+                if let (Some(gpu), Some(window)) = (self.gpu.as_mut(), self.window.as_ref()) {
+                    gpu.resize((new_size.width, new_size.height));
                     window.request_redraw();
                 }
             }
             WindowEvent::RedrawRequested => {
-                if let Some(wgpu_ctx) = self.wgpu_ctx.as_mut() {
-                    wgpu_ctx.draw();
+                if let Some(gpu) = self.gpu.as_mut() {
+                    gpu.draw();
                 }
             }
             _ => (),

@@ -7,7 +7,7 @@ use wgpu::MemoryHints::Performance;
 use wgpu::ShaderSource;
 use winit::window::Window;
 
-pub struct WgpuCtx<'window> {
+pub struct Gpu<'window> {
     surface: wgpu::Surface<'window>,
     surface_config: wgpu::SurfaceConfiguration,
     device: wgpu::Device,
@@ -93,8 +93,8 @@ const VERTICES: &[Vertex] = &[
 
 const INDICES: &[u16] = &[0, 1, 2, 0, 2, 3];
 
-impl<'window> WgpuCtx<'window> {
-    pub async fn new_async(window: Arc<Window>) -> WgpuCtx<'window> {
+impl<'window> Gpu<'window> {
+    pub async fn new_async(window: Arc<Window>) -> Gpu<'window> {
         let rects: Vec<Instance> = vec![
             Instance {
                 position: [100.0, 100.0],
@@ -252,7 +252,7 @@ impl<'window> WgpuCtx<'window> {
             cache: None,
         });
 
-        WgpuCtx {
+        Gpu {
             surface,
             surface_config,
             device,
@@ -268,8 +268,8 @@ impl<'window> WgpuCtx<'window> {
         }
     }
 
-    pub fn new(window: Arc<Window>) -> WgpuCtx<'window> {
-        pollster::block_on(WgpuCtx::new_async(window))
+    pub fn new(window: Arc<Window>) -> Gpu<'window> {
+        pollster::block_on(Gpu::new_async(window))
     }
 
     pub fn resize(&mut self, new_size: (u32, u32)) {
