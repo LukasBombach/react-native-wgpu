@@ -1,3 +1,4 @@
+use bytemuck::cast_slice;
 use bytemuck::Pod;
 use bytemuck::Zeroable;
 use std::borrow::Cow;
@@ -23,7 +24,7 @@ pub struct Gpu<'window> {
 }
 
 #[repr(C)]
-#[derive(Debug, Copy, Clone, bytemuck::Pod, bytemuck::Zeroable)]
+#[derive(Debug, Copy, Clone, Pod, Zeroable)]
 struct SurfaceUniform {
     size: [f32; 2],
 }
@@ -157,19 +158,19 @@ impl<'window> Gpu<'window> {
 
         let surface_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("Surface Buffer"),
-            contents: bytemuck::cast_slice(&[surface_uniform]),
+            contents: cast_slice(&[surface_uniform]),
             usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
         });
 
         let vertex_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("Vertex Buffer"),
-            contents: bytemuck::cast_slice(VERTICES),
+            contents: cast_slice(VERTICES),
             usage: wgpu::BufferUsages::VERTEX,
         });
 
         let index_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("Index Buffer"),
-            contents: bytemuck::cast_slice(INDICES),
+            contents: cast_slice(INDICES),
             usage: wgpu::BufferUsages::INDEX,
         });
 
@@ -177,7 +178,7 @@ impl<'window> Gpu<'window> {
 
         let instance_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("Instance Buffer"),
-            contents: bytemuck::cast_slice(&rects),
+            contents: cast_slice(&rects),
             usage: wgpu::BufferUsages::VERTEX,
         });
 
@@ -283,11 +284,8 @@ impl<'window> Gpu<'window> {
             size: [width as f32, height as f32],
         };
 
-        self.queue.write_buffer(
-            &self.surface_buffer,
-            0,
-            bytemuck::cast_slice(&[surface_uniform]),
-        );
+        self.queue
+            .write_buffer(&self.surface_buffer, 0, cast_slice(&[surface_uniform]));
     }
 
     pub fn draw(&mut self) {
