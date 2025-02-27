@@ -18,15 +18,17 @@ pub struct Gpu<'window> {
     index_buffer: wgpu::Buffer,
     num_indices: u32,
     instance_buffer: wgpu::Buffer,
-    surface_bind_group: wgpu::BindGroup,
-    surface_buffer: wgpu::Buffer,
+
     rects: Vec<Instance>,
+
+    uniform_buffer: wgpu::Buffer,
+    uniform_bind_group: wgpu::BindGroup,
 }
 
 #[repr(C)]
 #[derive(Debug, Copy, Clone, Pod, Zeroable)]
-struct SurfaceUniform {
-    size: [f32; 2],
+struct Uniforms {
+    screen_size: [f32; 2],
 }
 
 #[repr(C)]
@@ -95,6 +97,10 @@ const VERTICES: &[Vertex] = &[
 const INDICES: &[u16] = &[0, 1, 2, 0, 2, 3];
 
 impl<'window> Gpu<'window> {
+    pub fn new(window: Arc<Window>) -> Gpu<'window> {
+        pollster::block_on(Gpu::new_async(window))
+    }
+
     pub async fn new_async(window: Arc<Window>) -> Gpu<'window> {
         let rects: Vec<Instance> = vec![
             Instance {
@@ -152,13 +158,13 @@ impl<'window> Gpu<'window> {
         // Complete first configuration
         surface.configure(&device, &surface_config);
 
-        let surface_uniform = SurfaceUniform {
-            size: [width as f32, height as f32],
+        let uniforms = Uniforms {
+            screen_size: [width as f32, height as f32],
         };
 
-        let surface_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-            label: Some("Surface Buffer"),
-            contents: cast_slice(&[surface_uniform]),
+        let uniform_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: Some("Uniform Buffer"),
+            contents: cast_slice(&[uniforms]),
             usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
         });
 
@@ -182,8 +188,9 @@ impl<'window> Gpu<'window> {
             usage: wgpu::BufferUsages::VERTEX,
         });
 
-        let surface_bind_group_layout =
+        let uniform_bind_group_layout =
             device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+                label: Some("Uniform Bind Group Layout"),
                 entries: &[wgpu::BindGroupLayoutEntry {
                     binding: 0,
                     visibility: wgpu::ShaderStages::VERTEX,
@@ -194,22 +201,21 @@ impl<'window> Gpu<'window> {
                     },
                     count: None,
                 }],
-                label: Some("surface_bind_group_layout"),
             });
 
-        let surface_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
-            layout: &surface_bind_group_layout,
+        let uniform_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+            label: Some("Uniform Bind Group"),
+            layout: &uniform_bind_group_layout,
             entries: &[wgpu::BindGroupEntry {
                 binding: 0,
-                resource: surface_buffer.as_entire_binding(),
+                resource: uniform_buffer.as_entire_binding(),
             }],
-            label: Some("surface_bind_group"),
         });
 
         let render_pipeline_layout =
             device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
                 label: Some("Render Pipeline Layout"),
-                bind_group_layouts: &[&surface_bind_group_layout],
+                bind_group_layouts: &[&uniform_bind_group_layout],
                 push_constant_ranges: &[],
             });
 
@@ -263,14 +269,12 @@ impl<'window> Gpu<'window> {
             index_buffer,
             num_indices,
             instance_buffer,
-            surface_bind_group,
-            surface_buffer,
-            rects,
-        }
-    }
 
-    pub fn new(window: Arc<Window>) -> Gpu<'window> {
-        pollster::block_on(Gpu::new_async(window))
+            rects,
+
+            uniform_buffer,
+            uniform_bind_group,
+        }
     }
 
     pub fn resize(&mut self, new_size: (u32, u32)) {
@@ -280,12 +284,12 @@ impl<'window> Gpu<'window> {
         self.surface.configure(&self.device, &self.surface_config);
 
         // update surface buffer with the new size
-        let surface_uniform = SurfaceUniform {
-            size: [width as f32, height as f32],
+        let surface_uniform = Uniforms {
+            screen_size: [width as f32, height as f32],
         };
 
         self.queue
-            .write_buffer(&self.surface_buffer, 0, cast_slice(&[surface_uniform]));
+            .write_buffer(&self.uniform_buffer, 0, cast_slice(&[surface_uniform]));
     }
 
     pub fn draw(&mut self) {
@@ -324,7 +328,7 @@ impl<'window> Gpu<'window> {
             });
 
             rpass.set_pipeline(&self.render_pipeline);
-            rpass.set_bind_group(0, &self.surface_bind_group, &[]);
+            rpass.set_bind_group(0, &self.uniform_bind_group, &[]);
             rpass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
             rpass.set_vertex_buffer(1, self.instance_buffer.slice(..));
             rpass.set_index_buffer(self.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
