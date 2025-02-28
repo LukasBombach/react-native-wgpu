@@ -53,6 +53,8 @@ impl<'window> Gpu<'window> {
 
     pub async fn new_async(window: Arc<Window>) -> Gpu<'window> {
         let size = window.inner_size();
+        let width = size.width.max(1);
+        let height = size.height.max(1);
 
         /*
          * wgpu
@@ -84,9 +86,7 @@ impl<'window> Gpu<'window> {
             .await
             .expect("Failed to create device");
 
-        let config = surface
-            .get_default_config(&adapter, size.width.max(1), size.height.max(1))
-            .unwrap();
+        let config = surface.get_default_config(&adapter, width, height).unwrap();
 
         surface.configure(&device, &config);
 
@@ -137,9 +137,9 @@ impl<'window> Gpu<'window> {
 
         let num_indices = indices.len() as u32;
 
-        // At least (w = 1, h = 1), otherwise Wgpu will panic
-        let width = size.width.max(1);
-        let height = size.height.max(1);
+        /*
+         * uniforms
+         */
 
         let uniforms = Uniforms {
             screen_size: [width as f32, height as f32],
@@ -175,17 +175,25 @@ impl<'window> Gpu<'window> {
             }],
         });
 
+        /*
+         * shader
+         */
+
+        let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
+            label: None,
+            source: ShaderSource::Wgsl(Cow::Borrowed(include_str!("shader.wgsl"))),
+        });
+
+        /*
+         * pipeline
+         */
+
         let render_pipeline_layout =
             device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
                 label: Some("Render Pipeline Layout"),
                 bind_group_layouts: &[&uniform_bind_group_layout],
                 push_constant_ranges: &[],
             });
-
-        let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
-            label: None,
-            source: ShaderSource::Wgsl(Cow::Borrowed(include_str!("shader.wgsl"))),
-        });
 
         let render_pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
             label: None,
