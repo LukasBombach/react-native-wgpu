@@ -16,15 +16,18 @@ struct Uniforms {
 
 #[repr(C)]
 #[derive(Copy, Clone, Debug, Pod, Zeroable)]
-struct Vertex {
-    position: [f32; 2],
+struct Instance {
+    pos: [f32; 2],
+    size: [f32; 2],
 }
 
-#[repr(C)]
-#[derive(Copy, Clone, Debug, Pod, Zeroable)]
-struct Instance {
-    position: [f32; 2],
-    size: [f32; 2],
+impl Instance {
+    fn new(x: f32, y: f32, width: f32, height: f32) -> Self {
+        Self {
+            pos: [x, y],
+            size: [width, height],
+        }
+    }
 }
 
 pub struct Gpu<'window> {
@@ -51,18 +54,9 @@ impl<'window> Gpu<'window> {
 
     pub async fn new_async(window: Arc<Window>) -> Gpu<'window> {
         let rects: Vec<Instance> = vec![
-            Instance {
-                position: [100.0, 100.0],
-                size: [200.0, 200.0],
-            },
-            Instance {
-                position: [400.0, 100.0],
-                size: [200.0, 200.0],
-            },
-            Instance {
-                position: [700.0, 100.0],
-                size: [200.0, 200.0],
-            },
+            Instance::new(100.0, 100.0, 200.0, 200.0),
+            Instance::new(400.0, 100.0, 200.0, 200.0),
+            Instance::new(700.0, 100.0, 200.0, 200.0),
         ];
 
         let instance = wgpu::Instance::default();
@@ -189,7 +183,7 @@ impl<'window> Gpu<'window> {
                 entry_point: Some("vs_main"),
                 buffers: &[
                     wgpu::VertexBufferLayout {
-                        array_stride: std::mem::size_of::<Vertex>() as wgpu::BufferAddress,
+                        array_stride: std::mem::size_of::<[f32; 2]>() as wgpu::BufferAddress,
                         step_mode: wgpu::VertexStepMode::Vertex,
                         attributes: &[wgpu::VertexAttribute {
                             offset: 0,
