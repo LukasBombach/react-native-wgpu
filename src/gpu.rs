@@ -111,13 +111,9 @@ impl<'window> Gpu<'window> {
         });
         let instance_count = rects.len() as u32;
 
-        // At least (w = 1, h = 1), otherwise Wgpu will panic
-        let width = size.width.max(1);
-        let height = size.height.max(1);
-
-        let uniforms = Uniforms {
-            screen_size: [width as f32, height as f32],
-        };
+        /*
+         * vertices
+         */
 
         let vertices: [[f32; 2]; 4] = [
             [0.0, 1.0], // left top
@@ -125,14 +121,7 @@ impl<'window> Gpu<'window> {
             [1.0, 0.0], // right bottom
             [1.0, 1.0], // right top
         ];
-
         let indices: [u16; 6] = [0, 1, 2, 0, 2, 3];
-
-        let uniform_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-            label: Some("Uniform Buffer"),
-            contents: cast_slice(&[uniforms]),
-            usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
-        });
 
         let vertex_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("Vertex Buffer"),
@@ -147,6 +136,20 @@ impl<'window> Gpu<'window> {
         });
 
         let num_indices = indices.len() as u32;
+
+        // At least (w = 1, h = 1), otherwise Wgpu will panic
+        let width = size.width.max(1);
+        let height = size.height.max(1);
+
+        let uniforms = Uniforms {
+            screen_size: [width as f32, height as f32],
+        };
+
+        let uniform_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: Some("Uniform Buffer"),
+            contents: cast_slice(&[uniforms]),
+            usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+        });
 
         let uniform_bind_group_layout =
             device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
