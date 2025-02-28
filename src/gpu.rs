@@ -8,23 +8,6 @@ use wgpu::MemoryHints::Performance;
 use wgpu::ShaderSource;
 use winit::window::Window;
 
-pub struct Gpu<'window> {
-    surface: wgpu::Surface<'window>,
-    surface_config: wgpu::SurfaceConfiguration,
-    device: wgpu::Device,
-    queue: wgpu::Queue,
-    render_pipeline: wgpu::RenderPipeline,
-    vertex_buffer: wgpu::Buffer,
-    index_buffer: wgpu::Buffer,
-    num_indices: u32,
-    instance_buffer: wgpu::Buffer,
-
-    rects: Vec<Instance>,
-
-    uniform_buffer: wgpu::Buffer,
-    uniform_bind_group: wgpu::BindGroup,
-}
-
 #[repr(C)]
 #[derive(Debug, Copy, Clone, Pod, Zeroable)]
 struct Uniforms {
@@ -44,7 +27,7 @@ struct Instance {
     size: [f32; 2],
 }
 
-const VERTICES: &[Vertex] = &[
+const VERTICES: [Vertex; 4] = [
     Vertex {
         position: [0.0, 1.0], // left top
     },
@@ -59,7 +42,24 @@ const VERTICES: &[Vertex] = &[
     },
 ];
 
-const INDICES: &[u16] = &[0, 1, 2, 0, 2, 3];
+const INDICES: [u16; 6] = [0, 1, 2, 0, 2, 3];
+
+pub struct Gpu<'window> {
+    surface: wgpu::Surface<'window>,
+    surface_config: wgpu::SurfaceConfiguration,
+    device: wgpu::Device,
+    queue: wgpu::Queue,
+    render_pipeline: wgpu::RenderPipeline,
+    vertex_buffer: wgpu::Buffer,
+    index_buffer: wgpu::Buffer,
+    num_indices: u32,
+    instance_buffer: wgpu::Buffer,
+
+    rects: Vec<Instance>,
+
+    uniform_buffer: wgpu::Buffer,
+    uniform_bind_group: wgpu::BindGroup,
+}
 
 impl<'window> Gpu<'window> {
     pub fn new(window: Arc<Window>) -> Gpu<'window> {
@@ -135,13 +135,13 @@ impl<'window> Gpu<'window> {
 
         let vertex_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("Vertex Buffer"),
-            contents: cast_slice(VERTICES),
+            contents: cast_slice(&VERTICES),
             usage: wgpu::BufferUsages::VERTEX,
         });
 
         let index_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("Index Buffer"),
-            contents: cast_slice(INDICES),
+            contents: cast_slice(&INDICES),
             usage: wgpu::BufferUsages::INDEX,
         });
 
