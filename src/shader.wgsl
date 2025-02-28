@@ -20,29 +20,12 @@ fn vs_main(
         vec4f(0, 0, 1, 1), // blue
     );
 
-    let ndc_pos = (
-        (
-            // Scale the rect to the instance size
-            vert_pos * (inst_size / view_size) * 2.0
-            // Move the rect from the center to the top left of the screen
-            + vec2<f32>(-1.0, 1.0)
-            // Move by the height of the instance (ndc = *2) because
-            // the rect ist anchored to the top left of its instance
-            + (inst_size / view_size) * vec2<f32>(0.0, -2.0)
-        )
-
-        + (
-            // Convert instance pixel position to NDC
-            (inst_pos / view_size)
-            
-            // Flip Y axis (NDC Y axis is inverted) and  Scale to NDC (NDC 0-1 is only half of the screen)
-            * vec2<f32>(2.0, -2.0)
-
-        )
-    );
+    let pos = inst_pos + vert_pos * inst_size;
+    let ndc_x = (pos.x / view_size.x) * 2.0 - 1.0;
+    let ndc_y = 1.0 - (pos.y / view_size.y) * 2.0;
 
     var output: VertexOutput;
-    output.clip_position = vec4<f32>(ndc_pos, 1.0, 1.0);
+    output.clip_position = vec4<f32>(ndc_x, ndc_y, 1.0, 1.0);
     output.color = color[vert_index];
     return output;
 }
