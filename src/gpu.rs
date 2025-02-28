@@ -40,8 +40,7 @@ pub struct Gpu<'window> {
     index_buffer: wgpu::Buffer,
     num_indices: u32,
     instance_buffer: wgpu::Buffer,
-
-    rects: Vec<Instance>,
+    instance_count: u32,
 
     uniform_buffer: wgpu::Buffer,
     uniform_bind_group: wgpu::BindGroup,
@@ -91,6 +90,27 @@ impl<'window> Gpu<'window> {
 
         surface.configure(&device, &config);
 
+        /*
+         * rects
+         */
+
+        let rects: Vec<Instance> = vec![
+            Instance::new(100.0, 100.0, 200.0, 200.0),
+            Instance::new(400.0, 100.0, 200.0, 200.0),
+            Instance::new(700.0, 100.0, 200.0, 200.0),
+        ];
+
+        /*
+         * instances
+         */
+
+        let instance_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: Some("Instance Buffer"),
+            contents: cast_slice(&rects),
+            usage: wgpu::BufferUsages::VERTEX,
+        });
+        let instance_count = rects.len() as u32;
+
         // At least (w = 1, h = 1), otherwise Wgpu will panic
         let width = size.width.max(1);
         let height = size.height.max(1);
@@ -98,12 +118,6 @@ impl<'window> Gpu<'window> {
         let uniforms = Uniforms {
             screen_size: [width as f32, height as f32],
         };
-
-        let rects: Vec<Instance> = vec![
-            Instance::new(100.0, 100.0, 200.0, 200.0),
-            Instance::new(400.0, 100.0, 200.0, 200.0),
-            Instance::new(700.0, 100.0, 200.0, 200.0),
-        ];
 
         let vertices: [[f32; 2]; 4] = [
             [0.0, 1.0], // left top
@@ -133,12 +147,6 @@ impl<'window> Gpu<'window> {
         });
 
         let num_indices = indices.len() as u32;
-
-        let instance_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-            label: Some("Instance Buffer"),
-            contents: cast_slice(&rects),
-            usage: wgpu::BufferUsages::VERTEX,
-        });
 
         let uniform_bind_group_layout =
             device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
@@ -247,8 +255,7 @@ impl<'window> Gpu<'window> {
             index_buffer,
             num_indices,
             instance_buffer,
-
-            rects,
+            instance_count,
 
             uniform_buffer,
             uniform_bind_group,
@@ -310,7 +317,7 @@ impl<'window> Gpu<'window> {
             rpass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
             rpass.set_vertex_buffer(1, self.instance_buffer.slice(..));
             rpass.set_index_buffer(self.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
-            rpass.draw_indexed(0..self.num_indices, 0, 0..self.rects.len() as _);
+            rpass.draw_indexed(0..self.num_indices, 0, 0..self.instance_count as _);
         }
 
         self.queue.submit(Some(encoder.finish()));
