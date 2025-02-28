@@ -110,19 +110,11 @@ impl<'window> Gpu<'window> {
             screen_size: [width as f32, height as f32],
         };
 
-        let vertices: [Vertex; 4] = [
-            Vertex {
-                position: [0.0, 1.0], // left top
-            },
-            Vertex {
-                position: [0.0, 0.0], // left bottom
-            },
-            Vertex {
-                position: [1.0, 0.0], // right bottom
-            },
-            Vertex {
-                position: [1.0, 1.0], // right top
-            },
+        let vertices: [[f32; 2]; 4] = [
+            [0.0, 1.0], // left top
+            [0.0, 0.0], // left bottom
+            [1.0, 0.0], // right bottom
+            [1.0, 1.0], // right top
         ];
 
         let indices: [u16; 6] = [0, 1, 2, 0, 2, 3];
