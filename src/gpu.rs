@@ -267,7 +267,6 @@ impl<'window> Gpu<'window> {
             num_indices,
             instance_buffer,
             instance_count,
-
             uniform_buffer,
             uniform_bind_group,
         }
@@ -279,7 +278,6 @@ impl<'window> Gpu<'window> {
         self.config.height = height.max(1);
         self.surface.configure(&self.device, &self.config);
 
-        // update surface buffer with the new size
         let surface_uniform = Uniforms {
             screen_size: [width as f32, height as f32],
         };
