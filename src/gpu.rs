@@ -32,7 +32,7 @@ impl Instance {
 
 pub struct Gpu<'window> {
     surface: wgpu::Surface<'window>,
-    surface_config: wgpu::SurfaceConfiguration,
+    config: wgpu::SurfaceConfiguration,
     device: wgpu::Device,
     queue: wgpu::Queue,
     render_pipeline: wgpu::RenderPipeline,
@@ -53,31 +53,29 @@ impl<'window> Gpu<'window> {
     }
 
     pub async fn new_async(window: Arc<Window>) -> Gpu<'window> {
-        let rects: Vec<Instance> = vec![
-            Instance::new(100.0, 100.0, 200.0, 200.0),
-            Instance::new(400.0, 100.0, 200.0, 200.0),
-            Instance::new(700.0, 100.0, 200.0, 200.0),
-        ];
+        let size = window.inner_size();
+
+        /*
+         * wgpu
+         */
 
         let instance = wgpu::Instance::default();
         let surface = instance.create_surface(Arc::clone(&window)).unwrap();
+
         let adapter = instance
             .request_adapter(&wgpu::RequestAdapterOptions {
                 power_preference: wgpu::PowerPreference::default(),
                 force_fallback_adapter: false,
-                // Request an adapter which can render to our surface
                 compatible_surface: Some(&surface),
             })
             .await
             .expect("Failed to find an appropriate adapter");
 
-        // Create the logical device and command queue
         let (device, queue) = adapter
             .request_device(
                 &wgpu::DeviceDescriptor {
                     label: None,
                     required_features: wgpu::Features::empty(),
-                    // Make sure we use the texture resolution limits from the adapter, so we can support images the size of the swapchain.
                     required_limits: wgpu::Limits::downlevel_webgl2_defaults()
                         .using_resolution(adapter.limits()),
                     memory_hints: Performance,
@@ -87,22 +85,25 @@ impl<'window> Gpu<'window> {
             .await
             .expect("Failed to create device");
 
-        // Get the internal physical pixel dimensions of the window (without title bar)
-        let size = window.inner_size();
+        let config = surface
+            .get_default_config(&adapter, size.width.max(1), size.height.max(1))
+            .unwrap();
+
+        surface.configure(&device, &config);
 
         // At least (w = 1, h = 1), otherwise Wgpu will panic
         let width = size.width.max(1);
         let height = size.height.max(1);
 
-        // Get a default configuration
-        let surface_config = surface.get_default_config(&adapter, width, height).unwrap();
-
-        // Complete first configuration
-        surface.configure(&device, &surface_config);
-
         let uniforms = Uniforms {
             screen_size: [width as f32, height as f32],
         };
+
+        let rects: Vec<Instance> = vec![
+            Instance::new(100.0, 100.0, 200.0, 200.0),
+            Instance::new(400.0, 100.0, 200.0, 200.0),
+            Instance::new(700.0, 100.0, 200.0, 200.0),
+        ];
 
         let vertices: [[f32; 2]; 4] = [
             [0.0, 1.0], // left top
@@ -214,7 +215,7 @@ impl<'window> Gpu<'window> {
                 module: &shader,
                 entry_point: Some("fs_main"),
                 compilation_options: Default::default(),
-                targets: &[Some(surface_config.format.into())],
+                targets: &[Some(config.format.into())],
             }),
             primitive: wgpu::PrimitiveState {
                 topology: wgpu::PrimitiveTopology::TriangleList,
@@ -238,7 +239,7 @@ impl<'window> Gpu<'window> {
 
         Gpu {
             surface,
-            surface_config,
+            config,
             device,
             queue,
             render_pipeline,
@@ -256,9 +257,9 @@ impl<'window> Gpu<'window> {
 
     pub fn resize(&mut self, new_size: (u32, u32)) {
         let (width, height) = new_size;
-        self.surface_config.width = width.max(1);
-        self.surface_config.height = height.max(1);
-        self.surface.configure(&self.device, &self.surface_config);
+        self.config.width = width.max(1);
+        self.config.height = height.max(1);
+        self.surface.configure(&self.device, &self.config);
 
         // update surface buffer with the new size
         let surface_uniform = Uniforms {
