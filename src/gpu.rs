@@ -272,10 +272,16 @@ impl<'window> Gpu<'window> {
         }
     }
 
-    pub fn resize(&mut self, new_size: (u32, u32)) {
-        let (width, height) = new_size;
-        self.config.width = width.max(1);
-        self.config.height = height.max(1);
+    pub fn resize(&mut self, width: u32, height: u32) {
+        let width = width.max(1);
+        let height = height.max(1);
+
+        self.config.width = width;
+        self.config.height = height;
+
+        // block until the GPU is idle to reduce gliting
+        self.device.poll(wgpu::Maintain::Wait);
+
         self.surface.configure(&self.device, &self.config);
 
         let surface_uniform = Uniforms {

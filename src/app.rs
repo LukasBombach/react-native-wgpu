@@ -41,9 +41,9 @@ impl<'window> ApplicationHandler for App<'window> {
                 // This will be fixed as winit 0.30.1.
                 event_loop.exit();
             }
-            WindowEvent::Resized(new_size) => {
+            WindowEvent::Resized(size) => {
                 if let Some(gpu) = self.gpu.as_mut() {
-                    gpu.resize((new_size.width, new_size.height));
+                    gpu.resize(size.width, size.height);
                 }
             }
             WindowEvent::RedrawRequested => {
