@@ -43,6 +43,7 @@ pub struct Gpu<'window> {
     instance_count: u32,
 
     uniform_buffer: wgpu::Buffer,
+    staging_buffer: wgpu::Buffer,
     uniform_bind_group: wgpu::BindGroup,
 }
 
@@ -149,6 +150,12 @@ impl<'window> Gpu<'window> {
             label: Some("Uniform Buffer"),
             contents: cast_slice(&[uniforms]),
             usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+        });
+
+        let staging_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: Some("Staging Buffer"),
+            contents: cast_slice(&[uniforms]),
+            usage: wgpu::BufferUsages::COPY_SRC | wgpu::BufferUsages::COPY_DST,
         });
 
         let uniform_bind_group_layout =
@@ -268,49 +275,86 @@ impl<'window> Gpu<'window> {
             instance_buffer,
             instance_count,
             uniform_buffer,
+            staging_buffer,
             uniform_bind_group,
         }
     }
 
     pub fn resize(&mut self, width: u32, height: u32) {
+        //        let width = width.max(1);
+        //        let height = height.max(1);
+        //
+        //        self.config.width = width;
+        //        self.config.height = height;
+        //
+        //        // block until the GPU is idle to reduce gliting
+        //        self.device.poll(wgpu::Maintain::Wait);
+        //
+        //        self.surface.configure(&self.device, &self.config);
+        //
+        //        let surface_uniform = Uniforms {
+        //            screen_size: [width as f32, height as f32],
+        //        };
+        //
+        //        self.queue
+        //            .write_buffer(&self.uniform_buffer, 0, cast_slice(&[surface_uniform]));
+
         let width = width.max(1);
         let height = height.max(1);
 
         self.config.width = width;
         self.config.height = height;
 
-        // block until the GPU is idle to reduce gliting
+        // block until the GPU is idle to reduce glitching
         self.device.poll(wgpu::Maintain::Wait);
-
         self.surface.configure(&self.device, &self.config);
 
-        let surface_uniform = Uniforms {
-            screen_size: [width as f32, height as f32],
-        };
+        let new_uniform_data = [width as f32, height as f32];
+        self.queue.write_buffer(
+            &self.staging_buffer,
+            0,
+            bytemuck::cast_slice(&new_uniform_data),
+        );
 
-        self.queue
-            .write_buffer(&self.uniform_buffer, 0, cast_slice(&[surface_uniform]));
+        // reduce glitching: wait for the GPU to finish
+        let mut encoder = self
+            .device
+            .create_command_encoder(&wgpu::CommandEncoderDescriptor {
+                label: Some("Uniform Update Encoder"),
+            });
+
+        encoder.copy_buffer_to_buffer(
+            &self.staging_buffer,
+            0,
+            &self.uniform_buffer,
+            0,
+            std::mem::size_of::<[f32; 2]>() as u64,
+        );
+
+        self.queue.submit(Some(encoder.finish()));
     }
 
     pub fn draw(&mut self) {
-        let surface_texture = self
+        let frame = self
             .surface
             .get_current_texture()
             .expect("Failed to acquire next swap chain texture");
 
-        let texture_view = surface_texture
+        let view = frame
             .texture
             .create_view(&wgpu::TextureViewDescriptor::default());
 
         let mut encoder = self
             .device
-            .create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
+            .create_command_encoder(&wgpu::CommandEncoderDescriptor {
+                label: Some("Draw Encoder"),
+            });
 
         {
             let mut rpass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                 label: None,
                 color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                    view: &texture_view,
+                    view: &view,
                     resolve_target: None,
                     ops: wgpu::Operations {
                         load: wgpu::LoadOp::Clear(wgpu::Color {
@@ -336,6 +380,6 @@ impl<'window> Gpu<'window> {
         }
 
         self.queue.submit(Some(encoder.finish()));
-        surface_texture.present();
+        frame.present();
     }
 }
