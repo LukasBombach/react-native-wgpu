@@ -42,9 +42,8 @@ impl<'window> ApplicationHandler for App<'window> {
                 event_loop.exit();
             }
             WindowEvent::Resized(new_size) => {
-                if let (Some(gpu), Some(window)) = (self.gpu.as_mut(), self.window.as_ref()) {
+                if let Some(gpu) = self.gpu.as_mut() {
                     gpu.resize((new_size.width, new_size.height));
-                    window.request_redraw();
                 }
             }
             WindowEvent::RedrawRequested => {
