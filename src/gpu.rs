@@ -27,23 +27,6 @@ struct Instance {
     size: [f32; 2],
 }
 
-const VERTICES: [Vertex; 4] = [
-    Vertex {
-        position: [0.0, 1.0], // left top
-    },
-    Vertex {
-        position: [0.0, 0.0], // left bottom
-    },
-    Vertex {
-        position: [1.0, 0.0], // right bottom
-    },
-    Vertex {
-        position: [1.0, 1.0], // right top
-    },
-];
-
-const INDICES: [u16; 6] = [0, 1, 2, 0, 2, 3];
-
 pub struct Gpu<'window> {
     surface: wgpu::Surface<'window>,
     surface_config: wgpu::SurfaceConfiguration,
@@ -127,6 +110,23 @@ impl<'window> Gpu<'window> {
             screen_size: [width as f32, height as f32],
         };
 
+        let vertices: [Vertex; 4] = [
+            Vertex {
+                position: [0.0, 1.0], // left top
+            },
+            Vertex {
+                position: [0.0, 0.0], // left bottom
+            },
+            Vertex {
+                position: [1.0, 0.0], // right bottom
+            },
+            Vertex {
+                position: [1.0, 1.0], // right top
+            },
+        ];
+
+        let indices: [u16; 6] = [0, 1, 2, 0, 2, 3];
+
         let uniform_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("Uniform Buffer"),
             contents: cast_slice(&[uniforms]),
@@ -135,17 +135,17 @@ impl<'window> Gpu<'window> {
 
         let vertex_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("Vertex Buffer"),
-            contents: cast_slice(&VERTICES),
+            contents: cast_slice(&vertices),
             usage: wgpu::BufferUsages::VERTEX,
         });
 
         let index_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("Index Buffer"),
-            contents: cast_slice(&INDICES),
+            contents: cast_slice(&indices),
             usage: wgpu::BufferUsages::INDEX,
         });
 
-        let num_indices = INDICES.len() as u32;
+        let num_indices = indices.len() as u32;
 
         let instance_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("Instance Buffer"),
