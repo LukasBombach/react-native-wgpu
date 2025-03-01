@@ -315,8 +315,6 @@ impl<'window> Gpu<'window> {
             rpass.set_vertex_buffer(1, self.instance_buffer.slice(..));
             rpass.set_index_buffer(self.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
             rpass.draw_indexed(0..self.num_indices, 0, 0..self.instance_count as _);
-
-            drop(rpass);
         }
 
         self.queue.submit(Some(encoder.finish()));
