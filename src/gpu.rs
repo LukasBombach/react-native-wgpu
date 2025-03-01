@@ -273,6 +273,8 @@ impl<'window> Gpu<'window> {
     }
 
     pub fn resize(&mut self, width: u32, height: u32) {
+        self.device.poll(wgpu::Maintain::Wait);
+
         let width = width.max(1);
         let height = height.max(1);
 
