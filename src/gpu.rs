@@ -9,12 +9,6 @@ use wgpu::ShaderSource;
 use winit::window::Window;
 
 #[repr(C)]
-#[derive(Debug, Copy, Clone, Pod, Zeroable)]
-struct Uniforms {
-    screen_size: [f32; 2],
-}
-
-#[repr(C)]
 #[derive(Copy, Clone, bytemuck::Pod, bytemuck::Zeroable)]
 struct ViewSizePushConstants {
     viewport: [f32; 2],
@@ -47,9 +41,6 @@ pub struct Gpu<'window> {
     num_indices: u32,
     instance_buffer: wgpu::Buffer,
     instance_count: u32,
-
-    uniform_buffer: wgpu::Buffer,
-    uniform_bind_group: wgpu::BindGroup,
 
     viewport: [f32; 2],
 }
@@ -149,44 +140,6 @@ impl<'window> Gpu<'window> {
         let num_indices = indices.len() as u32;
 
         /*
-         * uniforms
-         */
-
-        let uniforms = Uniforms {
-            screen_size: [width as f32, height as f32],
-        };
-
-        let uniform_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-            label: Some("Uniform Buffer"),
-            contents: cast_slice(&[uniforms]),
-            usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
-        });
-
-        let uniform_bind_group_layout =
-            device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-                label: Some("Uniform Bind Group Layout"),
-                entries: &[wgpu::BindGroupLayoutEntry {
-                    binding: 0,
-                    visibility: wgpu::ShaderStages::VERTEX,
-                    ty: wgpu::BindingType::Buffer {
-                        ty: wgpu::BufferBindingType::Uniform,
-                        has_dynamic_offset: false,
-                        min_binding_size: None,
-                    },
-                    count: None,
-                }],
-            });
-
-        let uniform_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
-            label: Some("Uniform Bind Group"),
-            layout: &uniform_bind_group_layout,
-            entries: &[wgpu::BindGroupEntry {
-                binding: 0,
-                resource: uniform_buffer.as_entire_binding(),
-            }],
-        });
-
-        /*
          * shader
          */
 
@@ -200,7 +153,7 @@ impl<'window> Gpu<'window> {
          */
 
         let push_constant_range = wgpu::PushConstantRange {
-            stages: wgpu::ShaderStages::FRAGMENT,
+            stages: wgpu::ShaderStages::VERTEX,
             range: 0..8, // 2x f32 = 8 Bytes
         };
 
@@ -287,8 +240,6 @@ impl<'window> Gpu<'window> {
             num_indices,
             instance_buffer,
             instance_count,
-            uniform_buffer,
-            uniform_bind_group,
             viewport,
         }
     }
@@ -304,12 +255,7 @@ impl<'window> Gpu<'window> {
 
         self.surface.configure(&self.device, &self.config);
 
-        let surface_uniform = Uniforms {
-            screen_size: [width as f32, height as f32],
-        };
-
-        self.queue
-            .write_buffer(&self.uniform_buffer, 0, cast_slice(&[surface_uniform]));
+        self.viewport = [width as f32, height as f32];
     }
 
     pub fn draw(&mut self) {
@@ -355,15 +301,16 @@ impl<'window> Gpu<'window> {
 
             rpass.set_pipeline(&self.render_pipeline);
             rpass.set_push_constants(
-                wgpu::ShaderStages::FRAGMENT,
+                wgpu::ShaderStages::VERTEX,
                 0,
                 bytemuck::bytes_of(&viewport_constants),
             );
-            rpass.set_bind_group(0, &self.uniform_bind_group, &[]);
             rpass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
             rpass.set_vertex_buffer(1, self.instance_buffer.slice(..));
             rpass.set_index_buffer(self.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
             rpass.draw_indexed(0..self.num_indices, 0, 0..self.instance_count as _);
+
+            drop(rpass);
         }
 
         self.queue.submit(Some(encoder.finish()));
