@@ -15,6 +15,12 @@ struct Uniforms {
 }
 
 #[repr(C)]
+#[derive(Copy, Clone, bytemuck::Pod, bytemuck::Zeroable)]
+struct ViewSizePushConstants {
+    viewport: [f32; 2],
+}
+
+#[repr(C)]
 #[derive(Copy, Clone, Debug, Pod, Zeroable)]
 struct Instance {
     pos: [f32; 2],
@@ -44,6 +50,8 @@ pub struct Gpu<'window> {
 
     uniform_buffer: wgpu::Buffer,
     uniform_bind_group: wgpu::BindGroup,
+
+    viewport: [f32; 2],
 }
 
 impl<'window> Gpu<'window> {
@@ -55,6 +63,7 @@ impl<'window> Gpu<'window> {
         let size = window.inner_size();
         let width = size.width.max(1);
         let height = size.height.max(1);
+        let viewport = [width as f32, height as f32];
 
         /*
          * wgpu
@@ -76,9 +85,11 @@ impl<'window> Gpu<'window> {
             .request_device(
                 &wgpu::DeviceDescriptor {
                     label: None,
-                    required_features: wgpu::Features::empty(),
-                    required_limits: wgpu::Limits::downlevel_webgl2_defaults()
-                        .using_resolution(adapter.limits()),
+                    required_features: wgpu::Features::PUSH_CONSTANTS,
+                    required_limits: wgpu::Limits {
+                        max_push_constant_size: 8,
+                        ..Default::default()
+                    },
                     memory_hints: Performance,
                 },
                 None,
@@ -185,14 +196,23 @@ impl<'window> Gpu<'window> {
         });
 
         /*
+         * push constants
+         */
+
+        let push_constant_range = wgpu::PushConstantRange {
+            stages: wgpu::ShaderStages::FRAGMENT,
+            range: 0..8, // 2x f32 = 8 Bytes
+        };
+
+        /*
          * pipeline
          */
 
         let render_pipeline_layout =
             device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
                 label: Some("Render Pipeline Layout"),
-                bind_group_layouts: &[&uniform_bind_group_layout],
-                push_constant_ranges: &[],
+                bind_group_layouts: &[],
+                push_constant_ranges: &[push_constant_range],
             });
 
         let render_pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
@@ -269,6 +289,7 @@ impl<'window> Gpu<'window> {
             instance_count,
             uniform_buffer,
             uniform_bind_group,
+            viewport,
         }
     }
 
@@ -307,6 +328,10 @@ impl<'window> Gpu<'window> {
                 label: Some("Draw Encoder"),
             });
 
+        let viewport_constants = ViewSizePushConstants {
+            viewport: self.viewport,
+        };
+
         {
             let mut rpass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                 label: None,
@@ -329,6 +354,11 @@ impl<'window> Gpu<'window> {
             });
 
             rpass.set_pipeline(&self.render_pipeline);
+            rpass.set_push_constants(
+                wgpu::ShaderStages::FRAGMENT,
+                0,
+                bytemuck::bytes_of(&viewport_constants),
+            );
             rpass.set_bind_group(0, &self.uniform_bind_group, &[]);
             rpass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
             rpass.set_vertex_buffer(1, self.instance_buffer.slice(..));
