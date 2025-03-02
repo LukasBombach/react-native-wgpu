@@ -11,13 +11,13 @@ use winit::window::Window;
 
 #[repr(C)]
 #[derive(Copy, Clone, Debug, Pod, Zeroable)]
-struct Instance {
+pub struct Instance {
     pos: [f32; 2],
     size: [f32; 2],
 }
 
 impl Instance {
-    fn new(x: f32, y: f32, width: f32, height: f32) -> Self {
+    pub fn new(x: f32, y: f32, width: f32, height: f32) -> Self {
         Self {
             pos: [x, y],
             size: [width, height],
@@ -40,11 +40,11 @@ pub struct Gpu<'window> {
 }
 
 impl<'window> Gpu<'window> {
-    pub fn new(window: Arc<Window>) -> Gpu<'window> {
-        pollster::block_on(Gpu::new_async(window))
+    pub fn new(window: Arc<Window>, instances: Vec<Instance>) -> Gpu<'window> {
+        pollster::block_on(Gpu::new_async(window, instances))
     }
 
-    pub async fn new_async(window: Arc<Window>) -> Gpu<'window> {
+    pub async fn new_async(window: Arc<Window>, instances: Vec<Instance>) -> Gpu<'window> {
         /*
          * window
          */
@@ -101,16 +101,6 @@ impl<'window> Gpu<'window> {
         };
 
         /*
-         * rects
-         */
-
-        let rects: Vec<Instance> = vec![
-            Instance::new(100.0, 100.0, 200.0, 200.0),
-            Instance::new(400.0, 100.0, 200.0, 200.0),
-            Instance::new(700.0, 100.0, 200.0, 200.0),
-        ];
-
-        /*
          * vertices
          */
 
@@ -142,10 +132,10 @@ impl<'window> Gpu<'window> {
 
         let instance_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("Instance Buffer"),
-            contents: cast_slice(&rects),
+            contents: cast_slice(&instances),
             usage: wgpu::BufferUsages::VERTEX,
         });
-        let instance_count = rects.len() as u32;
+        let instance_count = instances.len() as u32;
 
         /*
          * shader
@@ -289,5 +279,16 @@ impl<'window> Gpu<'window> {
 
         self.queue.submit(Some(encoder.finish()));
         frame.present();
+    }
+
+    pub fn update_instance_buffer(&mut self, instances: &[Instance]) {
+        self.instance_buffer = self
+            .device
+            .create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                label: Some("Instance Buffer"),
+                contents: cast_slice(instances),
+                usage: wgpu::BufferUsages::VERTEX,
+            });
+        self.instance_count = instances.len() as u32;
     }
 }
