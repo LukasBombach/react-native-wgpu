@@ -5,12 +5,63 @@ use winit::event::WindowEvent;
 use winit::event_loop::ActiveEventLoop;
 use winit::window::{Window, WindowId};
 
+use crate::gpu;
 use crate::gpu::Gpu;
 
-#[derive(Default)]
+#[derive(Copy, Clone, Debug)]
+struct Rect {
+    pos: [u32; 2],
+    size: [u32; 2],
+}
+
+impl Rect {
+    pub fn new(x: u32, y: u32, w: u32, h: u32) -> Self {
+        Self {
+            pos: [x, y],
+            size: [w, h],
+        }
+    }
+
+    pub fn to_instance(&self) -> gpu::Instance {
+        gpu::Instance::new(
+            self.pos[0] as f32,
+            self.pos[1] as f32,
+            self.size[0] as f32,
+            self.size[1] as f32,
+        )
+    }
+}
+
 pub struct App<'window> {
     window: Option<Arc<Window>>,
     gpu: Option<Gpu<'window>>,
+    rects: Vec<Rect>,
+}
+
+impl App<'_> {
+    pub fn new() -> Self {
+        Self {
+            window: None,
+            gpu: None,
+            rects: Vec::new(),
+        }
+    }
+
+    pub fn add_rect(&mut self, x: u32, y: u32, w: u32, h: u32) {
+        self.rects.push(Rect::new(x, y, w, h));
+        self.sync_gpu_instance_buffer();
+    }
+
+    fn rects_to_instances(&self) -> Vec<gpu::Instance> {
+        self.rects.iter().map(|r| r.to_instance()).collect()
+    }
+
+    fn sync_gpu_instance_buffer(&mut self) {
+        let instances = self.rects_to_instances();
+        if let Some(gpu) = self.gpu.as_mut() {
+            gpu.update_instance_buffer(&instances);
+        }
+    }
 }
 
 impl<'window> ApplicationHandler for App<'window> {
@@ -23,7 +74,7 @@ impl<'window> ApplicationHandler for App<'window> {
                     .expect("create window err."),
             );
             self.window = Some(window.clone());
-            let gpu = Gpu::new(window.clone());
+            let gpu = Gpu::new(window.clone(), self.rects_to_instances());
             self.gpu = Some(gpu);
         }
     }
