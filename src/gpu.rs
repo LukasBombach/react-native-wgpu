@@ -1,3 +1,4 @@
+use bytemuck::bytes_of;
 use bytemuck::cast_slice;
 use bytemuck::Pod;
 use bytemuck::Zeroable;
@@ -7,12 +8,6 @@ use wgpu::util::DeviceExt;
 use wgpu::MemoryHints::Performance;
 use wgpu::ShaderSource;
 use winit::window::Window;
-
-#[repr(C)]
-#[derive(Debug, Copy, Clone, Pod, Zeroable)]
-struct Uniforms {
-    screen_size: [f32; 2],
-}
 
 #[repr(C)]
 #[derive(Copy, Clone, Debug, Pod, Zeroable)]
@@ -41,9 +36,7 @@ pub struct Gpu<'window> {
     num_indices: u32,
     instance_buffer: wgpu::Buffer,
     instance_count: u32,
-
-    uniform_buffer: wgpu::Buffer,
-    uniform_bind_group: wgpu::BindGroup,
+    viewport: [f32; 2],
 }
 
 impl<'window> Gpu<'window> {
@@ -52,9 +45,14 @@ impl<'window> Gpu<'window> {
     }
 
     pub async fn new_async(window: Arc<Window>) -> Gpu<'window> {
+        /*
+         * window
+         */
+
         let size = window.inner_size();
         let width = size.width.max(1);
         let height = size.height.max(1);
+        let viewport = [width as f32, height as f32];
 
         /*
          * wgpu
@@ -62,6 +60,7 @@ impl<'window> Gpu<'window> {
 
         let instance = wgpu::Instance::default();
         let surface = instance.create_surface(Arc::clone(&window)).unwrap();
+        let push_const_size = std::mem::size_of::<[f32; 2]>() as u32;
 
         let adapter = instance
             .request_adapter(&wgpu::RequestAdapterOptions {
@@ -76,9 +75,11 @@ impl<'window> Gpu<'window> {
             .request_device(
                 &wgpu::DeviceDescriptor {
                     label: None,
-                    required_features: wgpu::Features::empty(),
-                    required_limits: wgpu::Limits::downlevel_webgl2_defaults()
-                        .using_resolution(adapter.limits()),
+                    required_features: wgpu::Features::PUSH_CONSTANTS,
+                    required_limits: wgpu::Limits {
+                        max_push_constant_size: push_const_size,
+                        ..Default::default()
+                    },
                     memory_hints: Performance,
                 },
                 None,
@@ -91,6 +92,15 @@ impl<'window> Gpu<'window> {
         surface.configure(&device, &config);
 
         /*
+         * push constants
+         */
+
+        let push_constant_range = wgpu::PushConstantRange {
+            stages: wgpu::ShaderStages::VERTEX,
+            range: 0..push_const_size,
+        };
+
+        /*
          * rects
          */
 
@@ -99,17 +109,6 @@ impl<'window> Gpu<'window> {
             Instance::new(400.0, 100.0, 200.0, 200.0),
             Instance::new(700.0, 100.0, 200.0, 200.0),
         ];
-
-        /*
-         * instances
-         */
-
-        let instance_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-            label: Some("Instance Buffer"),
-            contents: cast_slice(&rects),
-            usage: wgpu::BufferUsages::VERTEX,
-        });
-        let instance_count = rects.len() as u32;
 
         /*
          * vertices
@@ -138,42 +137,15 @@ impl<'window> Gpu<'window> {
         let num_indices = indices.len() as u32;
 
         /*
-         * uniforms
+         * instances
          */
 
-        let uniforms = Uniforms {
-            screen_size: [width as f32, height as f32],
-        };
-
-        let uniform_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-            label: Some("Uniform Buffer"),
-            contents: cast_slice(&[uniforms]),
-            usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+        let instance_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: Some("Instance Buffer"),
+            contents: cast_slice(&rects),
+            usage: wgpu::BufferUsages::VERTEX,
         });
-
-        let uniform_bind_group_layout =
-            device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-                label: Some("Uniform Bind Group Layout"),
-                entries: &[wgpu::BindGroupLayoutEntry {
-                    binding: 0,
-                    visibility: wgpu::ShaderStages::VERTEX,
-                    ty: wgpu::BindingType::Buffer {
-                        ty: wgpu::BufferBindingType::Uniform,
-                        has_dynamic_offset: false,
-                        min_binding_size: None,
-                    },
-                    count: None,
-                }],
-            });
-
-        let uniform_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
-            label: Some("Uniform Bind Group"),
-            layout: &uniform_bind_group_layout,
-            entries: &[wgpu::BindGroupEntry {
-                binding: 0,
-                resource: uniform_buffer.as_entire_binding(),
-            }],
-        });
+        let instance_count = rects.len() as u32;
 
         /*
          * shader
@@ -191,8 +163,8 @@ impl<'window> Gpu<'window> {
         let render_pipeline_layout =
             device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
                 label: Some("Render Pipeline Layout"),
-                bind_group_layouts: &[&uniform_bind_group_layout],
-                push_constant_ranges: &[],
+                bind_group_layouts: &[],
+                push_constant_ranges: &[push_constant_range],
             });
 
         let render_pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
@@ -202,6 +174,7 @@ impl<'window> Gpu<'window> {
                 module: &shader,
                 entry_point: Some("vs_main"),
                 buffers: &[
+                    // Vertex buffer
                     wgpu::VertexBufferLayout {
                         array_stride: std::mem::size_of::<[f32; 2]>() as wgpu::BufferAddress,
                         step_mode: wgpu::VertexStepMode::Vertex,
@@ -211,6 +184,7 @@ impl<'window> Gpu<'window> {
                             format: wgpu::VertexFormat::Float32x2,
                         }],
                     },
+                    // Instance buffer
                     wgpu::VertexBufferLayout {
                         array_stride: std::mem::size_of::<Instance>() as wgpu::BufferAddress,
                         step_mode: wgpu::VertexStepMode::Instance,
@@ -238,16 +212,6 @@ impl<'window> Gpu<'window> {
             }),
             primitive: wgpu::PrimitiveState {
                 topology: wgpu::PrimitiveTopology::TriangleList,
-                // strip_index_format: None,
-                // front_face: wgpu::FrontFace::Ccw,
-                // cull_mode: Some(wgpu::Face::Back),
-                // // Setting this to anything other than Fill requires Features::POLYGON_MODE_LINE
-                // // or Features::POLYGON_MODE_POINT
-                // polygon_mode: wgpu::PolygonMode::Fill,
-                // // Requires Features::DEPTH_CLIP_CONTROL
-                // unclipped_depth: false,
-                // // Requires Features::CONSERVATIVE_RASTERIZATION
-                // conservative: false,
                 ..Default::default()
             },
             depth_stencil: None,
@@ -267,31 +231,23 @@ impl<'window> Gpu<'window> {
             num_indices,
             instance_buffer,
             instance_count,
-            uniform_buffer,
-            uniform_bind_group,
+            viewport,
         }
     }
 
-    pub fn resize(&mut self, width: u32, height: u32) {
-        self.device.poll(wgpu::Maintain::Wait);
-
+    pub fn set_size(&mut self, width: u32, height: u32) {
         let width = width.max(1);
         let height = height.max(1);
 
         self.config.width = width;
         self.config.height = height;
-
         self.surface.configure(&self.device, &self.config);
-
-        let surface_uniform = Uniforms {
-            screen_size: [width as f32, height as f32],
-        };
-
-        self.queue
-            .write_buffer(&self.uniform_buffer, 0, cast_slice(&[surface_uniform]));
+        self.viewport = [width as f32, height as f32];
     }
 
     pub fn draw(&mut self) {
+        self.device.poll(wgpu::Maintain::Wait);
+
         let frame = self
             .surface
             .get_current_texture()
@@ -314,12 +270,7 @@ impl<'window> Gpu<'window> {
                     view: &view,
                     resolve_target: None,
                     ops: wgpu::Operations {
-                        load: wgpu::LoadOp::Clear(wgpu::Color {
-                            r: 0.104,
-                            g: 0.133,
-                            b: 0.212,
-                            a: 1.0,
-                        }),
+                        load: wgpu::LoadOp::Clear(wgpu::Color::BLACK),
                         store: wgpu::StoreOp::Store,
                     },
                 })],
@@ -329,7 +280,7 @@ impl<'window> Gpu<'window> {
             });
 
             rpass.set_pipeline(&self.render_pipeline);
-            rpass.set_bind_group(0, &self.uniform_bind_group, &[]);
+            rpass.set_push_constants(wgpu::ShaderStages::VERTEX, 0, bytes_of(&self.viewport));
             rpass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
             rpass.set_vertex_buffer(1, self.instance_buffer.slice(..));
             rpass.set_index_buffer(self.index_buffer.slice(..), wgpu::IndexFormat::Uint16);

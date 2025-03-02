@@ -17,7 +17,6 @@ impl<'window> ApplicationHandler for App<'window> {
     fn resumed(&mut self, event_loop: &ActiveEventLoop) {
         if self.window.is_none() {
             let win_attr = Window::default_attributes().with_title("wgpu winit example");
-            // use Arc.
             let window = Arc::new(
                 event_loop
                     .create_window(win_attr)
@@ -37,13 +36,11 @@ impl<'window> ApplicationHandler for App<'window> {
     ) {
         match event {
             WindowEvent::CloseRequested => {
-                // macOS err: https://github.com/rust-windowing/winit/issues/3668
-                // This will be fixed as winit 0.30.1.
                 event_loop.exit();
             }
             WindowEvent::Resized(size) => {
                 if let Some(gpu) = self.gpu.as_mut() {
-                    gpu.resize(size.width, size.height);
+                    gpu.set_size(size.width, size.height);
                 }
             }
             WindowEvent::RedrawRequested => {
