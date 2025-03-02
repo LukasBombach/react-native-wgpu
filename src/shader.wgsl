@@ -1,5 +1,4 @@
-struct PushConstants { viewport: vec2<f32> }
-var<push_constant> view: PushConstants;
+var<push_constant> viewport: vec2<f32>;
 
 struct VertexOutput {
     @builtin(position) clip_position: vec4<f32>,
@@ -21,8 +20,8 @@ fn vs_main(
     );
 
     let pos = inst_pos + vert_pos * inst_size;
-    let ndc_x = (pos.x / view.viewport.x) * 2.0 - 1.0;
-    let ndc_y = 1.0 - (pos.y / view.viewport.y) * 2.0;
+    let ndc_x = (pos.x / viewport.x) * 2.0 - 1.0;
+    let ndc_y = 1.0 - (pos.y / viewport.y) * 2.0;
 
     var output: VertexOutput;
     output.clip_position = vec4<f32>(ndc_x, ndc_y, 1.0, 1.0);
