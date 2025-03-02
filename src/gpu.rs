@@ -248,22 +248,16 @@ impl<'window> Gpu<'window> {
         let width = width.max(1);
         let height = height.max(1);
 
-        // self.config.width = width;
-        // self.config.height = height;
+        self.config.width = width;
+        self.config.height = height;
 
-        // self.surface.configure(&self.device, &self.config);
+        self.surface.configure(&self.device, &self.config);
 
         self.viewport = [width as f32, height as f32];
     }
 
     pub fn draw(&mut self) {
         self.device.poll(wgpu::Maintain::Wait);
-
-        let [width, height] = self.viewport;
-
-        self.config.width = width as u32;
-        self.config.height = height as u32;
-        self.surface.configure(&self.device, &self.config);
 
         let frame = self
             .surface
@@ -279,10 +273,6 @@ impl<'window> Gpu<'window> {
             .create_command_encoder(&wgpu::CommandEncoderDescriptor {
                 label: Some("Draw Encoder"),
             });
-
-        let viewport_constants = ViewSizePushConstants {
-            viewport: self.viewport,
-        };
 
         {
             let mut rpass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
@@ -309,7 +299,9 @@ impl<'window> Gpu<'window> {
             rpass.set_push_constants(
                 wgpu::ShaderStages::VERTEX,
                 0,
-                bytemuck::bytes_of(&viewport_constants),
+                bytemuck::bytes_of(&ViewSizePushConstants {
+                    viewport: self.viewport,
+                }),
             );
             rpass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
             rpass.set_vertex_buffer(1, self.instance_buffer.slice(..));
