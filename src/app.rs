@@ -1,4 +1,5 @@
 use std::sync::Arc;
+use std::sync::Mutex;
 
 use winit::application::ApplicationHandler;
 use winit::event::WindowEvent;
@@ -10,7 +11,7 @@ use crate::gpu;
 use crate::gpu::Gpu;
 
 #[derive(Copy, Clone, Debug)]
-struct Rect {
+pub struct Rect {
     pos: [u32; 2],
     size: [u32; 2],
 }
@@ -33,30 +34,51 @@ impl Rect {
     }
 }
 
-pub struct App<'window> {
-    window: Option<Arc<Window>>,
-    gpu: Option<Gpu<'window>>,
+pub struct AppState {
     rects: Vec<Rect>,
-    deno: Deno,
 }
 
-impl App<'_> {
+impl AppState {
     pub fn new() -> Self {
-        Self {
-            window: None,
-            gpu: None,
-            rects: Vec::new(),
-            deno: Deno::new(),
-        }
+        Self { rects: Vec::new() }
     }
 
     pub fn add_rect(&mut self, x: u32, y: u32, w: u32, h: u32) {
         self.rects.push(Rect::new(x, y, w, h));
+    }
+}
+
+pub struct App<'window> {
+    window: Option<Arc<Window>>,
+    gpu: Option<Gpu<'window>>,
+    deno: Deno,
+    state: Arc<Mutex<AppState>>,
+}
+
+impl App<'_> {
+    pub fn new() -> Self {
+        let state = Arc::new(Mutex::new(AppState::new()));
+        Self {
+            window: None,
+            gpu: None,
+            state: state.clone(),
+            deno: Deno::new(state.clone()),
+        }
+    }
+
+    pub fn add_rect(&mut self, x: u32, y: u32, w: u32, h: u32) {
+        self.state.lock().unwrap().rects.push(Rect::new(x, y, w, h));
         self.sync_gpu_instance_buffer();
     }
 
     fn rects_to_instances(&self) -> Vec<gpu::Instance> {
-        self.rects.iter().map(|r| r.to_instance()).collect()
+        self.state
+            .lock()
+            .unwrap()
+            .rects
+            .iter()
+            .map(|r| r.to_instance())
+            .collect()
     }
 
     fn sync_gpu_instance_buffer(&mut self) {
