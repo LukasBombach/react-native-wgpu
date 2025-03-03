@@ -5,6 +5,7 @@ use winit::event::WindowEvent;
 use winit::event_loop::ActiveEventLoop;
 use winit::window::{Window, WindowId};
 
+use crate::deno::Deno;
 use crate::gpu;
 use crate::gpu::Gpu;
 
@@ -36,6 +37,7 @@ pub struct App<'window> {
     window: Option<Arc<Window>>,
     gpu: Option<Gpu<'window>>,
     rects: Vec<Rect>,
+    deno: Deno,
 }
 
 impl App<'_> {
@@ -44,6 +46,7 @@ impl App<'_> {
             window: None,
             gpu: None,
             rects: Vec::new(),
+            deno: Deno::new(),
         }
     }
 
@@ -76,6 +79,8 @@ impl<'window> ApplicationHandler for App<'window> {
             self.window = Some(window.clone());
             let gpu = Gpu::new(window.clone(), self.rects_to_instances());
             self.gpu = Some(gpu);
+
+            self.deno.run_script("src/app.js");
         }
     }
 
