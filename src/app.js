@@ -1,4 +1,4 @@
-Deno.core.print("Hello runjs!");
+Deno.core.print("Hello runjs!\n");
 
 Deno.core.ops.op_add_rect({
   x: 400,

@@ -1,14 +1,19 @@
+use std::sync::mpsc::{self, Receiver, Sender};
 use std::sync::Arc;
 use std::sync::Mutex;
 
 use winit::application::ApplicationHandler;
 use winit::event::WindowEvent;
 use winit::event_loop::ActiveEventLoop;
-use winit::window::{Window, WindowId};
+use winit::event_loop::EventLoop;
+use winit::event_loop::EventLoopProxy;
+use winit::window::Window;
+use winit::window::WindowId;
 
 use crate::deno::Deno;
 use crate::gpu;
 use crate::gpu::Gpu;
+use crate::JavaScriptAction;
 
 #[derive(Copy, Clone, Debug)]
 pub struct Rect {
@@ -53,16 +58,21 @@ pub struct App<'window> {
     gpu: Option<Gpu<'window>>,
     deno: Deno,
     state: Arc<Mutex<AppState>>,
+    receiver: Receiver<JavaScriptAction>,
 }
 
 impl App<'_> {
-    pub fn new() -> Self {
+    pub fn new(proxy: Arc<Mutex<EventLoopProxy<JavaScriptAction>>>) -> Self {
         let state = Arc::new(Mutex::new(AppState::new()));
+
+        let (sender, receiver) = mpsc::channel::<JavaScriptAction>();
+
         Self {
             window: None,
             gpu: None,
             state: state.clone(),
-            deno: Deno::new(state.clone()),
+            deno: Deno::new(proxy, sender),
+            receiver,
         }
     }
 
@@ -89,7 +99,7 @@ impl App<'_> {
     }
 }
 
-impl<'window> ApplicationHandler for App<'window> {
+impl<'window> ApplicationHandler<JavaScriptAction> for App<'window> {
     fn resumed(&mut self, event_loop: &ActiveEventLoop) {
         if self.window.is_none() {
             let win_attr = Window::default_attributes().with_title("wgpu winit example");
@@ -104,6 +114,13 @@ impl<'window> ApplicationHandler for App<'window> {
 
             self.deno.run_script("src/app.js");
         }
+    }
+
+    fn user_event(&mut self, _event_loop: &ActiveEventLoop, event: JavaScriptAction) {
+        println!("User event: {event:?}");
+        let JavaScriptAction::AddRect(rect) = event;
+        self.add_rect(rect.pos[0], rect.pos[1], rect.size[0], rect.size[1]);
+        self.window.as_ref().unwrap().request_redraw();
     }
 
     fn window_event(
