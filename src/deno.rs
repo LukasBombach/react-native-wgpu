@@ -5,8 +5,6 @@ use std::sync::Arc;
 use std::sync::Mutex;
 use std::thread;
 
-use serde::Deserialize;
-
 use deno_core::error::AnyError;
 use deno_core::op2;
 use deno_core::resolve_path;
@@ -22,34 +20,22 @@ use winit::event_loop::EventLoopProxy;
 use crate::JsEvents;
 use crate::Rect;
 
-#[derive(Debug, Deserialize)]
-struct RectInput {
+#[op2(fast)]
+fn op_add_rect(
+    state: &mut OpState,
     x: u32,
     y: u32,
     w: u32,
     h: u32,
-}
-
-#[op2]
-fn op_add_rect(
-    state: &mut OpState,
-    #[serde] input: RectInput,
 ) -> Result<(), deno_error::JsErrorBox> {
-    let proxy = state
+    state
         .borrow::<Arc<Mutex<EventLoopProxy<JsEvents>>>>()
-        .clone();
-    {
-        // let _ = sender.send(JavaScriptAction::AddRect(Rect::new(
-        //     input.x, input.y, input.w, input.h,
-        // )));
-        proxy
-            .lock()
-            .unwrap()
-            .send_event(JsEvents::AddRect(Rect::new(
-                input.x, input.y, input.w, input.h,
-            )))
-            .unwrap();
-    }
+        .clone()
+        .lock()
+        .unwrap()
+        .send_event(JsEvents::AddRect(Rect::new(x, y, w, h)))
+        .unwrap();
+
     Ok(())
 }
 
