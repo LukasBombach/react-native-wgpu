@@ -4,11 +4,9 @@ use std::sync::Mutex;
 use winit::application::ApplicationHandler;
 use winit::event::WindowEvent;
 use winit::event_loop::ActiveEventLoop;
-use winit::event_loop::EventLoopProxy;
 use winit::window::Window;
 use winit::window::WindowId;
 
-use crate::deno::Deno;
 use crate::gpu::Gpu;
 use crate::gpu::Instance;
 
@@ -20,6 +18,7 @@ pub enum JsEvents {
 #[derive(Copy, Clone, Debug)]
 pub struct Rect(u32, u32, u32, u32);
 
+#[derive(Debug, Clone)]
 pub struct AppState {
     rects: Vec<Rect>,
 }
@@ -27,18 +26,16 @@ pub struct AppState {
 pub struct App<'window> {
     window: Option<Arc<Window>>,
     gpu: Option<Gpu<'window>>,
-    deno: Deno,
     state: Arc<Mutex<AppState>>,
 }
 
 impl App<'_> {
-    pub fn new(proxy: Arc<Mutex<EventLoopProxy<JsEvents>>>) -> Self {
+    pub fn new() -> Self {
         let state = Arc::new(Mutex::new(AppState { rects: Vec::new() }));
 
         Self {
             window: None,
             gpu: None,
-            deno: Deno::new(proxy),
             state: state.clone(),
         }
     }
@@ -81,8 +78,6 @@ impl<'window> ApplicationHandler<JsEvents> for App<'window> {
 
             self.window = Some(window.clone());
             self.gpu = Some(Gpu::new(window.clone(), self.rects_to_instances()));
-
-            self.deno.run_script("src/main.js");
         }
     }
 

@@ -38,51 +38,41 @@ fn op_add_rect(
     Ok(())
 }
 
-pub struct Deno {
-    proxy: Arc<Mutex<EventLoopProxy<JsEvents>>>,
-}
+pub fn run_script(event_loop_proxy: Arc<Mutex<EventLoopProxy<JsEvents>>>, path: &str) {
+    let proxy = event_loop_proxy.clone();
+    let path = path.to_string();
 
-impl Deno {
-    pub fn new(proxy: Arc<Mutex<EventLoopProxy<JsEvents>>>) -> Self {
-        Self { proxy }
-    }
+    let _handle = thread::spawn(move || {
+        let tokio_runtime = tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()
+            .unwrap();
 
-    pub fn run_script(&mut self, path: &str) {
-        let proxy = self.proxy.clone();
-        let path = path.to_string();
+        if let Err(error) = tokio_runtime.block_on(async {
+            const DECL: OpDecl = op_add_rect();
+            let ext = Extension {
+                name: "add_rect_ext",
+                ops: Cow::Borrowed(&[DECL]),
+                ..Default::default()
+            };
 
-        let _handle = thread::spawn(move || {
-            let tokio_runtime = tokio::runtime::Builder::new_current_thread()
-                .enable_all()
-                .build()
-                .unwrap();
+            let mut js_runtime = JsRuntime::new(RuntimeOptions {
+                extensions: vec![ext],
+                module_loader: Some(Rc::new(FsModuleLoader)),
+                ..Default::default()
+            });
 
-            if let Err(error) = tokio_runtime.block_on(async {
-                const DECL: OpDecl = op_add_rect();
-                let ext = Extension {
-                    name: "add_rect_ext",
-                    ops: Cow::Borrowed(&[DECL]),
-                    ..Default::default()
-                };
+            js_runtime.op_state().borrow_mut().put(proxy);
 
-                let mut js_runtime = JsRuntime::new(RuntimeOptions {
-                    extensions: vec![ext],
-                    module_loader: Some(Rc::new(FsModuleLoader)),
-                    ..Default::default()
-                });
+            let main_module = resolve_path(&path, &current_dir().unwrap()).unwrap();
+            let mod_id = js_runtime.load_main_es_module(&main_module).await?;
+            let result = js_runtime.mod_evaluate(mod_id);
 
-                js_runtime.op_state().borrow_mut().put(proxy);
+            js_runtime.run_event_loop(Default::default()).await?;
 
-                let main_module = resolve_path(&path, &current_dir().unwrap()).unwrap();
-                let mod_id = js_runtime.load_main_es_module(&main_module).await?;
-                let result = js_runtime.mod_evaluate(mod_id);
-
-                js_runtime.run_event_loop(Default::default()).await?;
-
-                result.await.map_err(|e| AnyError::from(e))
-            }) {
-                eprintln!("error: {}", error);
-            }
-        });
-    }
+            result.await.map_err(|e| AnyError::from(e))
+        }) {
+            eprintln!("error: {}", error);
+        }
+    });
 }
