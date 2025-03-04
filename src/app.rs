@@ -12,34 +12,13 @@ use crate::deno::Deno;
 use crate::gpu::Gpu;
 use crate::gpu::Instance;
 
-#[derive(Copy, Clone, Debug)]
-pub struct Rect {
-    pos: [u32; 2],
-    size: [u32; 2],
-}
-
-impl Rect {
-    pub fn new(x: u32, y: u32, w: u32, h: u32) -> Self {
-        Self {
-            pos: [x, y],
-            size: [w, h],
-        }
-    }
-
-    pub fn to_instance(&self) -> Instance {
-        Instance::new(
-            self.pos[0] as f32,
-            self.pos[1] as f32,
-            self.size[0] as f32,
-            self.size[1] as f32,
-        )
-    }
-}
-
 #[derive(Debug, Clone, Copy)]
 pub enum JsEvents {
     AddRect(u32, u32, u32, u32),
 }
+
+#[derive(Copy, Clone, Debug)]
+pub struct Rect(u32, u32, u32, u32);
 
 pub struct AppState {
     rects: Vec<Rect>,
@@ -65,7 +44,7 @@ impl App<'_> {
     }
 
     pub fn add_rect(&mut self, x: u32, y: u32, w: u32, h: u32) {
-        self.state.lock().unwrap().rects.push(Rect::new(x, y, w, h));
+        self.state.lock().unwrap().rects.push(Rect(x, y, w, h));
         self.sync_gpu_instance_buffer();
 
         if let Some(window) = self.window.as_ref() {
@@ -79,7 +58,7 @@ impl App<'_> {
             .unwrap()
             .rects
             .iter()
-            .map(|r| r.to_instance())
+            .map(|r| Instance::new(r.0 as f32, r.1 as f32, r.2 as f32, r.3 as f32))
             .collect()
     }
 
