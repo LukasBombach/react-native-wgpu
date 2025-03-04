@@ -12,11 +12,6 @@ use crate::deno::Deno;
 use crate::gpu::Gpu;
 use crate::gpu::Instance;
 
-#[derive(Debug, Clone, Copy)]
-pub enum JsEvents {
-    AddRect(u32, u32, u32, u32),
-}
-
 #[derive(Copy, Clone, Debug)]
 pub struct Rect {
     pos: [u32; 2],
@@ -41,6 +36,11 @@ impl Rect {
     }
 }
 
+#[derive(Debug, Clone, Copy)]
+pub enum JsEvents {
+    AddRect(u32, u32, u32, u32),
+}
+
 pub struct AppState {
     rects: Vec<Rect>,
 }
@@ -54,17 +54,23 @@ pub struct App<'window> {
 
 impl App<'_> {
     pub fn new(proxy: Arc<Mutex<EventLoopProxy<JsEvents>>>) -> Self {
+        let state = Arc::new(Mutex::new(AppState { rects: Vec::new() }));
+
         Self {
             window: None,
             gpu: None,
             deno: Deno::new(proxy),
-            state: Arc::new(Mutex::new(AppState { rects: Vec::new() })),
+            state: state.clone(),
         }
     }
 
     pub fn add_rect(&mut self, x: u32, y: u32, w: u32, h: u32) {
         self.state.lock().unwrap().rects.push(Rect::new(x, y, w, h));
         self.sync_gpu_instance_buffer();
+
+        if let Some(window) = self.window.as_ref() {
+            window.request_redraw();
+        }
     }
 
     fn rects_to_instances(&self) -> Vec<Instance> {
@@ -88,15 +94,14 @@ impl App<'_> {
 impl<'window> ApplicationHandler<JsEvents> for App<'window> {
     fn resumed(&mut self, event_loop: &ActiveEventLoop) {
         if self.window.is_none() {
-            let win_attr = Window::default_attributes().with_title("wgpu winit example");
             let window = Arc::new(
                 event_loop
-                    .create_window(win_attr)
+                    .create_window(Window::default_attributes().with_title("wgpu winit example"))
                     .expect("create window err."),
             );
+
             self.window = Some(window.clone());
-            let gpu = Gpu::new(window.clone(), self.rects_to_instances());
-            self.gpu = Some(gpu);
+            self.gpu = Some(Gpu::new(window.clone(), self.rects_to_instances()));
 
             self.deno.run_script("src/main.js");
         }
@@ -105,7 +110,6 @@ impl<'window> ApplicationHandler<JsEvents> for App<'window> {
     fn user_event(&mut self, _event_loop: &ActiveEventLoop, event: JsEvents) {
         let JsEvents::AddRect(x, y, w, h) = event;
         self.add_rect(x, y, w, h);
-        self.window.as_ref().unwrap().request_redraw();
     }
 
     fn window_event(&mut self, event_loop: &ActiveEventLoop, _id: WindowId, event: WindowEvent) {
