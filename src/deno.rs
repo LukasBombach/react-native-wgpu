@@ -1,7 +1,6 @@
 use std::borrow::Cow;
 use std::env::current_dir;
 use std::rc::Rc;
-use std::sync::mpsc::{self, Receiver, Sender};
 use std::sync::Arc;
 use std::sync::Mutex;
 use std::thread;
@@ -20,8 +19,7 @@ use deno_core::RuntimeOptions;
 
 use winit::event_loop::EventLoopProxy;
 
-use crate::app::AppState;
-use crate::JavaScriptAction;
+use crate::JsEvents;
 use crate::Rect;
 
 #[derive(Debug, Deserialize)]
@@ -37,9 +35,8 @@ fn op_add_rect(
     state: &mut OpState,
     #[serde] input: RectInput,
 ) -> Result<(), deno_error::JsErrorBox> {
-    // let sender = state.borrow::<Sender<JavaScriptAction>>().clone();
     let proxy = state
-        .borrow::<Arc<Mutex<EventLoopProxy<JavaScriptAction>>>>()
+        .borrow::<Arc<Mutex<EventLoopProxy<JsEvents>>>>()
         .clone();
     {
         // let _ = sender.send(JavaScriptAction::AddRect(Rect::new(
@@ -48,7 +45,7 @@ fn op_add_rect(
         proxy
             .lock()
             .unwrap()
-            .send_event(JavaScriptAction::AddRect(Rect::new(
+            .send_event(JsEvents::AddRect(Rect::new(
                 input.x, input.y, input.w, input.h,
             )))
             .unwrap();
@@ -58,20 +55,15 @@ fn op_add_rect(
 }
 
 pub struct Deno {
-    proxy: Arc<Mutex<EventLoopProxy<JavaScriptAction>>>,
-    sender: Sender<JavaScriptAction>,
+    proxy: Arc<Mutex<EventLoopProxy<JsEvents>>>,
 }
 
 impl Deno {
-    pub fn new(
-        proxy: Arc<Mutex<EventLoopProxy<JavaScriptAction>>>,
-        sender: Sender<JavaScriptAction>,
-    ) -> Self {
-        Self { proxy, sender }
+    pub fn new(proxy: Arc<Mutex<EventLoopProxy<JsEvents>>>) -> Self {
+        Self { proxy }
     }
 
     pub fn run_script(&mut self, path: &str) {
-        let sender = self.sender.clone();
         let proxy = self.proxy.clone();
         let path = path.to_string();
 
@@ -95,7 +87,6 @@ impl Deno {
                     ..Default::default()
                 });
 
-                js_runtime.op_state().borrow_mut().put(sender);
                 js_runtime.op_state().borrow_mut().put(proxy);
 
                 let main_module = resolve_path(&path, &current_dir().unwrap()).unwrap();

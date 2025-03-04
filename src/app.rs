@@ -1,19 +1,17 @@
-use std::sync::mpsc::{self, Receiver, Sender};
 use std::sync::Arc;
 use std::sync::Mutex;
 
 use winit::application::ApplicationHandler;
 use winit::event::WindowEvent;
 use winit::event_loop::ActiveEventLoop;
-use winit::event_loop::EventLoop;
 use winit::event_loop::EventLoopProxy;
 use winit::window::Window;
 use winit::window::WindowId;
 
 use crate::deno::Deno;
-use crate::gpu;
 use crate::gpu::Gpu;
-use crate::JavaScriptAction;
+use crate::gpu::Instance;
+use crate::JsEvents;
 
 #[derive(Copy, Clone, Debug)]
 pub struct Rect {
@@ -29,8 +27,8 @@ impl Rect {
         }
     }
 
-    pub fn to_instance(&self) -> gpu::Instance {
-        gpu::Instance::new(
+    pub fn to_instance(&self) -> Instance {
+        Instance::new(
             self.pos[0] as f32,
             self.pos[1] as f32,
             self.size[0] as f32,
@@ -43,36 +41,22 @@ pub struct AppState {
     rects: Vec<Rect>,
 }
 
-impl AppState {
-    pub fn new() -> Self {
-        Self { rects: Vec::new() }
-    }
-
-    pub fn add_rect(&mut self, x: u32, y: u32, w: u32, h: u32) {
-        self.rects.push(Rect::new(x, y, w, h));
-    }
-}
-
 pub struct App<'window> {
     window: Option<Arc<Window>>,
     gpu: Option<Gpu<'window>>,
     deno: Deno,
     state: Arc<Mutex<AppState>>,
-    receiver: Receiver<JavaScriptAction>,
 }
 
 impl App<'_> {
-    pub fn new(proxy: Arc<Mutex<EventLoopProxy<JavaScriptAction>>>) -> Self {
-        let state = Arc::new(Mutex::new(AppState::new()));
-
-        let (sender, receiver) = mpsc::channel::<JavaScriptAction>();
+    pub fn new(proxy: Arc<Mutex<EventLoopProxy<JsEvents>>>) -> Self {
+        let state = Arc::new(Mutex::new(AppState { rects: Vec::new() }));
 
         Self {
             window: None,
             gpu: None,
             state: state.clone(),
-            deno: Deno::new(proxy, sender),
-            receiver,
+            deno: Deno::new(proxy),
         }
     }
 
@@ -81,7 +65,7 @@ impl App<'_> {
         self.sync_gpu_instance_buffer();
     }
 
-    fn rects_to_instances(&self) -> Vec<gpu::Instance> {
+    fn rects_to_instances(&self) -> Vec<Instance> {
         self.state
             .lock()
             .unwrap()
@@ -99,7 +83,7 @@ impl App<'_> {
     }
 }
 
-impl<'window> ApplicationHandler<JavaScriptAction> for App<'window> {
+impl<'window> ApplicationHandler<JsEvents> for App<'window> {
     fn resumed(&mut self, event_loop: &ActiveEventLoop) {
         if self.window.is_none() {
             let win_attr = Window::default_attributes().with_title("wgpu winit example");
@@ -116,9 +100,9 @@ impl<'window> ApplicationHandler<JavaScriptAction> for App<'window> {
         }
     }
 
-    fn user_event(&mut self, _event_loop: &ActiveEventLoop, event: JavaScriptAction) {
+    fn user_event(&mut self, _event_loop: &ActiveEventLoop, event: JsEvents) {
         println!("User event: {event:?}");
-        let JavaScriptAction::AddRect(rect) = event;
+        let JsEvents::AddRect(rect) = event;
         self.add_rect(rect.pos[0], rect.pos[1], rect.size[0], rect.size[1]);
         self.window.as_ref().unwrap().request_redraw();
     }
