@@ -18,7 +18,6 @@ use deno_core::RuntimeOptions;
 use winit::event_loop::EventLoopProxy;
 
 use crate::JsEvents;
-use crate::Rect;
 
 #[op2(fast)]
 fn op_add_rect(
@@ -33,7 +32,7 @@ fn op_add_rect(
         .clone()
         .lock()
         .unwrap()
-        .send_event(JsEvents::AddRect(Rect::new(x, y, w, h)))
+        .send_event(JsEvents::AddRect(x, y, w, h))
         .unwrap();
 
     Ok(())

@@ -5,16 +5,11 @@ use winit::error::EventLoopError;
 use winit::event_loop::EventLoop;
 
 use crate::app::App;
-use crate::app::Rect;
+use crate::app::JsEvents;
 
 mod app;
 mod deno;
 mod gpu;
-
-#[derive(Debug, Clone, Copy)]
-pub enum JsEvents {
-    AddRect(Rect),
-}
 
 fn main() -> Result<(), EventLoopError> {
     let event_loop = EventLoop::<JsEvents>::with_user_event().build()?;

@@ -11,7 +11,11 @@ use winit::window::WindowId;
 use crate::deno::Deno;
 use crate::gpu::Gpu;
 use crate::gpu::Instance;
-use crate::JsEvents;
+
+#[derive(Debug, Clone, Copy)]
+pub enum JsEvents {
+    AddRect(u32, u32, u32, u32),
+}
 
 #[derive(Copy, Clone, Debug)]
 pub struct Rect {
@@ -99,8 +103,8 @@ impl<'window> ApplicationHandler<JsEvents> for App<'window> {
     }
 
     fn user_event(&mut self, _event_loop: &ActiveEventLoop, event: JsEvents) {
-        let JsEvents::AddRect(rect) = event;
-        self.add_rect(rect.pos[0], rect.pos[1], rect.size[0], rect.size[1]);
+        let JsEvents::AddRect(x, y, w, h) = event;
+        self.add_rect(x, y, w, h);
         self.window.as_ref().unwrap().request_redraw();
     }
 
