@@ -112,7 +112,7 @@ impl<'window> ApplicationHandler<JavaScriptAction> for App<'window> {
             let gpu = Gpu::new(window.clone(), self.rects_to_instances());
             self.gpu = Some(gpu);
 
-            self.deno.run_script("src/app.js");
+            self.deno.run_script("src/main.js");
         }
     }
 
