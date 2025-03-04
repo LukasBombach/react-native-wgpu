@@ -50,13 +50,11 @@ pub struct App<'window> {
 
 impl App<'_> {
     pub fn new(proxy: Arc<Mutex<EventLoopProxy<JsEvents>>>) -> Self {
-        let state = Arc::new(Mutex::new(AppState { rects: Vec::new() }));
-
         Self {
             window: None,
             gpu: None,
-            state: state.clone(),
             deno: Deno::new(proxy),
+            state: Arc::new(Mutex::new(AppState { rects: Vec::new() })),
         }
     }
 
@@ -101,7 +99,6 @@ impl<'window> ApplicationHandler<JsEvents> for App<'window> {
     }
 
     fn user_event(&mut self, _event_loop: &ActiveEventLoop, event: JsEvents) {
-        println!("User event: {event:?}");
         let JsEvents::AddRect(rect) = event;
         self.add_rect(rect.pos[0], rect.pos[1], rect.size[0], rect.size[1]);
         self.window.as_ref().unwrap().request_redraw();

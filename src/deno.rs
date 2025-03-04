@@ -49,7 +49,6 @@ fn op_add_rect(
                 input.x, input.y, input.w, input.h,
             )))
             .unwrap();
-        println!("Added rect: {:?}", input);
     }
     Ok(())
 }
