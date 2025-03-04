@@ -4,7 +4,11 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-winit = { version =  "0.30.9" }
-pollster = { version =  "0.4.0" }
-wgpu = { version =  "24.0.1" }
 bytemuck = { version = "1.21.0", features = ["derive"] }
+deno_core = "0.340.0"
+deno_error = "0.5.6"
+pollster = { version =  "0.4.0" }
+serde = { version = "1.0.218", features = ["derive"] }
+tokio = { version = "1.43.0", features = ["full"] }
+wgpu = { version =  "24.0.1" }
+winit = { version =  "0.30.9" }

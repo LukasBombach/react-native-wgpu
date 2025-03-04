@@ -270,11 +270,14 @@ impl<'window> Gpu<'window> {
             });
 
             rpass.set_pipeline(&self.render_pipeline);
-            rpass.set_push_constants(wgpu::ShaderStages::VERTEX, 0, bytes_of(&self.viewport));
-            rpass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
-            rpass.set_vertex_buffer(1, self.instance_buffer.slice(..));
-            rpass.set_index_buffer(self.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
-            rpass.draw_indexed(0..self.num_indices, 0, 0..self.instance_count as _);
+
+            if self.instance_count > 0 {
+                rpass.set_push_constants(wgpu::ShaderStages::VERTEX, 0, bytes_of(&self.viewport));
+                rpass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
+                rpass.set_vertex_buffer(1, self.instance_buffer.slice(..));
+                rpass.set_index_buffer(self.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
+                rpass.draw_indexed(0..self.num_indices, 0, 0..self.instance_count as _);
+            }
         }
 
         self.queue.submit(Some(encoder.finish()));
