@@ -7,20 +7,87 @@ use winit::event_loop::ActiveEventLoop;
 use winit::window::Window;
 use winit::window::WindowId;
 
+use serde::Deserialize;
+use serde::Serialize;
+
+use deno_core::v8;
+use deno_core::FromV8;
+use deno_core::ToV8;
+use deno_error::JsErrorBox;
+
 use crate::gpu::Gpu;
 use crate::gpu::Instance;
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub enum JsEvents {
-    AddRect(u32, u32, u32, u32),
+    CreateRect(Arc<Mutex<Rect>>),
 }
 
-#[derive(Copy, Clone, Debug)]
-pub struct Rect(u32, u32, u32, u32);
+#[derive(Copy, Clone, Debug, Serialize, Deserialize)]
+pub struct Rect(pub u32, pub u32, pub u32, pub u32);
+
+impl<'a> ToV8<'a> for Rect {
+    type Error = JsErrorBox;
+
+    fn to_v8(
+        self,
+        scope: &mut v8::HandleScope<'a>,
+    ) -> Result<v8::Local<'a, v8::Value>, JsErrorBox> {
+        let obj = v8::Object::new(scope);
+
+        // Konvertiere Keys zu v8::Strings und Werte zu v8::Value
+        let x_key = v8::String::new(scope, "x").unwrap();
+        let y_key = v8::String::new(scope, "y").unwrap();
+        let w_key = v8::String::new(scope, "w").unwrap();
+        let h_key = v8::String::new(scope, "h").unwrap();
+
+        let x_value = v8::Number::new(scope, self.0 as f64).into();
+        let y_value = v8::Number::new(scope, self.1 as f64).into();
+        let w_value = v8::Number::new(scope, self.2 as f64).into();
+        let h_value = v8::Number::new(scope, self.3 as f64).into();
+
+        obj.set(scope, x_key.into(), x_value).unwrap();
+        obj.set(scope, y_key.into(), y_value).unwrap();
+        obj.set(scope, w_key.into(), w_value).unwrap();
+        obj.set(scope, h_key.into(), h_value).unwrap();
+
+        Ok(obj.into())
+    }
+}
+
+#[derive(Clone)]
+pub struct RectHandle(pub Arc<Mutex<Rect>>);
+
+impl<'a> ToV8<'a> for RectHandle {
+    type Error = JsErrorBox;
+
+    fn to_v8(
+        self,
+        scope: &mut v8::HandleScope<'a>,
+    ) -> Result<v8::Local<'a, v8::Value>, JsErrorBox> {
+        let ptr = Arc::into_raw(self.0.clone()) as *mut std::ffi::c_void;
+        let external = v8::External::new(scope, ptr);
+        Ok(external.into())
+    }
+}
+
+impl<'a> FromV8<'a> for RectHandle {
+    type Error = JsErrorBox;
+
+    fn from_v8(
+        _scope: &mut v8::HandleScope<'a>,
+        value: v8::Local<'a, v8::Value>,
+    ) -> Result<RectHandle, JsErrorBox> {
+        let external = v8::Local::<v8::External>::try_from(value).unwrap();
+        let ptr = external.value() as *mut Mutex<Rect>;
+        let rect = unsafe { Arc::from_raw(ptr) };
+        Ok(RectHandle(rect))
+    }
+}
 
 #[derive(Debug, Clone)]
 pub struct AppState {
-    rects: Vec<Rect>,
+    rects: Vec<Arc<Mutex<Rect>>>,
 }
 
 pub struct App<'window> {
@@ -40,12 +107,29 @@ impl App<'_> {
         }
     }
 
-    pub fn add_rect(&mut self, x: u32, y: u32, w: u32, h: u32) {
-        self.state.lock().unwrap().rects.push(Rect(x, y, w, h));
+    /* pub fn add_rect(&mut self, x: u32, y: u32, w: u32, h: u32) {
+        let rect = Arc::new(Mutex::new(Rect(x, y, w, h)));
+        self.state.lock().unwrap().rects.push(rect.clone());
         self.sync_gpu_instance_buffer();
 
         if let Some(window) = self.window.as_ref() {
             window.request_redraw();
+        }
+    } */
+
+    pub fn create_rect(&mut self, rect: Arc<Mutex<Rect>>) {
+        self.state.lock().unwrap().rects.push(rect.clone());
+        self.sync_gpu_instance_buffer();
+
+        if let Some(window) = self.window.as_ref() {
+            window.request_redraw();
+        }
+    }
+
+    fn sync_gpu_instance_buffer(&mut self) {
+        let instances = self.rects_to_instances();
+        if let Some(gpu) = self.gpu.as_mut() {
+            gpu.update_instance_buffer(&instances);
         }
     }
 
@@ -55,15 +139,11 @@ impl App<'_> {
             .unwrap()
             .rects
             .iter()
-            .map(|r| Instance::new(r.0 as f32, r.1 as f32, r.2 as f32, r.3 as f32))
+            .map(|r| {
+                let r = r.lock().unwrap();
+                Instance::new(r.0 as f32, r.1 as f32, r.2 as f32, r.3 as f32)
+            })
             .collect()
-    }
-
-    fn sync_gpu_instance_buffer(&mut self) {
-        let instances = self.rects_to_instances();
-        if let Some(gpu) = self.gpu.as_mut() {
-            gpu.update_instance_buffer(&instances);
-        }
     }
 }
 
@@ -82,8 +162,10 @@ impl<'window> ApplicationHandler<JsEvents> for App<'window> {
     }
 
     fn user_event(&mut self, _event_loop: &ActiveEventLoop, event: JsEvents) {
-        let JsEvents::AddRect(x, y, w, h) = event;
-        self.add_rect(x, y, w, h);
+        match event {
+            // JsEvents::AddRect(x, y, w, h) => self.add_rect(x, y, w, h),
+            JsEvents::CreateRect(rect) => self.create_rect(rect),
+        }
     }
 
     fn window_event(&mut self, event_loop: &ActiveEventLoop, _id: WindowId, event: WindowEvent) {
