@@ -96,21 +96,21 @@ fn op_update_rect(
     let rect_arc = unsafe { Arc::from_raw(ptr) };
 
     // Sperre das Mutex und aktualisiere `Rect`
-    let mut rect = *rect_arc.lock().unwrap();
+    let mut rect = rect_arc.lock().unwrap();
 
-    println!("before update: {:?}", rect);
+    println!("before update: {:?}", *rect);
 
     rect.0 = x;
     rect.1 = y;
     rect.2 = w;
     rect.3 = h;
 
-    println!("after update: {:?}", rect);
+    println!("after update: {:?}", *rect);
 
     // Verhindere, dass `Arc::from_raw` den Speicher freigibt
-    std::mem::forget(rect_arc);
+    std::mem::forget(Arc::clone(&rect_arc));
 
-    Ok(rect)
+    Ok(*rect)
 }
 
 extension!(runjs, ops = [op_create_rect, op_get_rect, op_update_rect,]);
