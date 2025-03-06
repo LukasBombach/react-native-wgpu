@@ -20,25 +20,6 @@ use crate::app::Rect;
 use crate::app::RectHandle;
 use crate::JsEvents;
 
-/* #[op2(fast)]
-fn op_add_rect(
-    state: &mut OpState,
-    x: u32,
-    y: u32,
-    w: u32,
-    h: u32,
-) -> Result<(), deno_error::JsErrorBox> {
-    state
-        .borrow::<Arc<Mutex<EventLoopProxy<JsEvents>>>>()
-        .clone()
-        .lock()
-        .unwrap()
-        .send_event(JsEvents::AddRect(x, y, w, h))
-        .unwrap();
-
-    Ok(())
-} */
-
 #[op2]
 #[to_v8]
 fn op_create_rect(
@@ -72,8 +53,6 @@ fn op_get_rect(external: v8::Local<v8::External>) -> Result<Rect, deno_error::Js
     // Sperre das Mutex und hole eine Kopie von `Rect`
     let rect = *rect_arc.lock().unwrap();
 
-    println!("get rect: {:?}", rect);
-
     // Verhindere, dass `Arc::from_raw` den Speicher freigibt
     std::mem::forget(rect_arc);
 
@@ -98,14 +77,10 @@ fn op_update_rect(
     // Sperre das Mutex und aktualisiere `Rect`
     let mut rect = rect_arc.lock().unwrap();
 
-    println!("before update: {:?}", *rect);
-
     rect.0 = x;
     rect.1 = y;
     rect.2 = w;
     rect.3 = h;
-
-    println!("after update: {:?}", *rect);
 
     // Verhindere, dass `Arc::from_raw` den Speicher freigibt
     std::mem::forget(Arc::clone(&rect_arc));

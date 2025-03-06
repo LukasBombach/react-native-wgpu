@@ -4,9 +4,4 @@ const get = Deno.core.ops.op_get_rect;
 const update = Deno.core.ops.op_update_rect;
 
 const ptr = create(100, 100, 100, 100);
-
-print(get(ptr));
-
 update(ptr, 100, 100, 600, 600);
-
-print(get(ptr));

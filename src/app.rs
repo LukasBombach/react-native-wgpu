@@ -107,16 +107,6 @@ impl App<'_> {
         }
     }
 
-    /* pub fn add_rect(&mut self, x: u32, y: u32, w: u32, h: u32) {
-        let rect = Arc::new(Mutex::new(Rect(x, y, w, h)));
-        self.state.lock().unwrap().rects.push(rect.clone());
-        self.sync_gpu_instance_buffer();
-
-        if let Some(window) = self.window.as_ref() {
-            window.request_redraw();
-        }
-    } */
-
     pub fn create_rect(&mut self, rect: Arc<Mutex<Rect>>) {
         self.state.lock().unwrap().rects.push(rect.clone());
         self.sync_gpu_instance_buffer();
@@ -163,7 +153,6 @@ impl<'window> ApplicationHandler<JsEvents> for App<'window> {
 
     fn user_event(&mut self, _event_loop: &ActiveEventLoop, event: JsEvents) {
         match event {
-            // JsEvents::AddRect(x, y, w, h) => self.add_rect(x, y, w, h),
             JsEvents::CreateRect(rect) => self.create_rect(rect),
         }
     }
