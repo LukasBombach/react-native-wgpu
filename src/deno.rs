@@ -72,13 +72,48 @@ fn op_get_rect(external: v8::Local<v8::External>) -> Result<Rect, deno_error::Js
     // Sperre das Mutex und hole eine Kopie von `Rect`
     let rect = *rect_arc.lock().unwrap();
 
+    println!("get rect: {:?}", rect);
+
     // Verhindere, dass `Arc::from_raw` den Speicher freigibt
     std::mem::forget(rect_arc);
 
     Ok(rect)
 }
 
-extension!(runjs, ops = [op_create_rect, op_get_rect,]);
+#[op2]
+#[to_v8]
+fn op_update_rect(
+    external: v8::Local<v8::External>,
+    x: u32,
+    y: u32,
+    w: u32,
+    h: u32,
+) -> Result<Rect, deno_error::JsErrorBox> {
+    // Hole den Pointer aus `v8::External`
+    let ptr = external.value() as *const Mutex<Rect>;
+
+    // Stelle die `Arc<Mutex<Rect>>`-Referenz wieder her
+    let rect_arc = unsafe { Arc::from_raw(ptr) };
+
+    // Sperre das Mutex und aktualisiere `Rect`
+    let mut rect = *rect_arc.lock().unwrap();
+
+    println!("before update: {:?}", rect);
+
+    rect.0 = x;
+    rect.1 = y;
+    rect.2 = w;
+    rect.3 = h;
+
+    println!("after update: {:?}", rect);
+
+    // Verhindere, dass `Arc::from_raw` den Speicher freigibt
+    std::mem::forget(rect_arc);
+
+    Ok(rect)
+}
+
+extension!(runjs, ops = [op_create_rect, op_get_rect, op_update_rect,]);
 
 pub fn run_script(event_loop_proxy: Arc<Mutex<EventLoopProxy<JsEvents>>>, path: &str) {
     let proxy = event_loop_proxy.clone();
