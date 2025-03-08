@@ -6,19 +6,16 @@ use std::thread;
 
 use deno_core::error::AnyError;
 use deno_core::extension;
-// use deno_core::op2;
+use deno_core::op2;
 use deno_core::resolve_path;
-// use deno_core::v8;
 use deno_core::FsModuleLoader;
 use deno_core::JsRuntime;
-// use deno_core::OpState;
+use deno_core::OpState;
 use deno_core::RuntimeOptions;
-// use deno_error::JsErrorBox;
+use deno_error::JsErrorBox;
 
 use winit::event_loop::EventLoopProxy;
 
-// use crate::app::Rect;
-// use crate::app::RectHandle;
 use crate::rect::Rect;
 use crate::JsEvents;
 
@@ -92,11 +89,37 @@ fn op_update_rect(
 
 extension!(runjs, ops = [op_create_rect, op_get_rect, op_update_rect,]);
 */
+
+#[op2(fast)]
+fn op_request_redraw(state: &mut OpState) -> Result<(), JsErrorBox> {
+    state
+        .borrow::<Arc<Mutex<EventLoopProxy<JsEvents>>>>()
+        .clone()
+        .lock()
+        .unwrap()
+        .send_event(JsEvents::RequestRedraw)
+        .unwrap();
+
+    Ok(())
+}
+
+#[op2(fast)]
+fn op_sync_instance_buffer(state: &mut OpState) -> Result<(), JsErrorBox> {
+    state
+        .borrow::<Arc<Mutex<EventLoopProxy<JsEvents>>>>()
+        .clone()
+        .lock()
+        .unwrap()
+        .send_event(JsEvents::SyncInstanceBuffer)
+        .unwrap();
+
+    Ok(())
+}
+
 extension!(
     my_deno_setup,
+    ops = [op_request_redraw, op_sync_instance_buffer,],
     objects = [Rect],
-    // esm_entry_point = "ext:my_deno_setup/setup.js",
-    // esm = [dir "src", "setup.js"]
 );
 
 pub fn run_script(event_loop_proxy: Arc<Mutex<EventLoopProxy<JsEvents>>>, path: &str) {

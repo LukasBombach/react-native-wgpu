@@ -21,6 +21,8 @@ use crate::gpu::Instance;
 #[derive(Debug, Clone)]
 pub enum JsEvents {
     CreateRect(Arc<Mutex<Rect>>),
+    RequestRedraw,
+    SyncInstanceBuffer,
 }
 
 #[derive(Copy, Clone, Debug, Serialize, Deserialize)]
@@ -107,14 +109,14 @@ impl App<'_> {
         }
     }
 
-    pub fn create_rect(&mut self, rect: Arc<Mutex<Rect>>) {
+    /* pub fn create_rect(&mut self, rect: Arc<Mutex<Rect>>) {
         self.state.lock().unwrap().rects.push(rect.clone());
         self.sync_gpu_instance_buffer();
 
         if let Some(window) = self.window.as_ref() {
             window.request_redraw();
         }
-    }
+    } */
 
     fn sync_gpu_instance_buffer(&mut self) {
         let instances = self.rects_to_instances();
@@ -153,7 +155,15 @@ impl<'window> ApplicationHandler<JsEvents> for App<'window> {
 
     fn user_event(&mut self, _event_loop: &ActiveEventLoop, event: JsEvents) {
         match event {
-            JsEvents::CreateRect(rect) => self.create_rect(rect),
+            JsEvents::RequestRedraw => self.window.as_ref().unwrap().request_redraw(),
+            JsEvents::SyncInstanceBuffer => self.sync_gpu_instance_buffer(),
+            JsEvents::CreateRect(rect) => {
+                self.state.lock().unwrap().rects.push(rect.clone());
+                self.sync_gpu_instance_buffer();
+                if let Some(window) = self.window.as_ref() {
+                    window.request_redraw();
+                }
+            }
         }
     }
 

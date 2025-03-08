@@ -13,6 +13,12 @@ pub struct Rect {
     height: Cell<u32>,
 }
 
+impl Resource for Rect {
+    fn name(&self) -> Cow<str> {
+        Cow::Borrowed("rect")
+    }
+}
+
 impl GarbageCollected for Rect {}
 
 #[op2]
@@ -76,23 +82,3 @@ impl Rect {
         self.height.set(height);
     }
 }
-
-impl Resource for Rect {
-    fn name(&self) -> Cow<str> {
-        Cow::Borrowed("rect")
-    }
-}
-
-/* #[op2(fast)]
-#[smi]
-fn op_create_rect(
-    state: &mut OpState,
-    top: u32,
-    left: u32,
-    width: u32,
-    height: u32,
-) -> Result<ResourceId, JsErrorBox> {
-    let rect = Rect::new(top, left, width, height);
-    let rid = state.resource_table.add(rect);
-    Ok(rid)
-} */
