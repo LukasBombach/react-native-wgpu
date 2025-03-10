@@ -1,5 +1,7 @@
 use std::borrow::Cow;
 use std::cell::Cell;
+use std::sync::Arc;
+use std::sync::Mutex;
 
 use deno_core::cppgc::GarbageCollected;
 use deno_core::op2;
@@ -7,10 +9,10 @@ use deno_core::Resource;
 
 #[derive(Debug)]
 pub struct Rect {
-    top: Cell<u32>,
-    left: Cell<u32>,
-    width: Cell<u32>,
-    height: Cell<u32>,
+    pub top: Cell<u32>,
+    pub left: Cell<u32>,
+    pub width: Cell<u32>,
+    pub height: Cell<u32>,
 }
 
 impl Resource for Rect {
@@ -21,9 +23,13 @@ impl Resource for Rect {
 
 impl GarbageCollected for Rect {}
 
+#[derive(Clone)]
+pub struct RectHandle(pub Arc<Mutex<Rect>>);
+impl GarbageCollected for RectHandle {}
+
 #[op2]
 impl Rect {
-    #[constructor]
+    /* #[constructor]
     #[cppgc]
     pub fn constructor(top: u32, left: u32, width: u32, height: u32) -> Rect {
         Rect {
@@ -32,7 +38,7 @@ impl Rect {
             width: Cell::new(width),
             height: Cell::new(height),
         }
-    }
+    } */
 
     #[fast]
     #[getter]

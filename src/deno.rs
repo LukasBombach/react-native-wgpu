@@ -1,3 +1,5 @@
+use std::borrow::Cow;
+use std::cell::Cell;
 use std::env::current_dir;
 use std::rc::Rc;
 use std::sync::Arc;
@@ -17,6 +19,7 @@ use deno_error::JsErrorBox;
 use winit::event_loop::EventLoopProxy;
 
 use crate::rect::Rect;
+use crate::rect::RectHandle;
 use crate::JsEvents;
 
 /* #[op2]
@@ -90,6 +93,33 @@ fn op_update_rect(
 extension!(runjs, ops = [op_create_rect, op_get_rect, op_update_rect,]);
 */
 
+#[op2]
+#[cppgc]
+fn op_create_rect(
+    state: &mut OpState,
+    top: u32,
+    left: u32,
+    width: u32,
+    height: u32,
+) -> Result<RectHandle, JsErrorBox> {
+    let rect = Arc::new(Mutex::new(Rect {
+        top: Cell::new(top),
+        left: Cell::new(left),
+        width: Cell::new(width),
+        height: Cell::new(height),
+    }));
+
+    state
+        .borrow::<Arc<Mutex<EventLoopProxy<JsEvents>>>>()
+        .clone()
+        .lock()
+        .unwrap()
+        .send_event(JsEvents::CreateRect(rect.clone()))
+        .unwrap();
+
+    Ok(RectHandle(rect))
+}
+
 #[op2(fast)]
 fn op_request_redraw(state: &mut OpState) -> Result<(), JsErrorBox> {
     state
@@ -118,7 +148,7 @@ fn op_sync_instance_buffer(state: &mut OpState) -> Result<(), JsErrorBox> {
 
 extension!(
     my_deno_setup,
-    ops = [op_request_redraw, op_sync_instance_buffer,],
+    ops = [op_create_rect, op_request_redraw, op_sync_instance_buffer,],
     objects = [Rect],
 );
 

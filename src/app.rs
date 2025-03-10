@@ -17,6 +17,7 @@ use deno_error::JsErrorBox;
 
 use crate::gpu::Gpu;
 use crate::gpu::Instance;
+use crate::rect::Rect;
 
 #[derive(Debug, Clone)]
 pub enum JsEvents {
@@ -25,7 +26,7 @@ pub enum JsEvents {
     SyncInstanceBuffer,
 }
 
-#[derive(Copy, Clone, Debug, Serialize, Deserialize)]
+/* #[derive(Copy, Clone, Debug, Serialize, Deserialize)]
 pub struct Rect(pub u32, pub u32, pub u32, pub u32);
 
 impl<'a> ToV8<'a> for Rect {
@@ -85,7 +86,7 @@ impl<'a> FromV8<'a> for RectHandle {
         let rect = unsafe { Arc::from_raw(ptr) };
         Ok(RectHandle(rect))
     }
-}
+} */
 
 #[derive(Debug, Clone)]
 pub struct AppState {
@@ -133,7 +134,12 @@ impl App<'_> {
             .iter()
             .map(|r| {
                 let r = r.lock().unwrap();
-                Instance::new(r.0 as f32, r.1 as f32, r.2 as f32, r.3 as f32)
+                Instance::new(
+                    r.left.get() as f32,
+                    r.top.get() as f32,
+                    r.width.get() as f32,
+                    r.height.get() as f32,
+                )
             })
             .collect()
     }
