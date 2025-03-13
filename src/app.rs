@@ -20,7 +20,7 @@ pub struct Rect(u32, u32, u32, u32);
 
 #[derive(Debug, Clone)]
 pub struct AppState {
-    rects: Vec<Rect>,
+    rects: Arc<Mutex<Vec<Rect>>>,
 }
 
 pub struct App<'window> {
@@ -31,7 +31,9 @@ pub struct App<'window> {
 
 impl App<'_> {
     pub fn new() -> Self {
-        let state = Arc::new(Mutex::new(AppState { rects: Vec::new() }));
+        let state = Arc::new(Mutex::new(AppState {
+            rects: Arc::new(Mutex::new(Vec::new())),
+        }));
 
         Self {
             window: None,
@@ -41,7 +43,13 @@ impl App<'_> {
     }
 
     pub fn add_rect(&mut self, x: u32, y: u32, w: u32, h: u32) {
-        self.state.lock().unwrap().rects.push(Rect(x, y, w, h));
+        self.state
+            .lock()
+            .unwrap()
+            .rects
+            .lock()
+            .unwrap()
+            .push(Rect(x, y, w, h));
         self.sync_gpu_instance_buffer();
 
         if let Some(window) = self.window.as_ref() {
@@ -54,6 +62,8 @@ impl App<'_> {
             .lock()
             .unwrap()
             .rects
+            .lock()
+            .unwrap()
             .iter()
             .map(|r| Instance::new(r.0 as f32, r.1 as f32, r.2 as f32, r.3 as f32))
             .collect()
@@ -72,7 +82,11 @@ impl<'window> ApplicationHandler<JsEvents> for App<'window> {
         if self.window.is_none() {
             let window = Arc::new(
                 event_loop
-                    .create_window(Window::default_attributes().with_title("wgpu winit example"))
+                    .create_window(
+                        Window::default_attributes()
+                            .with_position(winit::dpi::PhysicalPosition::new(100, 200))
+                            .with_title("wgpu winit example"),
+                    )
                     .expect("create window err."),
             );
 
