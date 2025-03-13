@@ -10,7 +10,6 @@ mod gpu;
 
 fn main() -> Result<(), EventLoopError> {
     let mut app = App::new();
-
     let event_loop = EventLoop::new().unwrap();
 
     run_script(app.state.clone(), "src/main.js");

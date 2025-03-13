@@ -13,10 +13,14 @@ use deno_core::FsModuleLoader;
 use deno_core::JsRuntime;
 use deno_core::OpDecl;
 use deno_core::OpState;
+use deno_core::Resource;
 use deno_core::RuntimeOptions;
 
 use crate::app::AppState;
 use crate::app::Rect;
+
+struct RectResource(Arc<Mutex<Rect>>);
+impl Resource for RectResource {}
 
 #[op2(fast)]
 fn op_add_rect(
@@ -25,7 +29,9 @@ fn op_add_rect(
     y: u32,
     w: u32,
     h: u32,
-) -> Result<(), deno_error::JsErrorBox> {
+) -> Result<u32, deno_error::JsErrorBox> {
+    let rect = Arc::new(Mutex::new(Rect(x, y, w, h)));
+
     state
         .borrow::<Arc<Mutex<AppState>>>()
         .lock()
@@ -33,9 +39,12 @@ fn op_add_rect(
         .rects
         .lock()
         .unwrap()
-        .push(Rect(x, y, w, h));
+        .push(rect.clone());
 
-    Ok(())
+    let resource_table = &mut state.resource_table;
+    let rid = resource_table.add(RectResource(rect.clone()));
+
+    Ok(rid)
 }
 
 pub fn run_script(app_state: Arc<Mutex<AppState>>, path: &str) {

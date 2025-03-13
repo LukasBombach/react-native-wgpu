@@ -15,7 +15,7 @@ pub struct Rect(pub u32, pub u32, pub u32, pub u32);
 
 #[derive(Debug, Clone)]
 pub struct AppState {
-    pub rects: Arc<Mutex<Vec<Rect>>>,
+    pub rects: Arc<Mutex<Vec<Arc<Mutex<Rect>>>>>,
 }
 
 pub struct App<'window> {
@@ -45,7 +45,10 @@ impl App<'_> {
             .lock()
             .unwrap()
             .iter()
-            .map(|r| Instance::new(r.0 as f32, r.1 as f32, r.2 as f32, r.3 as f32))
+            .map(|r| {
+                let rect = r.lock().unwrap();
+                Instance::new(rect.0 as f32, rect.1 as f32, rect.2 as f32, rect.3 as f32)
+            })
             .collect()
     }
 }
