@@ -54,7 +54,32 @@ fn op_append_rect_to_window(state: &mut OpState, rid: u32) -> Result<(), deno_er
     Ok(())
 }
 
-extension!(rects, ops = [op_create_rect, op_append_rect_to_window,]);
+#[op2(fast)]
+fn op_update_rect(
+    state: &mut OpState,
+    rid: u32,
+    x: u32,
+    y: u32,
+    w: u32,
+    h: u32,
+) -> Result<(), deno_error::JsErrorBox> {
+    let resource_table = &mut state.resource_table;
+    let rect_resource = resource_table.get::<RectResource>(rid).unwrap();
+    let rect = rect_resource.0.clone();
+
+    let mut rect = rect.lock().unwrap();
+    rect.0 = x;
+    rect.1 = y;
+    rect.2 = w;
+    rect.3 = h;
+
+    Ok(())
+}
+
+extension!(
+    rects,
+    ops = [op_create_rect, op_append_rect_to_window, op_update_rect]
+);
 
 pub fn run_script(app_state: Arc<Mutex<AppState>>, path: &str) {
     let path = path.to_string();
