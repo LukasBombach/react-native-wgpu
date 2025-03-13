@@ -1,7 +1,15 @@
-const id = Deno.core.ops.op_create_rect(100, 100, 200, 200);
+import { console, setTimeout } from "./std.js";
 
-Deno.core.ops.op_update_rect(id, 100, 100, 600, 600);
+const create_rect = Deno.core.ops.op_create_rect;
+const update_rect = Deno.core.ops.op_update_rect;
+const append_rect_to_window = Deno.core.ops.op_append_rect_to_window;
 
-Deno.core.ops.op_append_rect_to_window(id);
+const id = create_rect(100, 100, 200, 200);
+update_rect(id, 100, 100, 600, 600);
+append_rect_to_window(id);
 
-Deno.core.print(`Added rect with id: ${id}\n`);
+console.log(`Added rect with id: ${id}`);
+
+setTimeout(() => {
+  console.log("Hello from setTimeout");
+}, 750);
