@@ -15,9 +15,8 @@ use deno_core::OpDecl;
 use deno_core::OpState;
 use deno_core::RuntimeOptions;
 
-use winit::event_loop::EventLoopProxy;
-
-use crate::JsEvents;
+use crate::app::AppState;
+use crate::app::Rect;
 
 #[op2(fast)]
 fn op_add_rect(
@@ -28,18 +27,18 @@ fn op_add_rect(
     h: u32,
 ) -> Result<(), deno_error::JsErrorBox> {
     state
-        .borrow::<Arc<Mutex<EventLoopProxy<JsEvents>>>>()
-        .clone()
+        .borrow::<Arc<Mutex<AppState>>>()
         .lock()
         .unwrap()
-        .send_event(JsEvents::AddRect(x, y, w, h))
-        .unwrap();
+        .rects
+        .lock()
+        .unwrap()
+        .push(Rect(x, y, w, h));
 
     Ok(())
 }
 
-pub fn run_script(event_loop_proxy: Arc<Mutex<EventLoopProxy<JsEvents>>>, path: &str) {
-    let proxy = event_loop_proxy.clone();
+pub fn run_script(app_state: Arc<Mutex<AppState>>, path: &str) {
     let path = path.to_string();
 
     let _handle = thread::spawn(move || {
@@ -62,7 +61,7 @@ pub fn run_script(event_loop_proxy: Arc<Mutex<EventLoopProxy<JsEvents>>>, path: 
                 ..Default::default()
             });
 
-            js_runtime.op_state().borrow_mut().put(proxy);
+            js_runtime.op_state().borrow_mut().put(app_state);
 
             let main_module = resolve_path(&path, &current_dir().unwrap()).unwrap();
             let mod_id = js_runtime.load_main_es_module(&main_module).await?;

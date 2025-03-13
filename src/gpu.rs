@@ -283,15 +283,4 @@ impl<'window> Gpu<'window> {
         self.queue.submit(Some(encoder.finish()));
         frame.present();
     }
-
-    pub fn update_instance_buffer(&mut self, instances: &[Instance]) {
-        self.instance_buffer = self
-            .device
-            .create_buffer_init(&wgpu::util::BufferInitDescriptor {
-                label: Some("Instance Buffer"),
-                contents: cast_slice(instances),
-                usage: wgpu::BufferUsages::VERTEX,
-            });
-        self.instance_count = instances.len() as u32;
-    }
 }
