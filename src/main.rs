@@ -6,7 +6,7 @@ use crate::deno::run_script;
 
 mod app;
 mod deno;
-mod gpu;
+mod graphics;
 
 fn main() -> Result<(), EventLoopError> {
     let mut app = App::new();

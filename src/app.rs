@@ -7,8 +7,8 @@ use winit::event_loop::ActiveEventLoop;
 use winit::window::Window;
 use winit::window::WindowId;
 
-use crate::gpu::Gpu;
-use crate::gpu::Instance;
+use crate::graphics::Gpu;
+use crate::graphics::Instance;
 
 #[derive(Copy, Clone, Debug)]
 pub struct Rect(pub u32, pub u32, pub u32, pub u32);
