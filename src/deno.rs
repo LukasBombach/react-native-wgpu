@@ -77,7 +77,7 @@ fn op_update_rect(
 }
 
 #[op2(fast)]
-fn op_remove_rect(state: &mut OpState, rid: u32) -> Result<(), deno_error::JsErrorBox> {
+fn op_remove_rect_from_window(state: &mut OpState, rid: u32) -> Result<(), deno_error::JsErrorBox> {
     let resource_table = &mut state.resource_table;
     let rect_resource = resource_table.take::<RectResource>(rid).unwrap();
     let rect = rect_resource.0.clone();
@@ -100,7 +100,7 @@ extension!(
         op_create_rect,
         op_append_rect_to_window,
         op_update_rect,
-        op_remove_rect,
+        op_remove_rect_from_window,
     ]
 );
 
