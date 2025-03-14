@@ -76,9 +76,32 @@ fn op_update_rect(
     Ok(())
 }
 
+#[op2(fast)]
+fn op_remove_rect(state: &mut OpState, rid: u32) -> Result<(), deno_error::JsErrorBox> {
+    let resource_table = &mut state.resource_table;
+    let rect_resource = resource_table.take::<RectResource>(rid).unwrap();
+    let rect = rect_resource.0.clone();
+
+    state
+        .borrow::<Arc<Mutex<AppState>>>()
+        .lock()
+        .unwrap()
+        .rects
+        .lock()
+        .unwrap()
+        .retain(|item| !Arc::ptr_eq(item, &rect));
+
+    Ok(())
+}
+
 extension!(
     rects,
-    ops = [op_create_rect, op_append_rect_to_window, op_update_rect]
+    ops = [
+        op_create_rect,
+        op_append_rect_to_window,
+        op_update_rect,
+        op_remove_rect,
+    ]
 );
 
 pub fn run_script(app_state: Arc<Mutex<AppState>>, path: &str) {
