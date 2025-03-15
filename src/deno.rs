@@ -1,18 +1,33 @@
-use std::env::current_dir;
+#![allow(clippy::print_stdout)]
+#![allow(clippy::print_stderr)]
+
+use std::path::Path;
 use std::rc::Rc;
 use std::sync::Arc;
+
+// use deno_core::error::AnyError;
+use deno_core::op2;
+use deno_core::FsModuleLoader;
+use deno_core::ModuleSpecifier;
+use deno_fs::RealFs;
+use deno_resolver::npm::DenoInNpmPackageChecker;
+use deno_resolver::npm::NpmResolver;
+use deno_runtime::deno_permissions::PermissionsContainer;
+use deno_runtime::permissions::RuntimePermissionDescriptorParser;
+use deno_runtime::worker::MainWorker;
+use deno_runtime::worker::WorkerOptions;
+use deno_runtime::worker::WorkerServiceOptions;
+
+// use std::env::current_dir;
 use std::sync::Mutex;
 use std::thread;
 
-use deno_core::error::AnyError;
 use deno_core::extension;
-use deno_core::op2;
-use deno_core::resolve_path;
-use deno_core::FsModuleLoader;
-use deno_core::JsRuntime;
+// use deno_core::resolve_path;
+// use deno_core::JsRuntime;
 use deno_core::OpState;
 use deno_core::Resource;
-use deno_core::RuntimeOptions;
+// use deno_core::RuntimeOptions;
 
 use crate::app::AppState;
 use crate::app::Js;
@@ -135,8 +150,10 @@ extension!(
     ]
 );
 
-pub fn run_script(app_state: Arc<Mutex<AppState>>, path: &str) {
-    let path = path.to_string();
+pub fn run_script(app_state: Arc<Mutex<AppState>>, js_path: &str) {
+    // let js_path = js_path.to_string();
+
+    let js_path = Path::new(env!("CARGO_MANIFEST_DIR")).join(js_path);
 
     let _handle = thread::spawn(move || {
         let tokio_runtime = tokio::runtime::Builder::new_current_thread()
@@ -144,24 +161,64 @@ pub fn run_script(app_state: Arc<Mutex<AppState>>, path: &str) {
             .build()
             .unwrap();
 
-        if let Err(error) = tokio_runtime.block_on(async {
-            let mut js_runtime = JsRuntime::new(RuntimeOptions {
-                extensions: vec![rects::init_ops_and_esm()],
-                module_loader: Some(Rc::new(FsModuleLoader)),
-                ..Default::default()
-            });
+        tokio_runtime.block_on(async {
+            // let mut js_runtime = JsRuntime::new(RuntimeOptions {
+            //     extensions: vec![rects::init_ops_and_esm()],
+            //     module_loader: Some(Rc::new(FsModuleLoader)),
+            //     ..Default::default()
+            // });
 
-            js_runtime.op_state().borrow_mut().put(app_state);
+            // js_runtime.op_state().borrow_mut().put(app_state);
 
-            let main_module = resolve_path(&path, &current_dir().unwrap()).unwrap();
-            let mod_id = js_runtime.load_main_es_module(&main_module).await?;
-            let result = js_runtime.mod_evaluate(mod_id);
+            // let main_module = resolve_path(&js_path, &current_dir().unwrap()).unwrap();
 
-            js_runtime.run_event_loop(Default::default()).await?;
+            // let mod_id = js_runtime.load_main_es_module(&main_module).await?;
+            // let result = js_runtime.mod_evaluate(mod_id);
 
-            result.await.map_err(|e| AnyError::from(e))
-        }) {
-            eprintln!("error: {}", error);
-        }
+            // js_runtime.run_event_loop(Default::default()).await?;
+
+            // result.await.map_err(|e| AnyError::from(e))
+
+            // let main_module = resolve_path(&js_path, &current_dir().unwrap()).unwrap();
+            let main_module = ModuleSpecifier::from_file_path(js_path).unwrap();
+
+            eprintln!("Running {main_module}...");
+
+            let fs = Arc::new(RealFs);
+            let permission_desc_parser = Arc::new(RuntimePermissionDescriptorParser::new(
+                sys_traits::impls::RealSys,
+            ));
+
+            let mut worker = MainWorker::bootstrap_from_options(
+                &main_module,
+                WorkerServiceOptions::<
+                    DenoInNpmPackageChecker,
+                    NpmResolver<sys_traits::impls::RealSys>,
+                    sys_traits::impls::RealSys,
+                > {
+                    module_loader: Rc::new(FsModuleLoader),
+                    permissions: PermissionsContainer::allow_all(permission_desc_parser),
+                    blob_store: Default::default(),
+                    broadcast_channel: Default::default(),
+                    feature_checker: Default::default(),
+                    node_services: Default::default(),
+                    npm_process_state_provider: Default::default(),
+                    root_cert_store_provider: Default::default(),
+                    fetch_dns_resolver: Default::default(),
+                    shared_array_buffer_store: Default::default(),
+                    compiled_wasm_module_store: Default::default(),
+                    v8_code_cache: Default::default(),
+                    fs,
+                },
+                WorkerOptions {
+                    // extensions: vec![rects::init_ops_and_esm()],
+                    ..Default::default()
+                },
+            );
+
+            worker.js_runtime.op_state().borrow_mut().put(app_state);
+            (worker.execute_main_module(&main_module).await).unwrap();
+            (worker.run_event_loop(false).await).unwrap();
+        });
     });
 }

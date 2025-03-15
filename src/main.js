@@ -1,4 +1,4 @@
-import { console, setTimeout, setInterval } from "./std.js";
+/* import { console, setTimeout, setInterval } from "./std.js";
 
 const create_rect = Deno.core.ops.op_create_rect;
 const update_rect = Deno.core.ops.op_update_rect;
@@ -12,4 +12,6 @@ console.log(`Added rect with id: ${id}`);
 
 setTimeout(() => {
   update_rect(id, 100, 100, 600, 600);
-}, 500);
+}, 500); */
+
+console.log("Hello from main.js");
