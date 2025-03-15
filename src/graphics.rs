@@ -9,6 +9,9 @@ use wgpu::MemoryHints::Performance;
 use wgpu::ShaderSource;
 use winit::window::Window;
 
+#[derive(Copy, Clone, Debug)]
+pub struct Rect(pub u32, pub u32, pub u32, pub u32);
+
 #[repr(C)]
 #[derive(Copy, Clone, Debug, Pod, Zeroable)]
 pub struct Instance {
@@ -40,11 +43,11 @@ pub struct Gpu<'window> {
 }
 
 impl<'window> Gpu<'window> {
-    pub fn new(window: Arc<Window>, instances: Vec<Instance>) -> Gpu<'window> {
-        pollster::block_on(Gpu::new_async(window, instances))
+    pub fn new(window: Arc<Window>) -> Gpu<'window> {
+        pollster::block_on(Gpu::new_async(window))
     }
 
-    pub async fn new_async(window: Arc<Window>, instances: Vec<Instance>) -> Gpu<'window> {
+    pub async fn new_async(window: Arc<Window>) -> Gpu<'window> {
         /*
          * window
          */
@@ -130,11 +133,14 @@ impl<'window> Gpu<'window> {
          * instances
          */
 
+        let instances: Vec<Instance> = Vec::new();
+
         let instance_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("Instance Buffer"),
             contents: cast_slice(&instances),
             usage: wgpu::BufferUsages::VERTEX,
         });
+
         let instance_count = instances.len() as u32;
 
         /*
@@ -282,5 +288,16 @@ impl<'window> Gpu<'window> {
 
         self.queue.submit(Some(encoder.finish()));
         frame.present();
+    }
+
+    pub fn update_instance_buffer(&mut self, instances: &[Instance]) {
+        self.instance_buffer = self
+            .device
+            .create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                label: Some("Instance Buffer"),
+                contents: cast_slice(instances),
+                usage: wgpu::BufferUsages::VERTEX,
+            });
+        self.instance_count = instances.len() as u32;
     }
 }

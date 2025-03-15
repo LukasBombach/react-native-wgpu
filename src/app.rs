@@ -4,18 +4,37 @@ use std::sync::Mutex;
 use winit::application::ApplicationHandler;
 use winit::event::WindowEvent;
 use winit::event_loop::ActiveEventLoop;
+use winit::event_loop::EventLoopProxy;
 use winit::window::Window;
 use winit::window::WindowId;
 
 use crate::graphics::Gpu;
 use crate::graphics::Instance;
+use crate::graphics::Rect;
 
-#[derive(Copy, Clone, Debug)]
-pub struct Rect(pub u32, pub u32, pub u32, pub u32);
+#[derive(Debug)]
+pub enum Js {
+    RectsUpdated,
+}
 
 #[derive(Debug, Clone)]
 pub struct AppState {
     pub rects: Arc<Mutex<Vec<Arc<Mutex<Rect>>>>>,
+    pub event_loop: Arc<Mutex<EventLoopProxy<Js>>>,
+}
+
+impl AppState {
+    pub fn new(event_loop: Arc<Mutex<EventLoopProxy<Js>>>) -> Self {
+        Self {
+            rects: Arc::new(Mutex::new(Vec::new())),
+            event_loop,
+        }
+    }
+
+    pub fn add_rect(&mut self, rect: Rect) {
+        let mut rects = self.rects.lock().unwrap();
+        rects.push(Arc::new(Mutex::new(rect)));
+    }
 }
 
 pub struct App<'window> {
@@ -25,10 +44,8 @@ pub struct App<'window> {
 }
 
 impl App<'_> {
-    pub fn new() -> Self {
-        let state = Arc::new(Mutex::new(AppState {
-            rects: Arc::new(Mutex::new(Vec::new())),
-        }));
+    pub fn new(event_loop: Arc<Mutex<EventLoopProxy<Js>>>) -> Self {
+        let state = Arc::new(Mutex::new(AppState::new(event_loop)));
 
         Self {
             window: None,
@@ -53,7 +70,7 @@ impl App<'_> {
     }
 }
 
-impl<'window> ApplicationHandler for App<'window> {
+impl<'window> ApplicationHandler<Js> for App<'window> {
     fn resumed(&mut self, event_loop: &ActiveEventLoop) {
         if self.window.is_none() {
             let window = Arc::new(
@@ -67,11 +84,23 @@ impl<'window> ApplicationHandler for App<'window> {
             );
 
             self.window = Some(window.clone());
-            self.gpu = Some(Gpu::new(window.clone(), self.rects_to_instances()));
+            self.gpu = Some(Gpu::new(window.clone()));
         }
     }
 
-    // fn user_event(&mut self, _event_loop: &ActiveEventLoop, event: JsEvents) {}
+    fn user_event(&mut self, _event_loop: &ActiveEventLoop, event: Js) {
+        match event {
+            Js::RectsUpdated => {
+                let instances = self.rects_to_instances();
+                if let Some(gpu) = self.gpu.as_mut() {
+                    gpu.update_instance_buffer(&instances);
+                }
+                if let Some(window) = self.window.as_ref() {
+                    window.request_redraw();
+                }
+            }
+        }
+    }
 
     fn window_event(&mut self, event_loop: &ActiveEventLoop, _id: WindowId, event: WindowEvent) {
         match event {

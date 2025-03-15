@@ -6,11 +6,11 @@ const append_rect_to_window = Deno.core.ops.op_append_rect_to_window;
 const op_remove_rect = Deno.core.ops.op_remove_rect;
 
 const id = create_rect(100, 100, 200, 200);
-update_rect(id, 100, 100, 600, 600);
 append_rect_to_window(id);
 
 console.log(`Added rect with id: ${id}`);
 
 setTimeout(() => {
   console.log("Hello from setTimeout");
-}, 750);
+  update_rect(id, 100, 100, 600, 600);
+}, 1000);

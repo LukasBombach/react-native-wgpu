@@ -1,7 +1,11 @@
+use std::sync::Arc;
+use std::sync::Mutex;
+
 use winit::error::EventLoopError;
 use winit::event_loop::EventLoop;
 
 use crate::app::App;
+use crate::app::Js;
 use crate::deno::run_script;
 
 mod app;
@@ -9,8 +13,9 @@ mod deno;
 mod graphics;
 
 fn main() -> Result<(), EventLoopError> {
-    let mut app = App::new();
-    let event_loop = EventLoop::new().unwrap();
+    let event_loop = EventLoop::<Js>::with_user_event().build()?;
+    let event_loop_proxy = Arc::new(Mutex::new(event_loop.create_proxy()));
+    let mut app = App::new(event_loop_proxy);
 
     run_script(app.state.clone(), "src/main.js");
 

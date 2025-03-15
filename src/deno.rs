@@ -4,6 +4,8 @@ use std::sync::Arc;
 use std::sync::Mutex;
 use std::thread;
 
+use winit::event_loop::EventLoopProxy;
+
 use deno_core::error::AnyError;
 use deno_core::extension;
 use deno_core::op2;
@@ -15,7 +17,8 @@ use deno_core::Resource;
 use deno_core::RuntimeOptions;
 
 use crate::app::AppState;
-use crate::app::Rect;
+use crate::app::Js;
+use crate::graphics::Rect;
 
 struct RectResource(Arc<Mutex<Rect>>);
 impl Resource for RectResource {}
@@ -51,6 +54,16 @@ fn op_append_rect_to_window(state: &mut OpState, rid: u32) -> Result<(), deno_er
         .unwrap()
         .push(rect.clone());
 
+    state
+        .borrow::<Arc<Mutex<AppState>>>()
+        .lock()
+        .unwrap()
+        .event_loop
+        .lock()
+        .unwrap()
+        .send_event(Js::RectsUpdated)
+        .unwrap();
+
     Ok(())
 }
 
@@ -73,6 +86,16 @@ fn op_update_rect(
     rect.2 = w;
     rect.3 = h;
 
+    state
+        .borrow::<Arc<Mutex<AppState>>>()
+        .lock()
+        .unwrap()
+        .event_loop
+        .lock()
+        .unwrap()
+        .send_event(Js::RectsUpdated)
+        .unwrap();
+
     Ok(())
 }
 
@@ -90,6 +113,16 @@ fn op_remove_rect_from_window(state: &mut OpState, rid: u32) -> Result<(), deno_
         .lock()
         .unwrap()
         .retain(|item| !Arc::ptr_eq(item, &rect));
+
+    state
+        .borrow::<Arc<Mutex<AppState>>>()
+        .lock()
+        .unwrap()
+        .event_loop
+        .lock()
+        .unwrap()
+        .send_event(Js::RectsUpdated)
+        .unwrap();
 
     Ok(())
 }
