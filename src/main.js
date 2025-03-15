@@ -1,3 +1,5 @@
+import ReactReconciler from "npm:react-reconciler";
+
 const id = RnWGPU.create_rect(100, 100, 200, 200);
 RnWGPU.append_rect_to_window(id);
 
@@ -7,4 +9,4 @@ setTimeout(() => {
   RnWGPU.update_rect(id, 100, 100, 600, 600);
 }, 500);
 
-console.log("Hello from main.js");
+console.log("Hello from main.js", ReactReconciler);
