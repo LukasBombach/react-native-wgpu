@@ -4,34 +4,43 @@ use std::sync::Mutex;
 use winit::application::ApplicationHandler;
 use winit::event::WindowEvent;
 use winit::event_loop::ActiveEventLoop;
+use winit::event_loop::EventLoopProxy;
 use winit::window::Window;
 use winit::window::WindowId;
 
-use crate::gpu::Gpu;
-use crate::gpu::Instance;
+use crate::graphics::Gpu;
+use crate::graphics::Instance;
+use crate::graphics::Rect;
 
-#[derive(Debug, Clone, Copy)]
-pub enum JsEvents {
-    AddRect(u32, u32, u32, u32),
+#[derive(Debug)]
+pub enum Js {
+    RectsUpdated,
 }
-
-#[derive(Copy, Clone, Debug)]
-pub struct Rect(u32, u32, u32, u32);
 
 #[derive(Debug, Clone)]
 pub struct AppState {
-    rects: Vec<Rect>,
+    pub rects: Arc<Mutex<Vec<Arc<Mutex<Rect>>>>>,
+    pub event_loop: Arc<Mutex<EventLoopProxy<Js>>>,
+}
+
+impl AppState {
+    pub fn new(event_loop: Arc<Mutex<EventLoopProxy<Js>>>) -> Self {
+        Self {
+            rects: Arc::new(Mutex::new(Vec::new())),
+            event_loop,
+        }
+    }
 }
 
 pub struct App<'window> {
     window: Option<Arc<Window>>,
     gpu: Option<Gpu<'window>>,
-    state: Arc<Mutex<AppState>>,
+    pub state: Arc<Mutex<AppState>>,
 }
 
 impl App<'_> {
-    pub fn new() -> Self {
-        let state = Arc::new(Mutex::new(AppState { rects: Vec::new() }));
+    pub fn new(event_loop: Arc<Mutex<EventLoopProxy<Js>>>) -> Self {
+        let state = Arc::new(Mutex::new(AppState::new(event_loop)));
 
         Self {
             window: None,
@@ -40,50 +49,52 @@ impl App<'_> {
         }
     }
 
-    pub fn add_rect(&mut self, x: u32, y: u32, w: u32, h: u32) {
-        self.state.lock().unwrap().rects.push(Rect(x, y, w, h));
-        self.sync_gpu_instance_buffer();
-
-        if let Some(window) = self.window.as_ref() {
-            window.request_redraw();
-        }
-    }
-
     fn rects_to_instances(&self) -> Vec<Instance> {
         self.state
             .lock()
             .unwrap()
             .rects
+            .lock()
+            .unwrap()
             .iter()
-            .map(|r| Instance::new(r.0 as f32, r.1 as f32, r.2 as f32, r.3 as f32))
+            .map(|r| {
+                let rect = r.lock().unwrap();
+                Instance::new(rect.0 as f32, rect.1 as f32, rect.2 as f32, rect.3 as f32)
+            })
             .collect()
-    }
-
-    fn sync_gpu_instance_buffer(&mut self) {
-        let instances = self.rects_to_instances();
-        if let Some(gpu) = self.gpu.as_mut() {
-            gpu.update_instance_buffer(&instances);
-        }
     }
 }
 
-impl<'window> ApplicationHandler<JsEvents> for App<'window> {
+impl<'window> ApplicationHandler<Js> for App<'window> {
     fn resumed(&mut self, event_loop: &ActiveEventLoop) {
         if self.window.is_none() {
             let window = Arc::new(
                 event_loop
-                    .create_window(Window::default_attributes().with_title("wgpu winit example"))
+                    .create_window(
+                        Window::default_attributes()
+                            .with_position(winit::dpi::PhysicalPosition::new(100, 200))
+                            .with_title("wgpu winit example"),
+                    )
                     .expect("create window err."),
             );
 
             self.window = Some(window.clone());
-            self.gpu = Some(Gpu::new(window.clone(), self.rects_to_instances()));
+            self.gpu = Some(Gpu::new(window.clone()));
         }
     }
 
-    fn user_event(&mut self, _event_loop: &ActiveEventLoop, event: JsEvents) {
-        let JsEvents::AddRect(x, y, w, h) = event;
-        self.add_rect(x, y, w, h);
+    fn user_event(&mut self, _event_loop: &ActiveEventLoop, event: Js) {
+        match event {
+            Js::RectsUpdated => {
+                let instances = self.rects_to_instances();
+                if let Some(gpu) = self.gpu.as_mut() {
+                    gpu.update_instance_buffer(&instances);
+                }
+                if let Some(window) = self.window.as_ref() {
+                    window.request_redraw();
+                }
+            }
+        }
     }
 
     fn window_event(&mut self, event_loop: &ActiveEventLoop, _id: WindowId, event: WindowEvent) {
