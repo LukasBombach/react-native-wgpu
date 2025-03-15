@@ -4,8 +4,6 @@ use std::sync::Arc;
 use std::sync::Mutex;
 use std::thread;
 
-use winit::event_loop::EventLoopProxy;
-
 use deno_core::error::AnyError;
 use deno_core::extension;
 use deno_core::op2;

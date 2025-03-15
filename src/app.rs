@@ -30,11 +30,6 @@ impl AppState {
             event_loop,
         }
     }
-
-    pub fn add_rect(&mut self, rect: Rect) {
-        let mut rects = self.rects.lock().unwrap();
-        rects.push(Arc::new(Mutex::new(rect)));
-    }
 }
 
 pub struct App<'window> {
