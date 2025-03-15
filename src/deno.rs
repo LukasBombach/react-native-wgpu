@@ -4,11 +4,15 @@
 use std::path::Path;
 use std::rc::Rc;
 use std::sync::Arc;
+use std::sync::Mutex;
+use std::thread;
 
-// use deno_core::error::AnyError;
+use deno_core::extension;
 use deno_core::op2;
 use deno_core::FsModuleLoader;
 use deno_core::ModuleSpecifier;
+use deno_core::OpState;
+use deno_core::Resource;
 use deno_fs::RealFs;
 use deno_resolver::npm::DenoInNpmPackageChecker;
 use deno_resolver::npm::NpmResolver;
@@ -17,17 +21,6 @@ use deno_runtime::permissions::RuntimePermissionDescriptorParser;
 use deno_runtime::worker::MainWorker;
 use deno_runtime::worker::WorkerOptions;
 use deno_runtime::worker::WorkerServiceOptions;
-
-// use std::env::current_dir;
-use std::sync::Mutex;
-use std::thread;
-
-use deno_core::extension;
-// use deno_core::resolve_path;
-// use deno_core::JsRuntime;
-use deno_core::OpState;
-use deno_core::Resource;
-// use deno_core::RuntimeOptions;
 
 use crate::app::AppState;
 use crate::app::Js;
@@ -141,13 +134,15 @@ fn op_remove_rect_from_window(state: &mut OpState, rid: u32) -> Result<(), deno_
 }
 
 extension!(
-    rects,
+    rn_wgpu,
     ops = [
         op_create_rect,
         op_append_rect_to_window,
         op_update_rect,
         op_remove_rect_from_window,
-    ]
+    ],
+    esm_entry_point = "ext:rn_wgpu/rn_wgpu.js",
+    esm = [dir "src", "rn_wgpu.js"]
 );
 
 pub fn run_script(app_state: Arc<Mutex<AppState>>, js_path: &str) {
@@ -162,24 +157,6 @@ pub fn run_script(app_state: Arc<Mutex<AppState>>, js_path: &str) {
             .unwrap();
 
         tokio_runtime.block_on(async {
-            // let mut js_runtime = JsRuntime::new(RuntimeOptions {
-            //     extensions: vec![rects::init_ops_and_esm()],
-            //     module_loader: Some(Rc::new(FsModuleLoader)),
-            //     ..Default::default()
-            // });
-
-            // js_runtime.op_state().borrow_mut().put(app_state);
-
-            // let main_module = resolve_path(&js_path, &current_dir().unwrap()).unwrap();
-
-            // let mod_id = js_runtime.load_main_es_module(&main_module).await?;
-            // let result = js_runtime.mod_evaluate(mod_id);
-
-            // js_runtime.run_event_loop(Default::default()).await?;
-
-            // result.await.map_err(|e| AnyError::from(e))
-
-            // let main_module = resolve_path(&js_path, &current_dir().unwrap()).unwrap();
             let main_module = ModuleSpecifier::from_file_path(js_path).unwrap();
 
             eprintln!("Running {main_module}...");
@@ -211,7 +188,7 @@ pub fn run_script(app_state: Arc<Mutex<AppState>>, js_path: &str) {
                     fs,
                 },
                 WorkerOptions {
-                    // extensions: vec![rects::init_ops_and_esm()],
+                    extensions: vec![rn_wgpu::init_ops_and_esm()],
                     ..Default::default()
                 },
             );
