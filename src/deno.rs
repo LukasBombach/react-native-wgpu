@@ -14,6 +14,7 @@ use deno_core::ModuleSpecifier;
 use deno_core::OpState;
 use deno_core::Resource;
 use deno_fs::RealFs;
+use deno_lib::worker::LibMainWorker;
 use deno_resolver::npm::DenoInNpmPackageChecker;
 use deno_resolver::npm::NpmResolver;
 use deno_runtime::deno_permissions::PermissionsContainer;
@@ -185,12 +186,40 @@ pub fn run_script(app_state: Arc<Mutex<AppState>>, js_path: &str) {
                     shared_array_buffer_store: Default::default(),
                     compiled_wasm_module_store: Default::default(),
                     v8_code_cache: Default::default(),
-                    fs,
+                    fs: fs.clone(),
                 },
                 WorkerOptions {
                     extensions: vec![rn_wgpu::init_ops_and_esm()],
                     ..Default::default()
                 },
+            );
+
+            let _x = deno_lib::worker::LibMainWorkerFactory::new(
+                Default::default(), // blob_store
+                Default::default(), // code_cache
+                Default::default(), // feature_checker
+                fs.clone(),         // fs
+                Default::default(), // maybe_inspector_server
+                //Default::default(), // module_loader_factory
+                deno_lib::loader::NpmModuleLoader::new(
+                    /* Arc::new(deno_lib::loader::CjsTracker::new(
+                        Arc::new(DenoInNpmPackageChecker),
+                        Arc::new(deno_lib::loader::NodeCodeTranslator::new(
+                            Default::default(),                    // cjs_tracker
+                            Default::default(),                    // node_code_translator
+                            sys_traits::impls::RealSys::default(), // sys
+                        )),
+                    )),
+                    fs.clone(),
+                    sys_traits::impls::RealSys::default(), */
+                ),
+                Default::default(), // node_resolver
+                Default::default(), // npm_process_state_provider
+                Default::default(), // pkg_json_resolver
+                Default::default(), // root_cert_store_provider
+                Default::default(), // storage_key_resolver
+                Default::default(), // sys
+                Default::default(), // options
             );
 
             worker.js_runtime.op_state().borrow_mut().put(app_state);

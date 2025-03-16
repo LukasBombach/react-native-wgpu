@@ -1274,6 +1274,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5c297a1c74b71ae29df00c3e22dd9534821d60eb9af5a0192823fa2acea70c2a"
 
 [[package]]
+name = "debug-ignore"
+version = "1.0.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ffe7ed1d93f4553003e20b629abe9085e1e81b1429520f897f8f8860bc6dfc21"
+
+[[package]]
 name = "debugid"
 version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1756,6 +1762,39 @@ dependencies = [
  "rusqlite",
  "serde",
  "thiserror 2.0.11",
+ "url",
+]
+
+[[package]]
+name = "deno_lib"
+version = "0.11.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "952d317404f14040fc6c4ed011371082c3541fae0adb74ce03ae0e6e99433294"
+dependencies = [
+ "capacity_builder 0.5.0",
+ "deno_error",
+ "deno_fs",
+ "deno_media_type",
+ "deno_node",
+ "deno_npm",
+ "deno_path_util",
+ "deno_resolver",
+ "deno_runtime",
+ "deno_semver",
+ "deno_terminal",
+ "env_logger",
+ "faster-hex",
+ "indexmap 2.7.1",
+ "libsui",
+ "log",
+ "node_resolver",
+ "parking_lot",
+ "ring",
+ "serde",
+ "serde_json",
+ "sys_traits",
+ "thiserror 2.0.11",
+ "twox-hash",
  "url",
 ]
 
@@ -2679,6 +2718,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "editpe"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "48cede2bb1b07dd598d269f973792c43e0cd92686d3b452bd6e01d7a8eb01211"
+dependencies = [
+ "debug-ignore",
+ "indexmap 2.7.1",
+ "log",
+ "thiserror 1.0.69",
+ "zerocopy 0.7.35",
+]
+
+[[package]]
 name = "either"
 version = "1.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2733,6 +2785,19 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.98",
+]
+
+[[package]]
+name = "env_logger"
+version = "0.10.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "85cdab6a89accf66733ad5a1693a4dcced6aeff64602b634530dd73c1f3ee9f0"
+dependencies = [
+ "humantime",
+ "is-terminal",
+ "log",
+ "regex",
+ "termcolor",
 ]
 
 [[package]]
@@ -3396,6 +3461,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fbf6a919d6cf397374f7dfeeea91d974c7c0a7221d0d0f4f20d859d329e53fcc"
 
 [[package]]
+name = "hermit-abi"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fbd780fe5cc30f81464441920d82ac8740e2e46b29a6fad543ddd075229ce37e"
+
+[[package]]
 name = "hex"
 version = "0.4.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3585,6 +3656,12 @@ name = "httpdate"
 version = "1.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "df3b46402a9d5adb4c86a0cf463f42e19994e3ee891101b1841f30a545cb49a9"
+
+[[package]]
+name = "humantime"
+version = "2.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9b112acc8b3adf4b107a8ec20977da0273a8c386765a3ec0229bd500a1443f9f"
 
 [[package]]
 name = "hyper"
@@ -3963,6 +4040,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "is-terminal"
+version = "0.4.16"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e04d7f318608d35d4b61ddd75cbdaee86b023ebe2bd5a66ee0915f0bf93095a9"
+dependencies = [
+ "hermit-abi 0.5.0",
+ "libc",
+ "windows-sys 0.59.0",
+]
+
+[[package]]
 name = "itertools"
 version = "0.10.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4251,6 +4339,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "libsui"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "89795977654ad6250d6c0915411b622bac22f9efb4f852af94b2e00964cab832"
+dependencies = [
+ "editpe",
+ "libc",
+ "sha2",
+ "windows-sys 0.48.0",
+ "zerocopy 0.7.35",
+]
+
+[[package]]
 name = "libz-sys"
 version = "1.1.22"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4300,6 +4401,9 @@ name = "log"
 version = "0.4.26"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "30bde2b3dc3671ae49d8e2e9f044c7c005836e7a023ee57cffa25ab82764bb9e"
+dependencies = [
+ "serde",
+]
 
 [[package]]
 name = "loom"
@@ -5796,6 +5900,8 @@ dependencies = [
  "deno_core",
  "deno_error",
  "deno_fs",
+ "deno_lib",
+ "deno_node",
  "deno_resolver",
  "deno_runtime",
  "pollster",
@@ -7231,6 +7337,7 @@ version = "0.1.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "638f0e61b5134e56b2abdf4c704fd44672603f15ca09013f314649056f3fee4d"
 dependencies = [
+ "getrandom 0.2.15",
  "libc",
  "windows-sys 0.59.0",
 ]
@@ -8945,6 +9052,7 @@ version = "0.7.35"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1b9b4fd18abc82b8136838da5d50bae7bdea537c574d8dc1a34ed098d6c166f0"
 dependencies = [
+ "byteorder",
  "zerocopy-derive 0.7.35",
 ]
 
