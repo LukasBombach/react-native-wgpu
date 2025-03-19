@@ -1,10 +1,3 @@
-const id = RnWGPU.create_rect(100, 100, 200, 200);
-RnWGPU.append_rect_to_window(id);
+import chalk from "npm:chalk@5";
 
-console.log(`Added rect with id: ${id}`);
-
-setTimeout(() => {
-  RnWGPU.update_rect(id, 100, 100, 600, 600);
-}, 500);
-
-console.log("Hello from main.js");
+console.log(chalk.blue("hello world"));
