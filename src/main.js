@@ -1,3 +1,3 @@
-import chalk from "npm:chalk@5";
+import * as emoji from "npm:node-emoji";
 
-console.log(chalk.blue("hello world"));
+console.log(emoji.emojify(`:sauropod: :heart:  npm`));

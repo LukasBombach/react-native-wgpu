@@ -6,7 +6,7 @@ edition = "2021"
 [dependencies]
 bytemuck = { version = "1.21.0", features = ["derive"] }
 pollster = { version =  "0.4.0" }
-rustyscript = { version = "0.11.0", features = ["node_experimental"]}
+rustyscript = { version = "0.11.0", features = ["all_extensions", "node_experimental"] }
 serde = { version = "1.0.218", features = ["derive"] }
 sys_traits = "0.1.8"
 wgpu = { version =  "24.0.1" }
