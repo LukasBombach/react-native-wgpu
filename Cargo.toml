@@ -6,13 +6,9 @@ edition = "2021"
 [dependencies]
 bytemuck = { version = "1.21.0", features = ["derive"] }
 pollster = { version =  "0.4.0" }
-rustyscript = { version = "0.11.0", features = ["all_extensions", "node_experimental"] }
+# includes patch https://github.com/rscarson/rustyscript/pull/350
+rustyscript = { git = "https://github.com/rscarson/rustyscript", rev = "f85e33a9f44eaf35807857f2a5b743a7421ddceb", features = ["all_extensions", "node_experimental"] }
 serde = { version = "1.0.218", features = ["derive"] }
 sys_traits = "0.1.8"
 wgpu = { version =  "24.0.1" }
 winit = { version =  "0.30.9" }
-
-
-# https://github.com/rscarson/rustyscript/issues/332
-[patch.crates-io]
-deno_media_type = { git = 'https://github.com/denoland/deno_media_type', tag = "0.2.6" }
