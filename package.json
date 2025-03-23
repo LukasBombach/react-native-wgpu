@@ -9,6 +9,6 @@
     "react-reconciler": "0.31.0"
   },
   "devDependencies": {
-    "node-emoji": "2.2.0"
+    "@types/react-reconciler": "0.31.0"
   }
 }
