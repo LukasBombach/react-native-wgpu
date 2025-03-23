@@ -135,10 +135,12 @@ extension!(
 pub fn run_script(app_state: Arc<Mutex<AppState>>, js_path: &str) {
     let js_path = Path::new(env!("CARGO_MANIFEST_DIR")).join(js_path);
 
-    let mut schema_whlist = HashSet::new();
-    schema_whlist.insert("rn-wgpu:".to_string());
-
     let _handle = thread::spawn(move || {
+        let mut schema_whlist = HashSet::new();
+        schema_whlist.insert("rn-wgpu:".to_string());
+
+        let module = Module::load(js_path).unwrap();
+
         let mut runtime = Runtime::new(RuntimeOptions {
             schema_whlist,
             extensions: vec![rect_extension::init_ops_and_esm()],
@@ -153,7 +155,6 @@ pub fn run_script(app_state: Arc<Mutex<AppState>>, js_path: &str) {
             .put(app_state);
 
         runtime.set_current_dir("src").unwrap();
-        let module = Module::load(js_path).unwrap();
         runtime.load_module(&module).unwrap();
     });
 }
