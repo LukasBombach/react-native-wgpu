@@ -3,13 +3,12 @@
   "version": "1.0.0",
   "private": true,
   "author": "Lukas Bombach <lukas.bombach@googlemail.com>",
-  "license": "ISC",
-  "description": "",
+  "license": "MIT",
+  "description": "React Native WGPU renderer",
   "dependencies": {
     "react-reconciler": "0.31.0"
   },
   "devDependencies": {
-    "chalk": "5.4.1",
     "node-emoji": "2.2.0"
   }
 }
