@@ -1,0 +1,14 @@
+{
+  "name": "react-native-wgpu",
+  "version": "1.0.0",
+  "private": true,
+  "author": "Lukas Bombach <lukas.bombach@googlemail.com>",
+  "license": "MIT",
+  "description": "React Native WGPU renderer",
+  "dependencies": {
+    "react-reconciler": "0.31.0"
+  },
+  "devDependencies": {
+    "@types/react-reconciler": "0.31.0"
+  }
+}
