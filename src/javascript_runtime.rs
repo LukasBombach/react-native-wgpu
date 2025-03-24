@@ -3,9 +3,12 @@
 
 use std::collections::HashSet;
 use std::path::Path;
+use std::sync::mpsc;
 use std::sync::Arc;
 use std::sync::Mutex;
 use std::thread;
+
+use notify::{recommended_watcher, RecursiveMode, Watcher};
 
 use rustyscript::{Module, Runtime, RuntimeOptions};
 
@@ -133,32 +136,69 @@ extension!(
 );
 
 pub fn run_script(app_state: Arc<Mutex<AppState>>, js_path: &str) {
-    let js_path = Path::new(env!("CARGO_MANIFEST_DIR")).join(js_path);
+    let (tx, rx) = mpsc::channel();
 
-    let _handle = thread::spawn(move || {
-        let mut schema_whlist = HashSet::new();
-        schema_whlist.insert("rn-wgpu:".to_string());
-
-        let module = Module::load(js_path).unwrap();
-
-        let mut runtime = Runtime::new(RuntimeOptions {
-            schema_whlist,
-            extensions: vec![rect_extension::init_ops_and_esm()],
-            ..RuntimeOptions::default()
-        })
+    let mut watcher = recommended_watcher(tx).unwrap();
+    watcher
+        .watch(
+            Path::new(env!("CARGO_MANIFEST_DIR")),
+            RecursiveMode::Recursive,
+        )
         .unwrap();
 
-        runtime
-            .deno_runtime()
-            .op_state()
-            .borrow_mut()
-            .put(app_state);
+    let js_path_buf = Path::new(env!("CARGO_MANIFEST_DIR")).join(js_path);
 
-        runtime.set_current_dir("src").unwrap();
-        let result = runtime.load_module(&module);
+    let _handle = thread::spawn(move || {
+        run_js_runtime(app_state.clone(), &js_path_buf);
 
-        if let Err(err) = result {
-            eprintln!("{}", err);
+        for res in rx {
+            match res {
+                Ok(event) => {
+                    println!("🔁 Änderung erkannt. Starte neu… {event:?}");
+                    run_js_runtime(app_state.clone(), &js_path_buf);
+                }
+                Err(error) => eprintln!("watch error: {:?}", error),
+            }
         }
     });
+}
+
+fn run_js_runtime(app_state: Arc<Mutex<AppState>>, js_path: &Path) {
+    let mut schema_whlist = HashSet::new();
+    schema_whlist.insert("rn-wgpu:".to_string());
+
+    let mut runtime = match Runtime::new(RuntimeOptions {
+        schema_whlist,
+        extensions: vec![rect_extension::init_ops_and_esm()],
+        ..RuntimeOptions::default()
+    }) {
+        Ok(rt) => rt,
+        Err(err) => {
+            eprintln!("❌ Fehler beim Erstellen der Runtime: {}", err);
+            return;
+        }
+    };
+
+    // AppState injizieren
+    runtime
+        .deno_runtime()
+        .op_state()
+        .borrow_mut()
+        .put(app_state);
+
+    if let Err(err) = runtime.set_current_dir("src") {
+        eprintln!("⚠️ set_current_dir fehlgeschlagen: {}", err);
+    }
+
+    let module = match Module::load(js_path) {
+        Ok(m) => m,
+        Err(err) => {
+            eprintln!("❌ Fehler beim Laden des Moduls: {}", err);
+            return;
+        }
+    };
+
+    if let Err(err) = runtime.load_module(&module) {
+        eprintln!("❌ Fehler beim Ausführen des Moduls: {}", err);
+    }
 }
