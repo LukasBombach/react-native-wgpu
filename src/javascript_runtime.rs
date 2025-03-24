@@ -155,6 +155,10 @@ pub fn run_script(app_state: Arc<Mutex<AppState>>, js_path: &str) {
             .put(app_state);
 
         runtime.set_current_dir("src").unwrap();
-        runtime.load_module(&module).unwrap();
+        let result = runtime.load_module(&module);
+
+        if let Err(err) = result {
+            eprintln!("{}", err);
+        }
     });
 }

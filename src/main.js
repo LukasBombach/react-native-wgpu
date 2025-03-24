@@ -1,4 +1,3 @@
-import Reconciler from "npm:react-reconciler";
 import { create_rect, append_rect_to_window, update_rect } from "rn-wgpu:rect";
 
 const id = create_rect(100, 100, 200, 200);
@@ -10,4 +9,4 @@ setTimeout(() => {
   update_rect(id, 100, 100, 600, 600);
 }, 500);
 
-console.log(typeof Reconciler);
+throw new Error("This is an error");
