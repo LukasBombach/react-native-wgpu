@@ -8,7 +8,8 @@ use std::sync::Arc;
 use std::sync::Mutex;
 use std::thread;
 
-use notify::{recommended_watcher, RecursiveMode, Watcher};
+use notify::event::ModifyKind;
+use notify::{recommended_watcher, EventKind, RecursiveMode, Watcher};
 
 use rustyscript::{Module, Runtime, RuntimeOptions};
 
@@ -136,28 +137,41 @@ extension!(
 );
 
 pub fn run_script(app_state: Arc<Mutex<AppState>>, js_path: &str) {
-    let (tx, rx) = mpsc::channel();
-
-    let mut watcher = recommended_watcher(tx).unwrap();
-    watcher
-        .watch(
-            Path::new(env!("CARGO_MANIFEST_DIR")),
-            RecursiveMode::Recursive,
-        )
-        .unwrap();
-
     let js_path_buf = Path::new(env!("CARGO_MANIFEST_DIR")).join(js_path);
 
     let _handle = thread::spawn(move || {
+        let (tx, rx) = mpsc::channel();
+
+        let mut watcher = recommended_watcher(tx).unwrap();
+        watcher
+            .watch(js_path_buf.as_ref(), RecursiveMode::NonRecursive)
+            .unwrap();
+
         run_js_runtime(app_state.clone(), &js_path_buf);
 
-        for res in rx {
-            match res {
+        println!("🔁 Überwache Änderungen…");
+
+        loop {
+            match rx.recv() {
                 Ok(event) => {
-                    println!("🔁 Änderung erkannt. Starte neu… {event:?}");
-                    run_js_runtime(app_state.clone(), &js_path_buf);
+                    // Überprüfen, ob die Änderung eine Dateiänderung ist
+                    if let Ok(event) = event {
+                        if let EventKind::Modify(ModifyKind::Data(_)) = event.kind {
+                            // Hier können Sie den Code hinzufügen, der ausgeführt werden soll,
+                            // wenn eine Dateiänderung erkannt wird.
+                            println!("🔁 Änderung erkannt. Starte neu…");
+                            run_js_runtime(app_state.clone(), &js_path_buf);
+                        } else {
+                            continue;
+                        }
+                    } else {
+                        continue;
+                    }
                 }
-                Err(error) => eprintln!("watch error: {:?}", error),
+                Err(error) => {
+                    eprintln!("watch error: {:#?}", error);
+                    break;
+                }
             }
         }
     });

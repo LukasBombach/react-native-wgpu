@@ -9,4 +9,5 @@ setTimeout(() => {
   update_rect(id, 100, 100, 600, 600);
 }, 500);
 
-throw new Error("This is an error");
+// throw new Error("This is an error");
+console.log("all good");
