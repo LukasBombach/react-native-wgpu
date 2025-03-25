@@ -11,7 +11,7 @@ use std::thread;
 use notify::event::ModifyKind;
 use notify::{recommended_watcher, EventKind, RecursiveMode, Watcher};
 
-use rustyscript::{Module, Runtime, RuntimeOptions};
+use rustyscript::{Error, Module, Runtime, RuntimeOptions};
 
 use deno_core::extension;
 use deno_core::op2;
@@ -147,7 +147,25 @@ pub fn run_script(app_state: Arc<Mutex<AppState>>, js_path: &str) {
             .watch(js_path_buf.as_ref(), RecursiveMode::NonRecursive)
             .unwrap();
 
-        run_js_runtime(app_state.clone(), &js_path_buf);
+        let mut runtime = match init_runtime(app_state.clone()) {
+            Ok(runtime) => runtime,
+            Err(error) => {
+                eprintln!("{error}");
+                return;
+            }
+        };
+
+        let module = match Module::load(&js_path_buf) {
+            Ok(module) => module,
+            Err(error) => {
+                eprintln!("{error}");
+                return;
+            }
+        };
+
+        if let Err(error) = runtime.load_module(&module) {
+            eprintln!("{error}");
+        }
 
         loop {
             match rx.recv() {
@@ -155,7 +173,17 @@ pub fn run_script(app_state: Arc<Mutex<AppState>>, js_path: &str) {
                     if let Ok(event) = event {
                         if let EventKind::Modify(ModifyKind::Data(_)) = event.kind {
                             println!("reloading... ");
-                            run_js_runtime(app_state.clone(), &js_path_buf);
+                            let module = match Module::load(&js_path_buf) {
+                                Ok(module) => module,
+                                Err(error) => {
+                                    eprintln!("{error}");
+                                    return;
+                                }
+                            };
+
+                            if let Err(error) = runtime.load_module(&module) {
+                                eprintln!("{error}");
+                            }
                         } else {
                             continue;
                         }
@@ -172,21 +200,15 @@ pub fn run_script(app_state: Arc<Mutex<AppState>>, js_path: &str) {
     });
 }
 
-fn run_js_runtime(app_state: Arc<Mutex<AppState>>, js_path: &Path) {
+fn init_runtime(app_state: Arc<Mutex<AppState>>) -> Result<Runtime, Error> {
     let mut schema_whlist = HashSet::new();
     schema_whlist.insert("rn-wgpu:".to_string());
 
-    let mut runtime = match Runtime::new(RuntimeOptions {
+    let mut runtime = Runtime::new(RuntimeOptions {
         schema_whlist,
         extensions: vec![rect_extension::init_ops_and_esm()],
         ..RuntimeOptions::default()
-    }) {
-        Ok(runtime) => runtime,
-        Err(error) => {
-            eprintln!("{error}");
-            return;
-        }
-    };
+    })?;
 
     runtime
         .deno_runtime()
@@ -194,19 +216,7 @@ fn run_js_runtime(app_state: Arc<Mutex<AppState>>, js_path: &Path) {
         .borrow_mut()
         .put(app_state);
 
-    if let Err(error) = runtime.set_current_dir("src") {
-        eprintln!("{error}");
-    }
+    runtime.set_current_dir("src")?;
 
-    let module = match Module::load(js_path) {
-        Ok(module) => module,
-        Err(error) => {
-            eprintln!("{error}");
-            return;
-        }
-    };
-
-    if let Err(error) = runtime.load_module(&module) {
-        eprintln!("{error}");
-    }
+    Ok(runtime)
 }
