@@ -149,17 +149,12 @@ pub fn run_script(app_state: Arc<Mutex<AppState>>, js_path: &str) {
 
         run_js_runtime(app_state.clone(), &js_path_buf);
 
-        println!("🔁 Überwache Änderungen…");
-
         loop {
             match rx.recv() {
                 Ok(event) => {
-                    // Überprüfen, ob die Änderung eine Dateiänderung ist
                     if let Ok(event) = event {
                         if let EventKind::Modify(ModifyKind::Data(_)) = event.kind {
-                            // Hier können Sie den Code hinzufügen, der ausgeführt werden soll,
-                            // wenn eine Dateiänderung erkannt wird.
-                            println!("🔁 Änderung erkannt. Starte neu…");
+                            println!("reloading... ");
                             run_js_runtime(app_state.clone(), &js_path_buf);
                         } else {
                             continue;
@@ -169,7 +164,7 @@ pub fn run_script(app_state: Arc<Mutex<AppState>>, js_path: &str) {
                     }
                 }
                 Err(error) => {
-                    eprintln!("watch error: {:#?}", error);
+                    eprintln!("{:#?}", error);
                     break;
                 }
             }
@@ -186,33 +181,32 @@ fn run_js_runtime(app_state: Arc<Mutex<AppState>>, js_path: &Path) {
         extensions: vec![rect_extension::init_ops_and_esm()],
         ..RuntimeOptions::default()
     }) {
-        Ok(rt) => rt,
-        Err(err) => {
-            eprintln!("❌ Fehler beim Erstellen der Runtime: {}", err);
+        Ok(runtime) => runtime,
+        Err(error) => {
+            eprintln!("{error}");
             return;
         }
     };
 
-    // AppState injizieren
     runtime
         .deno_runtime()
         .op_state()
         .borrow_mut()
         .put(app_state);
 
-    if let Err(err) = runtime.set_current_dir("src") {
-        eprintln!("⚠️ set_current_dir fehlgeschlagen: {}", err);
+    if let Err(error) = runtime.set_current_dir("src") {
+        eprintln!("{error}");
     }
 
     let module = match Module::load(js_path) {
-        Ok(m) => m,
-        Err(err) => {
-            eprintln!("❌ Fehler beim Laden des Moduls: {}", err);
+        Ok(module) => module,
+        Err(error) => {
+            eprintln!("{error}");
             return;
         }
     };
 
-    if let Err(err) = runtime.load_module(&module) {
-        eprintln!("❌ Fehler beim Ausführen des Moduls: {}", err);
+    if let Err(error) = runtime.load_module(&module) {
+        eprintln!("{error}");
     }
 }
