@@ -26,6 +26,11 @@ use crate::graphics::Rect;
 struct RectResource(Arc<Mutex<Rect>>);
 impl Resource for RectResource {}
 
+/**
+ * todo the way rect are added to the resource table and also synced with the app state
+ * does not seem to be the best way to do it
+ */
+
 #[op2(fast)]
 fn op_create_rect(state: &mut OpState, x: u32, y: u32, w: u32, h: u32) -> Result<u32, JsErrorBox> {
     let rect = Arc::new(Mutex::new(Rect(x, y, w, h)));
@@ -139,6 +144,8 @@ extension!(
 pub fn run_script(app_state: Arc<Mutex<AppState>>, js_path: &str) {
     let js_path_buf = Path::new(env!("CARGO_MANIFEST_DIR")).join(js_path);
 
+    let app_state_for_thread = app_state.clone();
+
     let _handle = thread::spawn(move || {
         let (tx, rx) = mpsc::channel();
 
@@ -180,6 +187,19 @@ pub fn run_script(app_state: Arc<Mutex<AppState>>, js_path: &str) {
                                     return;
                                 }
                             };
+
+                            // todo clear resources from the deno runtime
+
+                            app_state.lock().unwrap().rects.lock().unwrap().clear();
+
+                            app_state_for_thread
+                                .lock()
+                                .unwrap()
+                                .event_loop
+                                .lock()
+                                .unwrap()
+                                .send_event(Js::RectsUpdated)
+                                .unwrap();
 
                             if let Err(error) = runtime.load_module(&module) {
                                 eprintln!("{error}");
