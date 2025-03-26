@@ -6,9 +6,11 @@
   "license": "MIT",
   "description": "React Native WGPU renderer",
   "dependencies": {
+    "react": "19.0.0",
     "react-reconciler": "0.31.0"
   },
   "devDependencies": {
+    "@types/react": "19.0.12",
     "@types/react-reconciler": "0.31.0"
   }
 }
