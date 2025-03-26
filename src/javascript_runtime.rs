@@ -3,11 +3,15 @@
 
 use std::collections::HashSet;
 use std::path::Path;
+use std::sync::mpsc;
 use std::sync::Arc;
 use std::sync::Mutex;
 use std::thread;
 
-use rustyscript::{Module, Runtime, RuntimeOptions};
+use notify::event::ModifyKind;
+use notify::{recommended_watcher, EventKind, RecursiveMode, Watcher};
+
+use rustyscript::{Error, Module, Runtime, RuntimeOptions};
 
 use deno_core::extension;
 use deno_core::op2;
@@ -21,6 +25,11 @@ use crate::graphics::Rect;
 
 struct RectResource(Arc<Mutex<Rect>>);
 impl Resource for RectResource {}
+
+/**
+ * todo the way rect are added to the resource table and also synced with the app state
+ * does not seem to be the best way to do it
+ */
 
 #[op2(fast)]
 fn op_create_rect(state: &mut OpState, x: u32, y: u32, w: u32, h: u32) -> Result<u32, JsErrorBox> {
@@ -133,28 +142,101 @@ extension!(
 );
 
 pub fn run_script(app_state: Arc<Mutex<AppState>>, js_path: &str) {
-    let js_path = Path::new(env!("CARGO_MANIFEST_DIR")).join(js_path);
+    let js_path_buf = Path::new(env!("CARGO_MANIFEST_DIR")).join(js_path);
+
+    let app_state_for_thread = app_state.clone();
 
     let _handle = thread::spawn(move || {
-        let mut schema_whlist = HashSet::new();
-        schema_whlist.insert("rn-wgpu:".to_string());
+        let (tx, rx) = mpsc::channel();
 
-        let module = Module::load(js_path).unwrap();
+        let mut watcher = recommended_watcher(tx).unwrap();
+        watcher
+            .watch(js_path_buf.as_ref(), RecursiveMode::NonRecursive)
+            .unwrap();
 
-        let mut runtime = Runtime::new(RuntimeOptions {
-            schema_whlist,
-            extensions: vec![rect_extension::init_ops_and_esm()],
-            ..RuntimeOptions::default()
-        })
-        .unwrap();
+        let mut runtime = match init_runtime(app_state.clone()) {
+            Ok(runtime) => runtime,
+            Err(error) => {
+                eprintln!("{error}");
+                return;
+            }
+        };
 
-        runtime
-            .deno_runtime()
-            .op_state()
-            .borrow_mut()
-            .put(app_state);
+        let module = match Module::load(&js_path_buf) {
+            Ok(module) => module,
+            Err(error) => {
+                eprintln!("{error}");
+                return;
+            }
+        };
 
-        runtime.set_current_dir("src").unwrap();
-        runtime.load_module(&module).unwrap();
+        if let Err(error) = runtime.load_module(&module) {
+            eprintln!("{error}");
+        }
+
+        loop {
+            match rx.recv() {
+                Ok(event) => {
+                    if let Ok(event) = event {
+                        if let EventKind::Modify(ModifyKind::Data(_)) = event.kind {
+                            println!("reloading... ");
+                            let module = match Module::load(&js_path_buf) {
+                                Ok(module) => module,
+                                Err(error) => {
+                                    eprintln!("{error}");
+                                    return;
+                                }
+                            };
+
+                            // todo clear resources from the deno runtime
+
+                            app_state.lock().unwrap().rects.lock().unwrap().clear();
+
+                            app_state_for_thread
+                                .lock()
+                                .unwrap()
+                                .event_loop
+                                .lock()
+                                .unwrap()
+                                .send_event(Js::RectsUpdated)
+                                .unwrap();
+
+                            if let Err(error) = runtime.load_module(&module) {
+                                eprintln!("{error}");
+                            }
+                        } else {
+                            continue;
+                        }
+                    } else {
+                        continue;
+                    }
+                }
+                Err(error) => {
+                    eprintln!("{:#?}", error);
+                    break;
+                }
+            }
+        }
     });
+}
+
+fn init_runtime(app_state: Arc<Mutex<AppState>>) -> Result<Runtime, Error> {
+    let mut schema_whlist = HashSet::new();
+    schema_whlist.insert("rn-wgpu:".to_string());
+
+    let mut runtime = Runtime::new(RuntimeOptions {
+        schema_whlist,
+        extensions: vec![rect_extension::init_ops_and_esm()],
+        ..RuntimeOptions::default()
+    })?;
+
+    runtime
+        .deno_runtime()
+        .op_state()
+        .borrow_mut()
+        .put(app_state);
+
+    runtime.set_current_dir("src")?;
+
+    Ok(runtime)
 }

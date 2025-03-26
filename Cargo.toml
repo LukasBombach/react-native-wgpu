@@ -14,3 +14,4 @@ serde = { version = "1.0.218", features = ["derive"] }
 sys_traits = "0.1.8"
 wgpu = { version =  "24.0.1" }
 winit = { version =  "0.30.9" }
+notify = "8.0.0"
