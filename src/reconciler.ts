@@ -92,13 +92,13 @@ export const reconciler = ReactReconciler<
   prepareScopeUpdate: () => {},
   getInstanceFromScope: () => null,
   finalizeInitialChildren: () => false,
+  maySuspendCommit: () => false,
   prepareUpdate: (_i, _t, _o, newProps) => newProps,
   getRootHostContext: () => ({ type: "context" }),
   getChildHostContext: () => ({ type: "context" }),
   getPublicInstance: ({ type }) => ({ type }),
   getCurrentEventPriority: () => NoEventPriority,
-
-  setCurrentUpdatePriority: (newPriority: number) => {
+  setCurrentUpdatePriority: newPriority => {
     currentUpdatePriority = newPriority;
   },
   getCurrentUpdatePriority: () => {
@@ -107,6 +107,4 @@ export const reconciler = ReactReconciler<
   resolveUpdatePriority: () => {
     return currentUpdatePriority || DefaultEventPriority;
   },
-
-  maySuspendCommit: () => false,
 });
