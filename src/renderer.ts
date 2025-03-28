@@ -11,7 +11,16 @@ function onRecoverableError(error: Error) {
 
 export const ReactWGPU = {
   render(rootInstance: ReactNode) {
-    const container = reconciler.createContainer(null, ConcurrentRoot, null, true, null, "", onRecoverableError, null);
+    const container = reconciler.createContainer(
+      { type: "container" },
+      ConcurrentRoot,
+      null,
+      true,
+      null,
+      "",
+      onRecoverableError,
+      null
+    );
     reconciler.updateContainer(rootInstance, container, null, null);
   },
 };

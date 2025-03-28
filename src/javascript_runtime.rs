@@ -151,7 +151,10 @@ pub fn run_script(app_state: Arc<Mutex<AppState>>, js_path: &str) {
 
         let mut watcher = recommended_watcher(tx).unwrap();
         watcher
-            .watch(js_path_buf.as_ref(), RecursiveMode::NonRecursive)
+            .watch(
+                Path::new(env!("CARGO_MANIFEST_DIR")).join("src").as_ref(),
+                RecursiveMode::NonRecursive,
+            )
             .unwrap();
 
         let mut runtime = match init_runtime(app_state.clone()) {
