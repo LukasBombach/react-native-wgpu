@@ -1,5 +1,5 @@
 import React from "npm:react";
-import { create_rect, append_rect_to_window, update_rect } from "rn-wgpu:rect";
+import { create_rect, append_rect_to_window } from "rn-wgpu:rect";
 
 const Rect = () => {
   return (
