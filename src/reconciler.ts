@@ -1,6 +1,9 @@
 import ReactReconciler from "npm:react-reconciler";
-import { NoEventPriority } from "npm:react-reconciler/constants";
+// import { NoEventPriority, DefaultEventPriority } from "npm:react-reconciler/constants";
 import { create_rect, append_rect_to_window } from "rn-wgpu:rect";
+
+const NoEventPriority = 0;
+const DefaultEventPriority = 0b0000000000000000000000000010000;
 
 type RectId = number;
 type RectProps = { top: number; left: number; width: number; height: number };
@@ -13,11 +16,13 @@ type TextInstance = null;
 type SuspenseInstance = never;
 type HydratableInstance = never;
 type PublicInstance = null;
-type HostContext = null;
+type HostContext = Record<string, never>;
 type UpdatePayload = RectProps;
 type ChildSet = never;
 type TimeoutHandle = number;
 type NoTimeout = -1;
+
+let currentUpdatePriority: number = NoEventPriority;
 
 export const reconciler = ReactReconciler<
   Type,
@@ -79,8 +84,20 @@ export const reconciler = ReactReconciler<
   getInstanceFromScope: () => null,
   finalizeInitialChildren: () => false,
   prepareUpdate: (_i, _t, _o, newProps) => newProps,
-  getRootHostContext: () => null,
-  getChildHostContext: () => null,
+  getRootHostContext: () => ({}),
+  getChildHostContext: () => ({}),
   getPublicInstance: () => null,
   getCurrentEventPriority: () => NoEventPriority,
+
+  setCurrentUpdatePriority: (newPriority: number) => {
+    currentUpdatePriority = newPriority;
+  },
+  getCurrentUpdatePriority: () => {
+    return currentUpdatePriority;
+  },
+  resolveUpdatePriority: () => {
+    return currentUpdatePriority || DefaultEventPriority;
+  },
+
+  maySuspendCommit: () => false,
 });
