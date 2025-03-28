@@ -1,8 +1,7 @@
-//import { NoEventPriority } from "npm:react-reconciler/constants";
 import { reconciler } from "./reconciler.ts";
-
 import type { ReactNode } from "react";
 
+// from react-reconciler/constants, which cannot be imported with rustyscript
 const ConcurrentRoot = 1;
 
 function onRecoverableError(error: Error) {

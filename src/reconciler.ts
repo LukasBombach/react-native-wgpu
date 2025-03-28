@@ -1,9 +1,11 @@
 import ReactReconciler from "npm:react-reconciler";
-// import { NoEventPriority, DefaultEventPriority } from "npm:react-reconciler/constants";
 import { create_rect, append_rect_to_window } from "rn-wgpu:rect";
 
+// from react-reconciler/constants, which cannot be imported with rustyscript
 const NoEventPriority = 0;
 const DefaultEventPriority = 0b0000000000000000000000000010000;
+
+let currentUpdatePriority: number = NoEventPriority;
 
 type RectId = number;
 type RectProps = { top: number; left: number; width: number; height: number };
@@ -21,8 +23,6 @@ type UpdatePayload = RectProps;
 type ChildSet = never;
 type TimeoutHandle = number;
 type NoTimeout = -1;
-
-let currentUpdatePriority: number = NoEventPriority;
 
 export const reconciler = ReactReconciler<
   Type,
