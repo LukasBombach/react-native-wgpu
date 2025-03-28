@@ -13,7 +13,7 @@ type RectProps = { top: number; left: number; width: number; height: number };
 type Type = Pick<Container | Instance | TextInstance | HostContext, "type">;
 type Props = RectProps;
 type Container = { type: "container" };
-type Instance = { type: "rect"; id: RectId };
+type Instance = { type: "rectangle"; id: RectId };
 type TextInstance = { type: "text" };
 type SuspenseInstance = never;
 type HydratableInstance = never;
@@ -48,27 +48,27 @@ export const reconciler = ReactReconciler<
   createInstance(_type, props, _rootContainerInstance, _hostContext, _internalInstanceHandle) {
     const { top, left, width, height } = props;
     const id = create_rect(top, left, width, height);
-    return { type: "rect", id };
+    return { type: "rectangle", id };
   },
   createTextInstance(_text, _rootContainerInstance, _hostContext, _internalInstanceHandle) {
     return { type: "text" };
   },
   appendChildToContainer(_container, child) {
-    if (child.type === "rect") {
+    if (child.type === "rectangle") {
       append_rect_to_window(child.id);
     } else {
       console.warn("appendChildToContainer: Ignoring child", child);
     }
   },
   appendChild(_parent, child) {
-    if (child.type === "rect") {
+    if (child.type === "rectangle") {
       append_rect_to_window(child.id);
     } else {
       console.warn("appendChild: Ignoring child", child);
     }
   },
   appendInitialChild(_parent, child) {
-    if (child.type === "rect") {
+    if (child.type === "rectangle") {
       append_rect_to_window(child.id);
     } else {
       console.warn("appendInitialChild: Ignoring child", child);
