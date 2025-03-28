@@ -18,9 +18,9 @@ type RectProps = { top: number; left: number; width: number; height: number };
 
 type Type = "rect";
 type Props = RectProps;
-type Container = never;
-type Instance = { id: RectId };
-type TextInstance = never;
+type Container = null;
+type Instance = { type: "rect"; id: RectId };
+type TextInstance = { type: "text" };
 type SuspenseInstance = any;
 type HydratableInstance = any;
 type PublicInstance = any;
@@ -49,19 +49,31 @@ const hostConfig: HostConfig<
   createInstance(_type, props, _rootContainerInstance, _hostContext, _internalInstanceHandle) {
     const { top, left, width, height } = props;
     const id = create_rect(top, left, width, height);
-    return { id };
+    return { type: "rect", id };
   },
   createTextInstance(_text, _rootContainerInstance, _hostContext, _internalInstanceHandle) {
-    return null;
+    return { type: "text" };
   },
   appendChildToContainer(_container, child) {
-    append_rect_to_window(child.id);
+    if (child.type === "rect") {
+      append_rect_to_window(child.id);
+    } else {
+      console.warn("appendChildToContainer: child is not a rect");
+    }
   },
   appendChild(_parent, child) {
-    append_rect_to_window(child.id);
+    if (child.type === "rect") {
+      append_rect_to_window(child.id);
+    } else {
+      console.warn("appendChild: child is not a rect");
+    }
   },
   appendInitialChild(_parent, child) {
-    append_rect_to_window(child.id);
+    if (child.type === "rect") {
+      append_rect_to_window(child.id);
+    } else {
+      console.warn("appendInitialChild: child is not a rect");
+    }
   },
 
   /* prepareUpdate(instance, type, oldProps, newProps, rootContainerInstance, currentHostContext) {
