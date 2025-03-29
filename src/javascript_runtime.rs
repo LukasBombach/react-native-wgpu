@@ -4,7 +4,6 @@
 use deno_core::extension;
 use deno_core::op2;
 use deno_core::OpState;
-use deno_core::Resource;
 use deno_error::JsErrorBox;
 use notify::event::ModifyKind;
 use notify::{recommended_watcher, EventKind, RecursiveMode, Watcher};
@@ -19,10 +18,6 @@ use taffy::NodeId;
 
 use crate::app::AppState;
 use crate::app::Js;
-use crate::graphics::Rect;
-
-struct RectResource(Arc<Mutex<Rect>>);
-impl Resource for RectResource {}
 
 /*
  * todo the way rect are added to the resource table and also synced with the app state
@@ -60,6 +55,16 @@ fn op_append_child_to_container(state: &mut OpState, node_id: f64) -> Result<(),
         .unwrap()
         .add_child_to_root(NodeId::from(node_id as u64));
 
+    state
+        .borrow::<Arc<Mutex<AppState>>>()
+        .lock()
+        .unwrap()
+        .event_loop
+        .lock()
+        .unwrap()
+        .send_event(Js::RectsUpdated)
+        .unwrap();
+
     Ok(())
 }
 
@@ -69,8 +74,8 @@ extension!(
         op_create_instance,
         op_append_child_to_container,
     ],
-    esm_entry_point = "react-wgpu",
-    esm = [ dir "src", "react-wgpu" = "extension.js" ],
+    esm_entry_point = "rn-wgpu:rect",
+    esm = [ dir "src", "rn-wgpu:rect" = "extension.js" ],
 );
 
 pub fn run_script(app_state: Arc<Mutex<AppState>>, js_path: &str) {

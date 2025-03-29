@@ -1,5 +1,5 @@
 import ReactReconciler from "npm:react-reconciler";
-import { create_instance, append_child_to_container } from "react-wgpu";
+import { create_instance, append_child_to_container } from "rn-wgpu:rect";
 import type { ReactNode } from "react";
 
 type RectId = number;

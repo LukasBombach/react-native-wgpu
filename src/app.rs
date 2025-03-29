@@ -1,5 +1,3 @@
-use taffy::prelude::*;
-
 use std::sync::Arc;
 use std::sync::Mutex;
 
@@ -51,19 +49,34 @@ impl App<'_> {
         }
     }
 
-    fn rects_to_instances(&self) -> Vec<Instance> {
-        self.state
-            .lock()
-            .unwrap()
-            .rects
-            .lock()
-            .unwrap()
-            .iter()
-            .map(|r| {
-                let rect = r.lock().unwrap();
-                Instance::new(rect.0 as f32, rect.1 as f32, rect.2 as f32, rect.3 as f32)
-            })
-            .collect()
+    fn user_interface_to_instances(&self) -> Option<Vec<Instance>> {
+        if let Some(window) = &self.window {
+            let width = window.inner_size().width;
+            let height = window.inner_size().height;
+
+            let state = self.state.lock().unwrap();
+            let mut user_interface = state.user_interface.lock().unwrap();
+
+            user_interface.compute_layout(width as f32, height as f32);
+
+            let instances = user_interface
+                .taffy
+                .children(user_interface.root)
+                .unwrap()
+                .iter()
+                .map(|child| {
+                    let layout = user_interface.taffy.layout(*child).unwrap();
+                    let location = layout.location;
+                    let size = layout.size;
+
+                    Instance::new(location.x, location.y, size.width, size.height)
+                })
+                .collect();
+
+            return Some(instances);
+        } else {
+            return None;
+        }
     }
 }
 
@@ -88,12 +101,13 @@ impl<'window> ApplicationHandler<Js> for App<'window> {
     fn user_event(&mut self, _event_loop: &ActiveEventLoop, event: Js) {
         match event {
             Js::RectsUpdated => {
-                let instances = self.rects_to_instances();
-                if let Some(gpu) = self.gpu.as_mut() {
-                    gpu.update_instance_buffer(&instances);
-                }
-                if let Some(window) = self.window.as_ref() {
-                    window.request_redraw();
+                if let Some(instances) = self.user_interface_to_instances() {
+                    if let Some(gpu) = self.gpu.as_mut() {
+                        gpu.update_instance_buffer(&instances);
+                    }
+                    if let Some(window) = self.window.as_ref() {
+                        window.request_redraw();
+                    }
                 }
             }
         }

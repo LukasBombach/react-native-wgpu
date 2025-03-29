@@ -9,9 +9,6 @@ use wgpu::MemoryHints::Performance;
 use wgpu::ShaderSource;
 use winit::window::Window;
 
-#[derive(Copy, Clone, Debug)]
-pub struct Rect(pub u32, pub u32, pub u32, pub u32);
-
 #[repr(C)]
 #[derive(Copy, Clone, Debug, Pod, Zeroable)]
 pub struct Instance {

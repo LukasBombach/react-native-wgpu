@@ -2,8 +2,8 @@ use taffy::prelude::*;
 
 #[derive(Debug)]
 pub struct UserInterface {
-    taffy: TaffyTree<()>,
-    root: NodeId,
+    pub taffy: TaffyTree<()>,
+    pub root: NodeId,
 }
 
 impl UserInterface {
@@ -51,5 +51,17 @@ impl UserInterface {
 
     pub fn clear(&mut self) {
         self.taffy.clear();
+    }
+
+    pub fn compute_layout(&mut self, width: f32, height: f32) {
+        self.taffy
+            .compute_layout(
+                self.root,
+                Size {
+                    width: length(width),
+                    height: length(height),
+                },
+            )
+            .unwrap();
     }
 }
