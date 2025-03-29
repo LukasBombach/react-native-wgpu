@@ -1,3 +1,5 @@
+use taffy::prelude::*;
+
 use std::sync::Arc;
 use std::sync::Mutex;
 
@@ -19,14 +21,14 @@ pub enum Js {
 
 #[derive(Debug, Clone)]
 pub struct AppState {
-    pub rects: Arc<Mutex<Vec<Arc<Mutex<Rect>>>>>,
+    pub rects: Arc<Mutex<TaffyTree<()>>>,
     pub event_loop: Arc<Mutex<EventLoopProxy<Js>>>,
 }
 
 impl AppState {
     pub fn new(event_loop: Arc<Mutex<EventLoopProxy<Js>>>) -> Self {
         Self {
-            rects: Arc::new(Mutex::new(Vec::new())),
+            rects: Arc::new(Mutex::new(TaffyTree::new())),
             event_loop,
         }
     }
