@@ -1,5 +1,5 @@
 import ReactReconciler from "npm:react-reconciler";
-import { create_rect, append_rect_to_window } from "rn-wgpu:rect";
+import { create_instance, append_child_to_container } from "react-wgpu";
 import type { ReactNode } from "react";
 
 type RectId = number;
@@ -49,36 +49,28 @@ const reconciler = ReactReconciler<
 
   createInstance(_type, props, _rootContainerInstance, _hostContext, _internalInstanceHandle) {
     const { top, left, width, height } = props;
-    const id = create_rect(top, left, width, height);
+    const id = create_instance(top, left, width, height);
     return { type: "rectangle", id };
-  },
-
-  createTextInstance(_text, _rootContainerInstance, _hostContext, _internalInstanceHandle) {
-    return { type: "text" };
   },
 
   appendChildToContainer(_container, child) {
     if (child.type === "rectangle") {
-      append_rect_to_window(child.id);
+      append_child_to_container(child.id);
     } else {
       console.warn("appendChildToContainer: Ignoring child", child);
     }
   },
 
-  appendChild(_parent, child) {
-    if (child.type === "rectangle") {
-      append_rect_to_window(child.id);
-    } else {
-      console.warn("appendChild: Ignoring child", child);
-    }
+  appendInitialChild(_parent, child) {
+    console.warn("appendInitialChild noop!", child);
   },
 
-  appendInitialChild(_parent, child) {
-    if (child.type === "rectangle") {
-      append_rect_to_window(child.id);
-    } else {
-      console.warn("appendInitialChild: Ignoring child", child);
-    }
+  appendChild(_parent, child) {
+    console.warn("appendChild noop!", child);
+  },
+
+  createTextInstance(_text, _rootContainerInstance, _hostContext, _internalInstanceHandle) {
+    return { type: "text" };
   },
 
   clearContainer: () => false,

@@ -12,7 +12,7 @@ use winit::window::WindowId;
 
 use crate::graphics::Gpu;
 use crate::graphics::Instance;
-use crate::graphics::Rect;
+use crate::user_interface::UserInterface;
 
 #[derive(Debug)]
 pub enum Js {
@@ -21,14 +21,14 @@ pub enum Js {
 
 #[derive(Debug, Clone)]
 pub struct AppState {
-    pub rects: Arc<Mutex<TaffyTree<()>>>,
+    pub user_interface: Arc<Mutex<UserInterface>>,
     pub event_loop: Arc<Mutex<EventLoopProxy<Js>>>,
 }
 
 impl AppState {
     pub fn new(event_loop: Arc<Mutex<EventLoopProxy<Js>>>) -> Self {
         Self {
-            rects: Arc::new(Mutex::new(TaffyTree::new())),
+            user_interface: Arc::new(Mutex::new(UserInterface::new())),
             event_loop,
         }
     }

@@ -1,23 +1,21 @@
 #![allow(clippy::print_stdout)]
 #![allow(clippy::print_stderr)]
 
+use deno_core::extension;
+use deno_core::op2;
+use deno_core::OpState;
+use deno_core::Resource;
+use deno_error::JsErrorBox;
+use notify::event::ModifyKind;
+use notify::{recommended_watcher, EventKind, RecursiveMode, Watcher};
+use rustyscript::{Error, Module, Runtime, RuntimeOptions};
 use std::collections::HashSet;
 use std::path::Path;
 use std::sync::mpsc;
 use std::sync::Arc;
 use std::sync::Mutex;
 use std::thread;
-
-use notify::event::ModifyKind;
-use notify::{recommended_watcher, EventKind, RecursiveMode, Watcher};
-
-use rustyscript::{Error, Module, Runtime, RuntimeOptions};
-
-use deno_core::extension;
-use deno_core::op2;
-use deno_core::OpState;
-use deno_core::Resource;
-use deno_error::JsErrorBox;
+use taffy::NodeId;
 
 use crate::app::AppState;
 use crate::app::Js;
@@ -26,105 +24,41 @@ use crate::graphics::Rect;
 struct RectResource(Arc<Mutex<Rect>>);
 impl Resource for RectResource {}
 
-/**
+/*
  * todo the way rect are added to the resource table and also synced with the app state
  * does not seem to be the best way to do it
  */
 
 #[op2(fast)]
-fn op_create_rect(state: &mut OpState, x: u32, y: u32, w: u32, h: u32) -> Result<u32, JsErrorBox> {
-    let rect = Arc::new(Mutex::new(Rect(x, y, w, h)));
-
-    let resource_table = &mut state.resource_table;
-    let rid = resource_table.add(RectResource(rect.clone()));
-
-    Ok(rid)
-}
-
-#[op2(fast)]
-fn op_append_rect_to_window(state: &mut OpState, rid: u32) -> Result<(), JsErrorBox> {
-    let resource_table = &mut state.resource_table;
-    let rect_resource = resource_table.get::<RectResource>(rid).unwrap();
-    let rect = rect_resource.0.clone();
-
-    state
-        .borrow::<Arc<Mutex<AppState>>>()
-        .lock()
-        .unwrap()
-        .rects
-        .lock()
-        .unwrap()
-        .push(rect.clone());
-
-    state
-        .borrow::<Arc<Mutex<AppState>>>()
-        .lock()
-        .unwrap()
-        .event_loop
-        .lock()
-        .unwrap()
-        .send_event(Js::RectsUpdated)
-        .unwrap();
-
-    Ok(())
-}
-
-#[op2(fast)]
-fn op_update_rect(
+fn op_create_instance(
     state: &mut OpState,
-    rid: u32,
-    x: u32,
-    y: u32,
-    w: u32,
-    h: u32,
-) -> Result<(), JsErrorBox> {
-    let resource_table = &mut state.resource_table;
-    let rect_resource = resource_table.get::<RectResource>(rid).unwrap();
-    let rect = rect_resource.0.clone();
-
-    let mut rect = rect.lock().unwrap();
-    rect.0 = x;
-    rect.1 = y;
-    rect.2 = w;
-    rect.3 = h;
-
-    state
+    top: u32,
+    left: u32,
+    width: u32,
+    height: u32,
+) -> Result<f64, JsErrorBox> {
+    let node_id = state
         .borrow::<Arc<Mutex<AppState>>>()
         .lock()
         .unwrap()
-        .event_loop
+        .user_interface
         .lock()
         .unwrap()
-        .send_event(Js::RectsUpdated)
-        .unwrap();
+        .create_node(top, left, width, height);
 
-    Ok(())
+    Ok(u64::from(node_id) as f64)
 }
 
 #[op2(fast)]
-fn op_remove_rect_from_window(state: &mut OpState, rid: u32) -> Result<(), JsErrorBox> {
-    let resource_table = &mut state.resource_table;
-    let rect_resource = resource_table.take::<RectResource>(rid).unwrap();
-    let rect = rect_resource.0.clone();
-
+fn op_append_child_to_container(state: &mut OpState, node_id: f64) -> Result<(), JsErrorBox> {
     state
         .borrow::<Arc<Mutex<AppState>>>()
         .lock()
         .unwrap()
-        .rects
+        .user_interface
         .lock()
         .unwrap()
-        .retain(|item| !Arc::ptr_eq(item, &rect));
-
-    state
-        .borrow::<Arc<Mutex<AppState>>>()
-        .lock()
-        .unwrap()
-        .event_loop
-        .lock()
-        .unwrap()
-        .send_event(Js::RectsUpdated)
-        .unwrap();
+        .add_child_to_root(NodeId::from(node_id as u64));
 
     Ok(())
 }
@@ -132,13 +66,11 @@ fn op_remove_rect_from_window(state: &mut OpState, rid: u32) -> Result<(), JsErr
 extension!(
     rect_extension,
     ops = [
-        op_create_rect,
-        op_append_rect_to_window,
-        op_update_rect,
-        op_remove_rect_from_window,
+        op_create_instance,
+        op_append_child_to_container,
     ],
-    esm_entry_point = "rn-wgpu:rect",
-    esm = [ dir "src", "rn-wgpu:rect" = "extension.js" ],
+    esm_entry_point = "react-wgpu",
+    esm = [ dir "src", "react-wgpu" = "extension.js" ],
 );
 
 pub fn run_script(app_state: Arc<Mutex<AppState>>, js_path: &str) {
@@ -193,7 +125,13 @@ pub fn run_script(app_state: Arc<Mutex<AppState>>, js_path: &str) {
 
                             // todo clear resources from the deno runtime
 
-                            app_state.lock().unwrap().rects.lock().unwrap().clear();
+                            app_state
+                                .lock()
+                                .unwrap()
+                                .user_interface
+                                .lock()
+                                .unwrap()
+                                .clear();
 
                             app_state_for_thread
                                 .lock()
