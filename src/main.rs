@@ -11,6 +11,7 @@ use crate::javascript_runtime::run_script;
 mod app;
 mod graphics;
 mod javascript_runtime;
+mod user_interface;
 
 fn main() -> Result<(), EventLoopError> {
     let event_loop = EventLoop::<Js>::with_user_event().build()?;
