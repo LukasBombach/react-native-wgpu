@@ -13,25 +13,8 @@ impl UserInterface {
         Self { taffy, root }
     }
 
-    pub fn create_node(&mut self, top: u32, left: u32, width: u32, height: u32) -> NodeId {
-        self.taffy
-            .new_with_children(
-                Style {
-                    margin: Rect {
-                        top: length(top as f32),
-                        left: length(left as f32),
-                        bottom: length(0.0),
-                        right: length(0.0),
-                    },
-                    size: Size {
-                        width: length(width as f32),
-                        height: length(height as f32),
-                    },
-                    ..Default::default()
-                },
-                &[],
-            )
-            .unwrap()
+    pub fn create_node(&mut self, style: Style) -> NodeId {
+        self.taffy.new_with_children(style, &[]).unwrap()
     }
 
     pub fn add_child_to_root(&mut self, node_id: NodeId) {
