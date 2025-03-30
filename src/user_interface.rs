@@ -50,6 +50,7 @@ impl UserInterface {
                         width: percent(100.0),
                         height: percent(100.0),
                     },
+                    align_content: Some(AlignContent::FlexEnd),
                     justify_content: Some(JustifyContent::FlexEnd),
                     ..Default::default()
                 },

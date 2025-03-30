@@ -14,21 +14,22 @@ ReactWGPU.render(
             Length: 100,
           },
         },
-        /* margin: {
+        margin: {
           top: {
-            Length: -50,
+            Length: 0,
           },
           left: {
-            Length: -50,
+            Length: 0,
           },
           bottom: {
-            Length: 0,
+            Length: 50,
           },
           right: {
-            Length: 0,
+            Length: 50,
           },
-        }, */
+        },
         justify_self: "FlexEnd",
+        align_self: "FlexEnd",
       }}
     />
   </>

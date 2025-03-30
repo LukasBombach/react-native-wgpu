@@ -121,8 +121,11 @@ impl<'window> ApplicationHandler<Js> for App<'window> {
                 event_loop.exit();
             }
             WindowEvent::Resized(size) => {
-                if let Some(gpu) = self.gpu.as_mut() {
-                    gpu.set_size(size.width, size.height);
+                if let Some(instances) = self.user_interface_to_instances() {
+                    if let Some(gpu) = self.gpu.as_mut() {
+                        gpu.update_instance_buffer(&instances);
+                        gpu.set_size(size.width, size.height);
+                    }
                 }
             }
             WindowEvent::RedrawRequested => {
