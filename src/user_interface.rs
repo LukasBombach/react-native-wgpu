@@ -9,18 +9,7 @@ pub struct UserInterface {
 impl UserInterface {
     pub fn new() -> Self {
         let mut taffy = TaffyTree::new();
-        let root = taffy
-            .new_with_children(
-                Style {
-                    size: Size {
-                        width: percent(100.0),
-                        height: percent(100.0),
-                    },
-                    ..Default::default()
-                },
-                &[],
-            )
-            .unwrap();
+        let root = Self::create_root(&mut taffy);
         Self { taffy, root }
     }
 
@@ -51,6 +40,7 @@ impl UserInterface {
 
     pub fn clear(&mut self) {
         self.taffy.clear();
+        self.root = Self::create_root(&mut self.taffy);
     }
 
     pub fn compute_layout(&mut self, width: f32, height: f32) {
@@ -63,5 +53,20 @@ impl UserInterface {
                 },
             )
             .unwrap();
+    }
+
+    fn create_root(taffy: &mut TaffyTree<()>) -> NodeId {
+        taffy
+            .new_with_children(
+                Style {
+                    size: Size {
+                        width: percent(100.0),
+                        height: percent(100.0),
+                    },
+                    ..Default::default()
+                },
+                &[],
+            )
+            .unwrap()
     }
 }
