@@ -23,6 +23,8 @@ use crate::app::Js;
 
 #[op2]
 fn op_create_instance(state: &mut OpState, #[serde] style: Style) -> Result<f64, JsErrorBox> {
+    print!("\n instance {style:?}");
+
     let node_id = state
         .borrow::<Arc<Mutex<AppState>>>()
         .lock()
@@ -133,8 +135,6 @@ pub fn run_script(app_state: Arc<Mutex<AppState>>, js_path: &str) {
                                     return;
                                 }
                             };
-
-                            // todo clear resources from the deno runtime
 
                             app_state
                                 .lock()

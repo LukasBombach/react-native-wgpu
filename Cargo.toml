@@ -15,4 +15,4 @@ sys_traits = "0.1.8"
 wgpu = { version =  "24.0.1" }
 winit = { version =  "0.30.9" }
 notify = "8.0.0"
-taffy = { version = "0.7.7", features = ["serde", "flexbox", "grid"]}
+taffy = { version = "0.7.7", features = ["serde"]}

@@ -43,19 +43,16 @@ impl UserInterface {
     }
 
     fn create_root(taffy: &mut TaffyTree<()>) -> NodeId {
-        taffy
-            .new_with_children(
-                Style {
-                    size: Size {
-                        width: percent(100.0),
-                        height: percent(100.0),
-                    },
-                    align_content: Some(AlignContent::FlexEnd),
-                    justify_content: Some(JustifyContent::FlexEnd),
-                    ..Default::default()
-                },
-                &[],
-            )
-            .unwrap()
+        let style = Style {
+            size: Size {
+                width: percent(100.0),
+                height: percent(100.0),
+            },
+            ..Default::default()
+        };
+
+        print!("\n root {style:?}");
+
+        taffy.new_with_children(style, &[]).unwrap()
     }
 }

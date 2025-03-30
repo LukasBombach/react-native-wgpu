@@ -14,25 +14,11 @@ ReactWGPU.render(
             Length: 300,
           },
         },
-        margin: {
-          top: {
-            Length: 0,
-          },
-          left: {
-            Length: 0,
-          },
-          bottom: {
-            Length: 50,
-          },
-          right: {
-            Length: 50,
-          },
-        },
-        justify_self: "FlexEnd",
-        align_self: "FlexEnd",
       }}
     />
   </>
 );
 
-debug();
+setTimeout(() => {
+  debug();
+}, 100);

@@ -57,7 +57,14 @@ impl App<'_> {
             let state = self.state.lock().unwrap();
             let mut user_interface = state.user_interface.lock().unwrap();
 
+            println!("\ncompute_layout ({:?}, {:?})\n", width, height);
+
             user_interface.compute_layout(width, height);
+
+            println!(
+                "\nroot {:?}\n",
+                user_interface.taffy.layout(user_interface.root).unwrap()
+            );
 
             let instances = user_interface
                 .taffy
