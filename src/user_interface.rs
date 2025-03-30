@@ -52,7 +52,7 @@ impl UserInterface {
             ..Default::default()
         };
 
-        print!("\n root {style:?}");
+        // print!("\n root {style:?}");
 
         taffy.new_with_children(style, &[]).unwrap()
     }

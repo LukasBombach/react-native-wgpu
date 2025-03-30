@@ -61,10 +61,11 @@ impl App<'_> {
 
             user_interface.compute_layout(width, height);
 
-            println!(
-                "\nroot {:?}\n",
-                user_interface.taffy.layout(user_interface.root).unwrap()
-            );
+            let root_layout = user_interface.taffy.layout(user_interface.root).unwrap();
+            let root_size = root_layout.size;
+            let root_location = root_layout.location;
+
+            println!("root {root_size:?} {root_location:?}");
 
             let instances = user_interface
                 .taffy
@@ -76,7 +77,7 @@ impl App<'_> {
                     let location = layout.location;
                     let size = layout.size;
 
-                    println!("\nnode {:?}\n", layout);
+                    println!("node {size:?} {location:?}");
 
                     Instance::new(location.x, location.y, size.width, size.height)
                 })

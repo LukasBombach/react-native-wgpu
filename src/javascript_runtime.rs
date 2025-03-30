@@ -23,7 +23,7 @@ use crate::app::Js;
 
 #[op2]
 fn op_create_instance(state: &mut OpState, #[serde] style: Style) -> Result<f64, JsErrorBox> {
-    print!("\n instance {style:?}");
+    // print!("\n instance {style:?}");
 
     let node_id = state
         .borrow::<Arc<Mutex<AppState>>>()

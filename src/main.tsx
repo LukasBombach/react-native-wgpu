@@ -44,5 +44,6 @@ ReactWGPU.render(
 );
 
 setTimeout(() => {
+  console.log("");
   debug();
 }, 100);
