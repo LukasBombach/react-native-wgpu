@@ -51,13 +51,13 @@ impl App<'_> {
 
     fn user_interface_to_instances(&self) -> Option<Vec<Instance>> {
         if let Some(window) = &self.window {
-            let width = window.inner_size().width;
-            let height = window.inner_size().height;
+            let width = (window.inner_size().width as f32) / 100.0;
+            let height = (window.inner_size().height as f32) / 100.0;
 
             let state = self.state.lock().unwrap();
             let mut user_interface = state.user_interface.lock().unwrap();
 
-            user_interface.compute_layout(width as f32, height as f32);
+            user_interface.compute_layout(width, height);
 
             let instances = user_interface
                 .taffy
@@ -68,6 +68,8 @@ impl App<'_> {
                     let layout = user_interface.taffy.layout(*child).unwrap();
                     let location = layout.location;
                     let size = layout.size;
+
+                    println!("\nnode {:?}\n", layout);
 
                     Instance::new(location.x, location.y, size.width, size.height)
                 })

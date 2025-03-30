@@ -38,6 +38,10 @@ impl UserInterface {
             .unwrap();
     }
 
+    pub fn debug(&mut self) {
+        self.taffy.print_tree(self.root);
+    }
+
     fn create_root(taffy: &mut TaffyTree<()>) -> NodeId {
         taffy
             .new_with_children(
@@ -46,6 +50,7 @@ impl UserInterface {
                         width: percent(100.0),
                         height: percent(100.0),
                     },
+                    justify_content: Some(JustifyContent::FlexEnd),
                     ..Default::default()
                 },
                 &[],

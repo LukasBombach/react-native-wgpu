@@ -21,11 +21,6 @@ use taffy::prelude::*;
 use crate::app::AppState;
 use crate::app::Js;
 
-/*
- * todo the way rect are added to the resource table and also synced with the app state
- * does not seem to be the best way to do it
- */
-
 #[op2]
 fn op_create_instance(state: &mut OpState, #[serde] style: Style) -> Result<f64, JsErrorBox> {
     let node_id = state
@@ -64,11 +59,26 @@ fn op_append_child_to_container(state: &mut OpState, node_id: f64) -> Result<(),
     Ok(())
 }
 
+#[op2(fast)]
+fn op_debug(state: &mut OpState) -> Result<(), JsErrorBox> {
+    state
+        .borrow::<Arc<Mutex<AppState>>>()
+        .lock()
+        .unwrap()
+        .user_interface
+        .lock()
+        .unwrap()
+        .debug();
+
+    Ok(())
+}
+
 extension!(
     rect_extension,
     ops = [
         op_create_instance,
         op_append_child_to_container,
+        op_debug,
     ],
     esm_entry_point = "rn-wgpu:rect",
     esm = [ dir "src", "rn-wgpu:rect" = "extension.js" ],
