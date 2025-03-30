@@ -4,6 +4,7 @@
 use deno_core::extension;
 use deno_core::op2;
 use deno_core::OpState;
+use deno_error::JsError;
 use deno_error::JsErrorBox;
 use notify::event::ModifyKind;
 use notify::{recommended_watcher, EventKind, RecursiveMode, Watcher};
@@ -15,6 +16,10 @@ use std::sync::Arc;
 use std::sync::Mutex;
 use std::thread;
 use taffy::NodeId;
+
+use deno_core::serde_v8;
+use deno_core::v8;
+use taffy::prelude::*;
 
 use crate::app::AppState;
 use crate::app::Js;
@@ -42,6 +47,16 @@ fn op_create_instance(
         .create_node(top, left, width, height);
 
     Ok(u64::from(node_id) as f64)
+}
+
+#[op2]
+fn op_create_instance2(
+    scope: &mut v8::HandleScope,
+    state: &mut OpState,
+    #[serde] style: Style,
+) -> Result<(), JsErrorBox> {
+    println!("style {:?}", style);
+    Ok(())
 }
 
 #[op2(fast)]
@@ -72,6 +87,7 @@ extension!(
     rect_extension,
     ops = [
         op_create_instance,
+        op_create_instance2,
         op_append_child_to_container,
     ],
     esm_entry_point = "rn-wgpu:rect",
