@@ -48,6 +48,7 @@ impl UserInterface {
                 width: percent(100.0),
                 height: percent(100.0),
             },
+            justify_content: Some(JustifyContent::SpaceBetween),
             ..Default::default()
         };
 

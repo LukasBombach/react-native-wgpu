@@ -16,6 +16,30 @@ ReactWGPU.render(
         },
       }}
     />
+    <rectangle
+      style={{
+        size: {
+          width: {
+            Length: 300,
+          },
+          height: {
+            Length: 300,
+          },
+        },
+      }}
+    />
+    <rectangle
+      style={{
+        size: {
+          width: {
+            Length: 300,
+          },
+          height: {
+            Length: 300,
+          },
+        },
+      }}
+    />
   </>
 );
 
