@@ -8,10 +8,10 @@ ReactWGPU.render(
       style={{
         size: {
           width: {
-            Length: 100,
+            Length: 300,
           },
           height: {
-            Length: 100,
+            Length: 300,
           },
         },
         margin: {
