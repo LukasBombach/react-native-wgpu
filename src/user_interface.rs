@@ -45,10 +45,9 @@ impl UserInterface {
     fn create_root(taffy: &mut TaffyTree<()>) -> NodeId {
         let style = Style {
             size: Size {
-                width: percent(100.0),
-                height: percent(100.0),
+                width: percent(1.0),
+                height: percent(1.0),
             },
-            justify_content: Some(JustifyContent::SpaceBetween),
             ..Default::default()
         };
 

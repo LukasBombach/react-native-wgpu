@@ -3,44 +3,18 @@ import { debug } from "rn-wgpu:rect";
 import { ReactWGPU } from "./renderer.ts";
 
 ReactWGPU.render(
-  <>
-    <rectangle
-      style={{
-        size: {
-          width: {
-            Length: 300,
-          },
-          height: {
-            Length: 300,
-          },
+  <rectangle
+    style={{
+      size: {
+        width: {
+          Percent: 1.0,
         },
-      }}
-    />
-    <rectangle
-      style={{
-        size: {
-          width: {
-            Length: 300,
-          },
-          height: {
-            Length: 300,
-          },
+        height: {
+          Percent: 1.0,
         },
-      }}
-    />
-    <rectangle
-      style={{
-        size: {
-          width: {
-            Length: 300,
-          },
-          height: {
-            Length: 300,
-          },
-        },
-      }}
-    />
-  </>
+      },
+    }}
+  />
 );
 
 setTimeout(() => {

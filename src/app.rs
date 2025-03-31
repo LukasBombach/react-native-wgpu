@@ -51,8 +51,8 @@ impl App<'_> {
 
     fn user_interface_to_instances(&self) -> Option<Vec<Instance>> {
         if let Some(window) = &self.window {
-            let width = (window.inner_size().width as f32) / 100.0;
-            let height = (window.inner_size().height as f32) / 100.0;
+            let width = window.inner_size().width as f32;
+            let height = window.inner_size().height as f32;
 
             let state = self.state.lock().unwrap();
             let mut user_interface = state.user_interface.lock().unwrap();
