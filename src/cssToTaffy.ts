@@ -1,4 +1,4 @@
-import { TAFFY_STYLE_DEFAULTS as DEFAULTS } from "./taffy_style_defaults.ts";
+import { defaults } from "./taffy_style.ts";
 import type { CSSProperties } from "react";
 
 interface TaffyStyle {
@@ -59,31 +59,31 @@ export function cssToTaffy(css: CSSProperties) {
 
   // Taffy Type: Single Length
   if (css.width) {
-    style.size = style.size || DEFAULTS.size;
+    style.size = style.size || defaults.size;
     style.size.width = length(css.width);
   }
 
   // Taffy Type: Single Length
   if (css.height) {
-    style.size = style.size || DEFAULTS.size;
+    style.size = style.size || defaults.size;
     style.size.height = length(css.height);
   }
 
   // Taffy Type: Shorthand (2) Length
   if (css.gap) {
-    style.gap = style.gap || DEFAULTS.gap;
+    style.gap = style.gap || defaults.gap;
     style.gap = lengthShorthand(css.gap);
   }
 
   // Taffy Type: Single Length
   if (css.columnGap) {
-    style.gap = style.gap || DEFAULTS.gap;
+    style.gap = style.gap || defaults.gap;
     style.gap.width = length(css.width);
   }
 
   // Taffy Type: Single Length
   if (css.rowGap) {
-    style.gap = style.gap || DEFAULTS.gap;
+    style.gap = style.gap || defaults.gap;
     style.gap.height = length(css.height);
   }
 
