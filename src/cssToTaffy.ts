@@ -2,10 +2,13 @@ import { TAFFY_STYLE_DEFAULTS as DEFAULTS } from "./taffy_style_defaults.ts";
 import type { CSSProperties } from "react";
 
 interface TaffyStyle {
-  size?: {
-    width: TaffyLength;
-    height: TaffyLength;
-  };
+  size?: TaffySize;
+  gap?: TaffySize;
+}
+
+interface TaffySize {
+  width: TaffyLength;
+  height: TaffyLength;
 }
 
 type TaffyLength =
@@ -19,28 +22,36 @@ type TaffyLength =
 
 type CSSLength = number | `${number}px` | `${number}%` | "auto";
 
-function length(length: CSSLength | string | undefined): TaffyLength {
-  if (length === undefined) {
+function length(value: string | number | undefined): TaffyLength {
+  if (value === undefined) {
     throw new Error("Length is undefined");
   }
 
-  if (typeof length === "number") {
-    return { Length: length };
+  if (typeof value === "number") {
+    return { Length: value };
   }
 
-  if (length.endsWith("%")) {
-    return { Percent: parseFloat(length.toString()) / 100 };
+  if (value.endsWith("%")) {
+    return { Percent: parseFloat(value.toString()) / 100 };
   }
 
-  if (length.endsWith("px")) {
-    return { Length: parseFloat(length.toString()) };
+  if (value.endsWith("px")) {
+    return { Length: parseFloat(value.toString()) };
   }
 
-  if (length === "auto") {
+  if (value === "auto") {
     return "Auto";
   }
 
-  throw new Error(`Invalid CSS length: ${length}`);
+  throw new Error(`Invalid CSS length: ${value}`);
+}
+
+function lengthShorthand(value: string | number): TaffySize {
+  const [width, height] = value.toString().split(" ");
+  return {
+    width: length(width),
+    height: height ? length(height) : length(width),
+  };
 }
 
 export function cssToTaffy(css: CSSProperties) {
@@ -54,6 +65,21 @@ export function cssToTaffy(css: CSSProperties) {
   if (css.height) {
     style.size = style.size || DEFAULTS.size;
     style.size.height = length(css.height);
+  }
+
+  if (css.gap) {
+    style.gap = style.gap || DEFAULTS.gap;
+    style.gap = lengthShorthand(css.gap);
+  }
+
+  if (css.columnGap) {
+    style.gap = style.gap || DEFAULTS.gap;
+    style.gap.width = length(css.width);
+  }
+
+  if (css.rowGap) {
+    style.gap = style.gap || DEFAULTS.gap;
+    style.gap.height = length(css.height);
   }
 
   const unknownProps = Object.keys(css).filter(key => !["width", "height"].includes(key));
