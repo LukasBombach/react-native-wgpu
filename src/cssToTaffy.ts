@@ -57,32 +57,37 @@ function lengthShorthand(value: string | number): TaffySize {
 export function cssToTaffy(css: CSSProperties) {
   const style: TaffyStyle = {};
 
+  // Taffy Type: Single Length
   if (css.width) {
     style.size = style.size || DEFAULTS.size;
     style.size.width = length(css.width);
   }
 
+  // Taffy Type: Single Length
   if (css.height) {
     style.size = style.size || DEFAULTS.size;
     style.size.height = length(css.height);
   }
 
+  // Taffy Type: Shorthand (2) Length
   if (css.gap) {
     style.gap = style.gap || DEFAULTS.gap;
     style.gap = lengthShorthand(css.gap);
   }
 
+  // Taffy Type: Single Length
   if (css.columnGap) {
     style.gap = style.gap || DEFAULTS.gap;
     style.gap.width = length(css.width);
   }
 
+  // Taffy Type: Single Length
   if (css.rowGap) {
     style.gap = style.gap || DEFAULTS.gap;
     style.gap.height = length(css.height);
   }
 
-  const unknownProps = Object.keys(css).filter(key => !["width", "height"].includes(key));
+  const unknownProps = Object.keys(css).filter(key => !["width", "height", "gap", "columnGap", "rowGap"].includes(key));
   if (unknownProps.length > 0) {
     throw new Error(`Unknown CSS properties: ${unknownProps.join(", ")}`);
   }

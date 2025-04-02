@@ -49,7 +49,9 @@ const reconciler = ReactReconciler<
   noTimeout: -1,
 
   createInstance(_type, props, _rootContainerInstance, _hostContext, _internalInstanceHandle) {
-    const id = create_instance(cssToTaffy(props.style));
+    const taffyStyle = cssToTaffy(props.style);
+    console.log("createInstance", taffyStyle);
+    const id = create_instance(taffyStyle);
     return { type: "rectangle", id };
   },
 
