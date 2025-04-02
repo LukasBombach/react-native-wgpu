@@ -3,14 +3,26 @@ import type { CSSProperties } from "react";
 interface Style {
   size?: Size<Length>;
   gap?: Size<Length>;
-  align_items?: Align;
-  justify_items?: Align;
-  align_self?: Align;
-  justify_self?: Align;
+  align_items?: AlignItems;
+  justify_items?: AlignItems;
+  align_self?: AlignItems;
+  justify_self?: AlignItems;
+  align_content?: AlignContent;
+  justify_content?: AlignContent;
 }
 
 type Length = { Length: number } | { Percent: number } | "Auto";
-type Align = "Start" | "End" | "FlexStart" | "FlexEnd" | "Center" | "Baseline" | "Stretch";
+type AlignItems = "Start" | "End" | "FlexStart" | "FlexEnd" | "Center" | "Baseline" | "Stretch";
+type AlignContent =
+  | "Start"
+  | "End"
+  | "FlexStart"
+  | "FlexEnd"
+  | "Center"
+  | "Stretch"
+  | "SpaceBetween"
+  | "SpaceEvenly"
+  | "SpaceAround";
 
 interface Size<T> {
   width: T;
@@ -27,6 +39,18 @@ const alignItemsMap = {
   "flex-end": "FlexEnd",
 } as const;
 
+const alignContentMap = {
+  start: "Start",
+  end: "End",
+  center: "Center",
+  stretch: "Stretch",
+  "flex-start": "FlexStart",
+  "flex-end": "FlexEnd",
+  "space-between": "SpaceBetween",
+  "space-evenly": "SpaceEvenly",
+  "space-around": "SpaceAround",
+} as const;
+
 export function taffyFromCss({
   width,
   height,
@@ -37,6 +61,8 @@ export function taffyFromCss({
   alignSelf,
   justifyItems,
   justifySelf,
+  alignContent,
+  justifyContent,
 }: CSSProperties): Style {
   const style: Style = {};
 
@@ -78,6 +104,14 @@ export function taffyFromCss({
 
   if (justifySelf) {
     style.justify_self = alignItemsMap[justifySelf as keyof typeof alignItemsMap];
+  }
+
+  if (alignContent) {
+    style.align_content = alignContentMap[alignContent as keyof typeof alignContentMap];
+  }
+
+  if (justifyContent) {
+    style.justify_content = alignContentMap[justifyContent as keyof typeof alignContentMap];
   }
 
   return style;
