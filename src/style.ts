@@ -125,8 +125,9 @@ function size(value: string[]): Size<LengthPercentage> {
 
 function length(value: string | number): LengthPercentage {
   if (typeof value === "number") return { Length: value };
-  if (value === "auto") return "Auto";
+  if (value.match(/^\d+$/)) return { Length: parseFloat(value) };
   if (value.endsWith("%")) return { Percent: parseFloat(value) / 100 };
   if (value.endsWith("px")) return { Length: parseFloat(value) };
-  throw new Error(`Invalid CSS length: ${value}`);
+  if (value === "auto") return "Auto";
+  throw new Error(`Invalid CSS length: ${value} (${typeof value})`);
 }
