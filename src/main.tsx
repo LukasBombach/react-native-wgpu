@@ -1,4 +1,5 @@
 import React from "npm:react";
+import { debug } from "rn-wgpu:rect";
 import { ReactWGPU } from "./renderer.ts";
 
 ReactWGPU.render(
@@ -11,7 +12,7 @@ ReactWGPU.render(
   </rectangle>
 );
 
-/* setTimeout(() => {
+setTimeout(() => {
   console.log("");
   debug();
-}, 100); */
+}, 100);
