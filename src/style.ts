@@ -1,30 +1,43 @@
 import type { CSSProperties } from "react";
 
 interface Style {
-  size?: Size<LengthPercentage>;
-  gap?: Size<LengthPercentage>;
+  size?: Size<Length>;
+  gap?: Size<Length>;
+  align_items?: Align;
+  justify_items?: Align;
+  align_self?: Align;
+  justify_self?: Align;
 }
 
-type AlignItems = "Start" | "End" | "FlexStart" | "FlexEnd" | "Center" | "Baseline" | "Stretch";
+type Length = { Length: number } | { Percent: number } | "Auto";
+type Align = "Start" | "End" | "FlexStart" | "FlexEnd" | "Center" | "Baseline" | "Stretch";
 
 interface Size<T> {
   width: T;
   height: T;
 }
 
-type LengthPercentage = Length | Percent | Auto;
+const alignItemsMap = {
+  start: "Start",
+  end: "End",
+  center: "Center",
+  baseline: "Baseline",
+  stretch: "Stretch",
+  "flex-start": "FlexStart",
+  "flex-end": "FlexEnd",
+} as const;
 
-interface Length {
-  Length: number;
-}
-
-interface Percent {
-  Percent: number;
-}
-
-type Auto = "Auto";
-
-export function taffyFromCss({ width, height, gap, columnGap, rowGap }: CSSProperties): Style {
+export function taffyFromCss({
+  width,
+  height,
+  gap,
+  columnGap,
+  rowGap,
+  alignItems,
+  alignSelf,
+  justifyItems,
+  justifySelf,
+}: CSSProperties): Style {
   const style: Style = {};
 
   if (width) {
@@ -51,6 +64,22 @@ export function taffyFromCss({ width, height, gap, columnGap, rowGap }: CSSPrope
     style.gap.height = length(rowGap);
   }
 
+  if (alignItems) {
+    style.align_items = alignItemsMap[alignItems as keyof typeof alignItemsMap];
+  }
+
+  if (alignSelf) {
+    style.align_self = alignItemsMap[alignSelf as keyof typeof alignItemsMap];
+  }
+
+  if (justifyItems) {
+    style.justify_items = alignItemsMap[justifyItems as keyof typeof alignItemsMap];
+  }
+
+  if (justifySelf) {
+    style.justify_self = alignItemsMap[justifySelf as keyof typeof alignItemsMap];
+  }
+
   return style;
 }
 
@@ -58,12 +87,12 @@ function shorthand(value: string | number): string[] {
   return value.toString().split(" ");
 }
 
-function size(value: string[]): Size<LengthPercentage> {
+function size(value: string[]): Size<Length> {
   const [width, height] = value.map(length);
   return { width, height: height ?? width };
 }
 
-function length(value: string | number): LengthPercentage {
+function length(value: string | number): Length {
   if (typeof value === "number") return { Length: value };
   if (value.match(/^\d+$/)) return { Length: parseFloat(value) };
   if (value.endsWith("%")) return { Percent: parseFloat(value) / 100 };
