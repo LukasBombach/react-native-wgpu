@@ -61,6 +61,12 @@ fn op_append_child_to_container(state: &mut OpState, node_id: f64) -> Result<(),
     Ok(())
 }
 
+#[op2]
+#[serde]
+fn op_get_style_defaults() -> Result<Style, JsErrorBox> {
+    Ok(Style::default())
+}
+
 #[op2(fast)]
 fn op_debug(state: &mut OpState) -> Result<(), JsErrorBox> {
     state
@@ -80,6 +86,7 @@ extension!(
     ops = [
         op_create_instance,
         op_append_child_to_container,
+        op_get_style_defaults,
         op_debug,
     ],
     esm_entry_point = "rn-wgpu:rect",

@@ -1,5 +1,5 @@
 import React from "npm:react";
-import { debug } from "rn-wgpu:rect";
+import { debug, get_style_defaults } from "rn-wgpu:rect";
 import { ReactWGPU } from "./renderer.ts";
 
 ReactWGPU.render(
@@ -16,11 +16,13 @@ ReactWGPU.render(
         },
       }}
     />
-    <div style={{ width: "100%", height: "100%" }} />
+    {/* <div style={{ width: "100%", height: "100%" }} /> */}
   </>
 );
 
-setTimeout(() => {
+console.log(get_style_defaults());
+
+/* setTimeout(() => {
   console.log("");
   debug();
-}, 100);
+}, 100); */
