@@ -21,6 +21,10 @@ impl UserInterface {
         self.taffy.add_child(self.root, node_id).unwrap();
     }
 
+    pub fn add_child(&mut self, parent_id: NodeId, child_id: NodeId) {
+        self.taffy.add_child(parent_id, child_id).unwrap();
+    }
+
     pub fn clear(&mut self) {
         self.taffy.clear();
         self.root = Self::create_root(&mut self.taffy);

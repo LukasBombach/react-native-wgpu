@@ -4,6 +4,7 @@ declare module "rn-wgpu:rect" {
 
   export function create_instance(style: TODO_TAFFY_STYLE_TYPE_DEFS): number;
   export function append_child_to_container(rectId: number): void;
+  export function append_child(parentId: number, childId: number, index?: number): void;
   export function get_style_defaults(): unknown;
   export function debug(): void;
 }

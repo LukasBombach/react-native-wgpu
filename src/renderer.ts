@@ -1,5 +1,5 @@
 import ReactReconciler from "npm:react-reconciler";
-import { create_instance, append_child_to_container } from "rn-wgpu:rect";
+import { create_instance, append_child_to_container, append_child } from "rn-wgpu:rect";
 import { taffyFromCss } from "./style.ts";
 import type { CSSProperties, ReactNode } from "react";
 
@@ -63,12 +63,20 @@ const reconciler = ReactReconciler<
     }
   },
 
-  appendInitialChild(_parent, child) {
-    console.warn("appendInitialChild noop!", child);
+  appendInitialChild(parent, child) {
+    if (child.type === "rectangle") {
+      append_child(parent.id, child.id);
+    } else {
+      console.warn("appendInitialChild: Ignoring child", child);
+    }
   },
 
-  appendChild(_parent, child) {
-    console.warn("appendChild noop!", child);
+  appendChild(parent, child) {
+    if (child.type === "rectangle") {
+      append_child(parent.id, child.id);
+    } else {
+      console.warn("appendChild: Ignoring child", child);
+    }
   },
 
   createTextInstance(_text, _rootContainerInstance, _hostContext, _internalInstanceHandle) {

@@ -60,6 +60,32 @@ fn op_append_child_to_container(state: &mut OpState, node_id: f64) -> Result<(),
 
     Ok(())
 }
+#[op2(fast)]
+fn op_append_child(state: &mut OpState, parent_id: f64, child_id: f64) -> Result<(), JsErrorBox> {
+    state
+        .borrow::<Arc<Mutex<AppState>>>()
+        .lock()
+        .unwrap()
+        .user_interface
+        .lock()
+        .unwrap()
+        .add_child(
+            NodeId::from(parent_id as u64),
+            NodeId::from(child_id as u64),
+        );
+
+    state
+        .borrow::<Arc<Mutex<AppState>>>()
+        .lock()
+        .unwrap()
+        .event_loop
+        .lock()
+        .unwrap()
+        .send_event(Js::RectsUpdated)
+        .unwrap();
+
+    Ok(())
+}
 
 #[op2]
 #[serde]
@@ -86,6 +112,7 @@ extension!(
     ops = [
         op_create_instance,
         op_append_child_to_container,
+        op_append_child,
         op_get_style_defaults,
         op_debug,
     ],
