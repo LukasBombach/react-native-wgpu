@@ -56,8 +56,10 @@ export function cssToTaffy(css: CSSProperties) {
     style.size.height = length(css.height);
   }
 
-  const unknownProps = Object.keys(css).filter(key => ["width", "height"].includes(key));
+  const unknownProps = Object.keys(css).filter(key => !["width", "height"].includes(key));
   if (unknownProps.length > 0) {
     throw new Error(`Unknown CSS properties: ${unknownProps.join(", ")}`);
   }
+
+  return style;
 }

@@ -1,10 +1,10 @@
 import ReactReconciler from "npm:react-reconciler";
 import { create_instance, append_child_to_container } from "rn-wgpu:rect";
-import type { ReactNode } from "react";
-import type { TODO_TAFFY_STYLE_TYPE_DEFS } from "rn-wgpu:rect";
+import { cssToTaffy } from "./cssToTaffy.ts";
+import type { CSSProperties, ReactNode } from "react";
 
 type RectId = number;
-type RectProps = { style: TODO_TAFFY_STYLE_TYPE_DEFS };
+type RectProps = { style: CSSProperties };
 
 type Type = Pick<Container | Instance | TextInstance | HostContext, "type">;
 type Props = RectProps;
@@ -49,8 +49,7 @@ const reconciler = ReactReconciler<
   noTimeout: -1,
 
   createInstance(_type, props, _rootContainerInstance, _hostContext, _internalInstanceHandle) {
-    const { style } = props;
-    const id = create_instance(style);
+    const id = create_instance(cssToTaffy(props.style));
     return { type: "rectangle", id };
   },
 
