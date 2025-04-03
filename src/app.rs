@@ -56,31 +56,35 @@ impl App<'_> {
 
             let state = self.state.lock().unwrap();
             let mut user_interface = state.user_interface.lock().unwrap();
-
             user_interface.compute_layout(width, height);
 
-            let mut instances = Vec::new();
-            let mut stack = user_interface.taffy.children(user_interface.root).unwrap();
-            while let Some(node) = stack.pop() {
-                let layout = user_interface.taffy.layout(node).unwrap();
-                let location = layout.location;
-                let size = layout.size;
+            fn collect_instances(
+                taffy: &taffy::TaffyTree,
+                node: taffy::NodeId,
+                offset_x: f32,
+                offset_y: f32,
+                instances: &mut Vec<Instance>,
+            ) {
+                let layout = taffy.layout(node).unwrap();
+                let (x, y) = (offset_x + layout.location.x, offset_y + layout.location.y);
+                instances.push(Instance::new(x, y, layout.size.width, layout.size.height));
 
-                instances.push(Instance::new(
-                    location.x,
-                    location.y,
-                    size.width,
-                    size.height,
-                ));
-
-                for child in user_interface.taffy.children(node).unwrap() {
-                    stack.push(child);
+                for child in taffy.children(node).unwrap() {
+                    collect_instances(taffy, child, x, y, instances);
                 }
             }
 
-            return Some(instances);
+            let mut instances = Vec::new();
+            collect_instances(
+                &user_interface.taffy,
+                user_interface.root,
+                0.0,
+                0.0,
+                &mut instances,
+            );
+            Some(instances)
         } else {
-            return None;
+            None
         }
     }
 }
