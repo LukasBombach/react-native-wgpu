@@ -1,6 +1,6 @@
 import type { CSSProperties } from "react";
 
-interface Style {
+interface TaffyStyle {
   size?: Size<Length>;
   gap?: Size<Length>;
   align_items?: AlignItems;
@@ -51,59 +51,6 @@ const alignContent = {
   "space-around": "SpaceAround",
 };
 
-export function taffyFromCss({ width, height, gap, columnGap, rowGap, ...css }: CSSProperties): Style {
-  const style: Style = {};
-
-  if (width) {
-    style.size = style.size || defaults.size;
-    style.size.width = length(width);
-  }
-
-  if (height) {
-    style.size = style.size || defaults.size;
-    style.size.height = length(height);
-  }
-
-  if (gap) {
-    style.gap = style.gap || size(shorthand(gap));
-  }
-
-  if (columnGap) {
-    style.gap = style.gap || defaults.gap;
-    style.gap.width = length(columnGap);
-  }
-
-  if (rowGap) {
-    style.gap = style.gap || defaults.gap;
-    style.gap.height = length(rowGap);
-  }
-
-  // todo refactor with effect.ts
-  mapProp(style, css, "alignItems", "align_items", align);
-  mapProp(style, css, "alignSelf", "align_self", align);
-  mapProp(style, css, "justifyItems", "justify_items", align);
-  mapProp(style, css, "justifySelf", "justify_self", align);
-  mapProp(style, css, "alignContent", "align_content", alignContent);
-  mapProp(style, css, "justifyContent", "justify_content", alignContent);
-
-  return style;
-}
-
-function mapProp(
-  taffy: Style,
-  css: CSSProperties,
-  cssProp: keyof CSSProperties,
-  taffyProp: keyof Style,
-  map: Record<string, string>
-) {
-  const cssValue = css[cssProp];
-  if (cssValue !== undefined) {
-    const taffyValue = map[cssValue as keyof typeof map];
-    // @ts-expect-error WORK IN PROGRESS
-    taffy[taffyProp] = taffyValue;
-  }
-}
-
 function shorthand(value: string | number): string[] {
   return value.toString().split(" ");
 }
@@ -120,6 +67,59 @@ function length(value: string | number): Length {
   if (value.endsWith("px")) return { Length: parseFloat(value) };
   if (value === "auto") return "Auto";
   throw new Error(`Invalid CSS length: ${value} (${typeof value})`);
+}
+
+function mapProp(
+  taffy: TaffyStyle,
+  css: CSSProperties,
+  cssProp: keyof CSSProperties,
+  taffyProp: keyof TaffyStyle,
+  map: Record<string, string>
+) {
+  const cssValue = css[cssProp];
+  if (cssValue !== undefined) {
+    const taffyValue = map[cssValue as keyof typeof map];
+    // @ts-expect-error WORK IN PROGRESS
+    taffy[taffyProp] = taffyValue;
+  }
+}
+
+export function taffyFromCss({ width, height, gap, columnGap, rowGap, ...css }: CSSProperties): TaffyStyle {
+  const taffy: TaffyStyle = {};
+
+  if (width) {
+    taffy.size = taffy.size || defaults.size;
+    taffy.size.width = length(width);
+  }
+
+  if (height) {
+    taffy.size = taffy.size || defaults.size;
+    taffy.size.height = length(height);
+  }
+
+  if (gap) {
+    taffy.gap = taffy.gap || size(shorthand(gap));
+  }
+
+  if (columnGap) {
+    taffy.gap = taffy.gap || defaults.gap;
+    taffy.gap.width = length(columnGap);
+  }
+
+  if (rowGap) {
+    taffy.gap = taffy.gap || defaults.gap;
+    taffy.gap.height = length(rowGap);
+  }
+
+  // todo refactor with effect.ts
+  mapProp(taffy, css, "alignItems", "align_items", align);
+  mapProp(taffy, css, "alignSelf", "align_self", align);
+  mapProp(taffy, css, "justifyItems", "justify_items", align);
+  mapProp(taffy, css, "justifySelf", "justify_self", align);
+  mapProp(taffy, css, "alignContent", "align_content", alignContent);
+  mapProp(taffy, css, "justifyContent", "justify_content", alignContent);
+
+  return taffy;
 }
 
 const defaults = {
