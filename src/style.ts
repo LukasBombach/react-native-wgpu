@@ -7,18 +7,32 @@ interface TaffyStyle {
   overflow?: Point<Overflow>;
   scrollbar_width?: number;
   position?: Position;
+  inset?: Rect<Length>;
   size?: Size<Length>;
-  gap?: Size<Length>;
+  min_size?: Size<Length>;
+  max_size?: Size<Length>;
+  aspect_ratio?: number;
+  margin?: Rect<Length>;
+  padding?: Rect<Length>;
+  border?: Rect<Length>;
   align_items?: Align;
   align_self?: Align;
   justify_items?: Align;
   justify_self?: Align;
   align_content?: AlignContent;
   justify_content?: AlignContent;
+  gap?: Size<Length>;
+  text_align?: TextAlign;
+  flex_direction?: FlexDirection;
+  flex_wrap?: FlexWrap;
+  flex_basis?: Length;
+  flex_grow?: number;
+  flex_shrink?: number;
 }
 
 type Size<T> = { width: T; height: T };
 type Point<T> = { x: T; y: T };
+type Rect<T> = { left: T; right: T; top: T; bottom: T };
 type Length = { Length: number } | { Percent: number } | "Auto";
 type Overflow = "Visible" | "Clip" | "Hidden" | "Scroll";
 type Position = "Relative" | "Absolute";
@@ -33,6 +47,9 @@ type AlignContent =
   | "SpaceBetween"
   | "SpaceEvenly"
   | "SpaceAround";
+type TextAlign = "Auto" | "LegacyLeft" | "LegacyRight" | "LegacyCenter";
+type FlexDirection = "Row" | "Column" | "RowReverse" | "ColumnReverse";
+type FlexWrap = "NoWrap" | "Wrap" | "WrapReverse";
 
 const align = {
   start: "Start",
