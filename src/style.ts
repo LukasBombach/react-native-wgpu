@@ -4,8 +4,8 @@ interface Style {
   size?: Size<Length>;
   gap?: Size<Length>;
   align_items?: AlignItems;
-  justify_items?: AlignItems;
   align_self?: AlignItems;
+  justify_items?: AlignItems;
   justify_self?: AlignItems;
   align_content?: AlignContent;
   justify_content?: AlignContent;
@@ -29,7 +29,7 @@ interface Size<T> {
   height: T;
 }
 
-const alignItemsMap = {
+const align = {
   start: "Start",
   end: "End",
   center: "Center",
@@ -37,9 +37,9 @@ const alignItemsMap = {
   stretch: "Stretch",
   "flex-start": "FlexStart",
   "flex-end": "FlexEnd",
-} as const;
+};
 
-const alignContentMap = {
+const alignContent = {
   start: "Start",
   end: "End",
   center: "Center",
@@ -49,21 +49,9 @@ const alignContentMap = {
   "space-between": "SpaceBetween",
   "space-evenly": "SpaceEvenly",
   "space-around": "SpaceAround",
-} as const;
+};
 
-export function taffyFromCss({
-  width,
-  height,
-  gap,
-  columnGap,
-  rowGap,
-  alignItems,
-  alignSelf,
-  justifyItems,
-  justifySelf,
-  alignContent,
-  justifyContent,
-}: CSSProperties): Style {
+export function taffyFromCss({ width, height, gap, columnGap, rowGap, ...css }: CSSProperties): Style {
   const style: Style = {};
 
   if (width) {
@@ -90,31 +78,30 @@ export function taffyFromCss({
     style.gap.height = length(rowGap);
   }
 
-  if (alignItems) {
-    style.align_items = alignItemsMap[alignItems as keyof typeof alignItemsMap];
-  }
-
-  if (alignSelf) {
-    style.align_self = alignItemsMap[alignSelf as keyof typeof alignItemsMap];
-  }
-
-  if (justifyItems) {
-    style.justify_items = alignItemsMap[justifyItems as keyof typeof alignItemsMap];
-  }
-
-  if (justifySelf) {
-    style.justify_self = alignItemsMap[justifySelf as keyof typeof alignItemsMap];
-  }
-
-  if (alignContent) {
-    style.align_content = alignContentMap[alignContent as keyof typeof alignContentMap];
-  }
-
-  if (justifyContent) {
-    style.justify_content = alignContentMap[justifyContent as keyof typeof alignContentMap];
-  }
+  // todo refactor with effect.ts
+  mapProp(style, css, "alignItems", "align_items", align);
+  mapProp(style, css, "alignSelf", "align_self", align);
+  mapProp(style, css, "justifyItems", "justify_items", align);
+  mapProp(style, css, "justifySelf", "justify_self", align);
+  mapProp(style, css, "alignContent", "align_content", alignContent);
+  mapProp(style, css, "justifyContent", "justify_content", alignContent);
 
   return style;
+}
+
+function mapProp(
+  taffy: Style,
+  css: CSSProperties,
+  cssProp: keyof CSSProperties,
+  taffyProp: keyof Style,
+  map: Record<string, string>
+) {
+  const cssValue = css[cssProp];
+  if (cssValue !== undefined) {
+    const taffyValue = map[cssValue as keyof typeof map];
+    // @ts-expect-error WORK IN PROGRESS
+    taffy[taffyProp] = taffyValue;
+  }
 }
 
 function shorthand(value: string | number): string[] {
@@ -148,7 +135,7 @@ const defaults = {
     top: "Auto",
     bottom: "Auto",
   },
-  size: { width: "Auto", height: "Auto" },
+  size: { width: "Auto", height: "Auto" }, // ✅
   min_size: { width: "Auto", height: "Auto" },
   max_size: { width: "Auto", height: "Auto" },
   aspect_ratio: null,
@@ -170,16 +157,17 @@ const defaults = {
     top: { Length: 0 },
     bottom: { Length: 0 },
   },
-  align_items: null,
-  align_self: null,
-  justify_items: null,
-  justify_self: null,
-  align_content: null,
-  justify_content: null,
+  align_items: null, // ✅
+  align_self: null, // ✅
+  justify_items: null, // ✅
+  justify_self: null, // ✅
+  align_content: null, // ✅
+  justify_content: null, // ✅
+  // ✅
   gap: {
-    width: { Length: 0 },
-    height: { Length: 0 },
-  },
+    width: { Length: 0 }, // ✅
+    height: { Length: 0 }, // ✅
+  }, // ✅
   text_align: "Auto",
   flex_direction: "Row",
   flex_wrap: "NoWrap",
