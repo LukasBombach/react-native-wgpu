@@ -9,13 +9,32 @@ interface Point<T> {
   y: T;
 }
 
+interface Rect<T> {
+  top: T;
+  right: T;
+  bottom: T;
+  left: T;
+}
+
+type Length = {
+  Length: number;
+};
+
+type Percentage = {
+  Percentage: number;
+};
+
+type Auto = "Auto";
+
+type LengthPercentageAuto = Length | Percentage | Auto;
+
 const toPascalCase = (str: string) => pascalCase(str);
 
 const toTaffy = (css: Record<string, string>) =>
   pipe(
     css,
     R.toEntries,
-    A.map(([key, value]): [string, string | Point<string>] => {
+    A.map(([key, value]): [string, string | Point<string> | Rect<LengthPercentageAuto>] => {
       if (key === "overflow") {
         return [
           toPascalCase(key),
@@ -58,6 +77,14 @@ if (import.meta.vitest) {
     ${{ overflow: "clip" }}    | ${{ Overflow: { x: "Clip", y: "Clip" } }}
     ${{ overflow: "hidden" }}  | ${{ Overflow: { x: "Hidden", y: "Hidden" } }}
     ${{ overflow: "scroll" }}  | ${{ Overflow: { x: "Scroll", y: "Scroll" } }}
+  `("$value", ({ value, expected }) => {
+    expect(toTaffy(value)).toEqual(expected);
+  });
+
+  test.each`
+    value                       | expected
+    ${{ position: "relative" }} | ${{ Position: "Relative" }}
+    ${{ position: "absolute" }} | ${{ Position: "Absolute" }}
   `("$value", ({ value, expected }) => {
     expect(toTaffy(value)).toEqual(expected);
   });
