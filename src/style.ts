@@ -1,18 +1,28 @@
 import type { CSSProperties } from "react";
 
 interface TaffyStyle {
+  display?: "Block" | "Flex" | "Grid" | "None";
+  item_is_table?: boolean;
+  box_sizing?: "BorderBox" | "ContentBox";
+  overflow?: Point<Overflow>;
+  scrollbar_width?: number;
+  position?: Position;
   size?: Size<Length>;
   gap?: Size<Length>;
-  align_items?: AlignItems;
-  align_self?: AlignItems;
-  justify_items?: AlignItems;
-  justify_self?: AlignItems;
+  align_items?: Align;
+  align_self?: Align;
+  justify_items?: Align;
+  justify_self?: Align;
   align_content?: AlignContent;
   justify_content?: AlignContent;
 }
 
+type Size<T> = { width: T; height: T };
+type Point<T> = { x: T; y: T };
 type Length = { Length: number } | { Percent: number } | "Auto";
-type AlignItems = "Start" | "End" | "FlexStart" | "FlexEnd" | "Center" | "Baseline" | "Stretch";
+type Overflow = "Visible" | "Clip" | "Hidden" | "Scroll";
+type Position = "Relative" | "Absolute";
+type Align = "Start" | "End" | "FlexStart" | "FlexEnd" | "Center" | "Baseline" | "Stretch";
 type AlignContent =
   | "Start"
   | "End"
@@ -23,11 +33,6 @@ type AlignContent =
   | "SpaceBetween"
   | "SpaceEvenly"
   | "SpaceAround";
-
-interface Size<T> {
-  width: T;
-  height: T;
-}
 
 const align = {
   start: "Start",
