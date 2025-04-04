@@ -28,12 +28,14 @@ interface TaffyStyle {
   flex_basis?: Length;
   flex_grow?: number;
   flex_shrink?: number;
+  grid_template_rows?: TrackSizingFunction[];
 }
 
 type Size<T> = { width: T; height: T };
 type Point<T> = { x: T; y: T };
 type Rect<T> = { left: T; right: T; top: T; bottom: T };
 type Length = { Length: number } | { Percent: number } | "Auto";
+type LengthPercentage = { Length: number } | { Percent: number };
 type Overflow = "Visible" | "Clip" | "Hidden" | "Scroll";
 type Position = "Relative" | "Absolute";
 type Align = "Start" | "End" | "FlexStart" | "FlexEnd" | "Center" | "Baseline" | "Stretch";
@@ -50,6 +52,37 @@ type AlignContent =
 type TextAlign = "Auto" | "LegacyLeft" | "LegacyRight" | "LegacyCenter";
 type FlexDirection = "Row" | "Column" | "RowReverse" | "ColumnReverse";
 type FlexWrap = "NoWrap" | "Wrap" | "WrapReverse";
+
+type TrackSizingFunction = {
+  Single: NonRepeatedTrackSizingFunction;
+};
+
+type NonRepeatedTrackSizingFunction = MinMax<MinTrackSizingFunction | MaxTrackSizingFunction>;
+
+type MinMax<T> = {
+  min: T;
+  max: T;
+};
+
+type MinTrackSizingFunction =
+  | {
+      Fixed: LengthPercentage;
+    }
+  | "MinContent"
+  | "MaxContent"
+  | "Auto";
+
+type MaxTrackSizingFunction =
+  | {
+      Fixed: LengthPercentage;
+    }
+  | "MinContent"
+  | "MaxContent"
+  | {
+      FitContent: LengthPercentage;
+    }
+  | "Auto"
+  | { Fraction: number };
 
 const align = {
   start: "Start",
