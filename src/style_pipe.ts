@@ -38,7 +38,7 @@ function toTaffy(css: Record<string, string>) {
         .with(["display", P.string], toEnum)
         .with(["boxSizing", P.string], toEnum)
         .with(["position", P.string], toEnum)
-        .with(["overflow", P.string], toPoint)
+        .with(["overflow", P.string], toOverflow)
         .run();
     }),
     R.fromEntries
@@ -51,6 +51,11 @@ function toEnum([key, value]: PropTouple): PropTouple {
 
 function toPoint([key, value]: PropTouple): PropTouple<Point<string>> {
   return [pascalCase(key), { x: pascalCase(value), y: pascalCase(value) }];
+}
+
+function toOverflow([key, value]: PropTouple<string>): PropTouple<Point<string>> {
+  const [x, y] = value.split(" ");
+  return [pascalCase(key), { x: pascalCase(x), y: pascalCase(y || x) }];
 }
 
 if (import.meta.vitest) {
@@ -78,5 +83,8 @@ if (import.meta.vitest) {
     expect(toTaffy({ overflow: "clip" })).toEqual({ Overflow: { x: "Clip", y: "Clip" } });
     expect(toTaffy({ overflow: "hidden" })).toEqual({ Overflow: { x: "Hidden", y: "Hidden" } });
     expect(toTaffy({ overflow: "scroll" })).toEqual({ Overflow: { x: "Scroll", y: "Scroll" } });
+
+    expect(toTaffy({ overflow: "visible scroll" })).toEqual({ Overflow: { x: "Visible", y: "Scroll" } });
+    expect(toTaffy({ overflow: "clip hidden" })).toEqual({ Overflow: { x: "Clip", y: "Hidden" } });
   });
 }
