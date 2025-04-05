@@ -27,49 +27,47 @@ type Percentage = {
 
 type Auto = "Auto";
 type LPA = Length | Percentage | Auto;
-type PropTouple<V = string> = [key: string, value: V];
+
+type Prop<Value> = readonly [key: string, value: Value];
 
 function toTaffy(css: Record<string, string>) {
   return pipe(
     css,
     R.toEntries,
-    A.map(([key, value]): PropTouple<string> | PropTouple<Point<string>> => {
+    A.map(([key, value]): Prop<string | Point<string> | Rect<LPA>> => {
       return match([key, value])
-        .with(["display", P.string], toEnum)
-        .with(["boxSizing", P.string], toEnum)
-        .with(["overflow", P.string], t => pipe(t, shorthand2, point))
-        .with(["position", P.string], toEnum)
-        .with(["inset", P.string], t => pipe(t, shorthand4, rect))
+        .with(["display", P.string], pair => stringValue(pair))
+        .with(["boxSizing", P.string], stringValue)
+        .with(["overflow", P.string], pair => pipe(pair, shorthand2, point))
+        .with(["position", P.string], stringValue)
+        .with(["inset", P.string], pair => pipe(pair, shorthand4, rect))
         .run();
     }),
     R.fromEntries
   );
 }
 
-function toEnum([key, value]: PropTouple): PropTouple {
+function stringValue([key, value]: Prop<string>): Prop<string> {
   return [pascalCase(key), pascalCase(value)];
 }
 
-function point([key, [x, y]]: PropTouple): PropTouple<Point<string>> {
+function point([key, [x, y]]: Prop<[string, string]>): Prop<Point<string>> {
   return [pascalCase(key), { x: pascalCase(x), y: pascalCase(y) }];
 }
 
 function lpa(value: string): LPA {
   return match(value)
-    .with(P.number, n => ({ Length: n }))
-    .with(P.string, s => {
-      if (s.endsWith("%")) {
-        return { Percentage: parseFloat(s) };
-      }
-      if (s === "auto") {
-        return "Auto";
-      }
-      return { Length: parseFloat(s) };
-    })
-    .run();
+    .with("auto", () => "Auto")
+    .with(P.string.endsWith("%"), s => ({ Percentage: parseFloat(s) / 100 }))
+    .with(P.string.endsWith("px"), s => ({ Length: parseFloat(s) }))
+    .with(P.string.regex(/^\d+$/), s => ({ Length: parseFloat(s) }))
+    .with(P.number, n => ({ Length: parseFloat(n) }))
+    .otherwise((): never => {
+      throw new Error(`Invalid value for length or percentage: ${value}`);
+    });
 }
 
-function rect([key, [top, right, bottom, left]]: PropTouple): PropTouple<Rect<LPA>> {
+function rect([key, [top, right, bottom, left]]: Prop<string>): Prop<Rect<LPA>> {
   return [
     pascalCase(key),
     {
@@ -81,12 +79,12 @@ function rect([key, [top, right, bottom, left]]: PropTouple): PropTouple<Rect<LP
   ];
 }
 
-function shorthand2([key, value]: PropTouple): PropTouple<string[]> {
+function shorthand2([key, value]: Prop<string>): Prop<[string, string]> {
   const [a, b] = value.split(" ");
   return [key, [a, b || a]];
 }
 
-function shorthand4([key, value]: PropTouple): PropTouple<[string, string, string, string]> {
+function shorthand4([key, value]: Prop<string>): Prop<[string, string, string, string]> {
   const values = value.split(" ");
   const [a, b, c, d] = values;
   switch (values.length) {
