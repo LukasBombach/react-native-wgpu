@@ -12,7 +12,8 @@
     "change-case": "5.4.4",
     "fp-ts": "2.16.9",
     "react": "19.0.0",
-    "react-reconciler": "0.31.0"
+    "react-reconciler": "0.31.0",
+    "ts-pattern": "5.7.0"
   },
   "devDependencies": {
     "@tsconfig/node-ts": "23.6.1",

@@ -2,6 +2,7 @@ import { pipe } from "fp-ts/function";
 import * as R from "fp-ts/Record";
 import * as A from "fp-ts/Array";
 import * as O from "fp-ts/Option";
+import { match, P } from "ts-pattern";
 import { pascalCase } from "change-case";
 
 interface Point<T> {
@@ -25,67 +26,57 @@ type Percentage = {
 };
 
 type Auto = "Auto";
-
 type LengthPercentageAuto = Length | Percentage | Auto;
+type PropTouple<V = string> = [key: string, value: V];
 
-const toPascalCase = (str: string) => pascalCase(str);
-
-const toTaffy = (css: Record<string, string>) =>
-  pipe(
+function toTaffy(css: Record<string, string>) {
+  return pipe(
     css,
     R.toEntries,
     A.map(([key, value]): [string, string | Point<string> | Rect<LengthPercentageAuto>] => {
-      if (key === "overflow") {
-        return [
-          toPascalCase(key),
-          {
-            x: toPascalCase(value),
-            y: toPascalCase(value),
-          },
-        ];
-      }
-
-      return [toPascalCase(key), toPascalCase(value)];
+      return match([key, value])
+        .with(["display", P.string], toEnum)
+        .with(["boxSizing", P.string], toEnum)
+        .with(["position", P.string], toEnum)
+        .with(["overflow", P.string], toPoint)
+        .run();
     }),
     R.fromEntries
   );
+}
+
+function toEnum([key, value]: PropTouple): PropTouple {
+  return [pascalCase(key), pascalCase(value)];
+}
+
+function toPoint([key, value]: PropTouple): PropTouple<Point<string>> {
+  return [pascalCase(key), { x: pascalCase(value), y: pascalCase(value) }];
+}
 
 if (import.meta.vitest) {
-  const { describe, test, expect } = import.meta.vitest;
+  const { test, expect } = import.meta.vitest;
 
-  test.each`
-    value                   | expected
-    ${{ display: "block" }} | ${{ Display: "Block" }}
-    ${{ display: "flex" }}  | ${{ Display: "Flex" }}
-    ${{ display: "grid" }}  | ${{ Display: "Grid" }}
-    ${{ display: "none" }}  | ${{ Display: "None" }}
-  `("$value", ({ value, expected }) => {
-    expect(toTaffy(value)).toEqual(expected);
+  test("display", () => {
+    expect(toTaffy({ display: "block" })).toEqual({ Display: "Block" });
+    expect(toTaffy({ display: "flex" })).toEqual({ Display: "Flex" });
+    expect(toTaffy({ display: "grid" })).toEqual({ Display: "Grid" });
+    expect(toTaffy({ display: "none" })).toEqual({ Display: "None" });
   });
 
-  test.each`
-    value                           | expected
-    ${{ boxSizing: "border-box" }}  | ${{ BoxSizing: "BorderBox" }}
-    ${{ boxSizing: "content-box" }} | ${{ BoxSizing: "ContentBox" }}
-  `("$value", ({ value, expected }) => {
-    expect(toTaffy(value)).toEqual(expected);
+  test("position", () => {
+    expect(toTaffy({ position: "relative" })).toEqual({ Position: "Relative" });
+    expect(toTaffy({ position: "absolute" })).toEqual({ Position: "Absolute" });
   });
 
-  test.each`
-    value                      | expected
-    ${{ overflow: "visible" }} | ${{ Overflow: { x: "Visible", y: "Visible" } }}
-    ${{ overflow: "clip" }}    | ${{ Overflow: { x: "Clip", y: "Clip" } }}
-    ${{ overflow: "hidden" }}  | ${{ Overflow: { x: "Hidden", y: "Hidden" } }}
-    ${{ overflow: "scroll" }}  | ${{ Overflow: { x: "Scroll", y: "Scroll" } }}
-  `("$value", ({ value, expected }) => {
-    expect(toTaffy(value)).toEqual(expected);
+  test("box-sizing", () => {
+    expect(toTaffy({ boxSizing: "border-box" })).toEqual({ BoxSizing: "BorderBox" });
+    expect(toTaffy({ boxSizing: "content-box" })).toEqual({ BoxSizing: "ContentBox" });
   });
 
-  test.each`
-    value                       | expected
-    ${{ position: "relative" }} | ${{ Position: "Relative" }}
-    ${{ position: "absolute" }} | ${{ Position: "Absolute" }}
-  `("$value", ({ value, expected }) => {
-    expect(toTaffy(value)).toEqual(expected);
+  test("overflow", () => {
+    expect(toTaffy({ overflow: "visible" })).toEqual({ Overflow: { x: "Visible", y: "Visible" } });
+    expect(toTaffy({ overflow: "clip" })).toEqual({ Overflow: { x: "Clip", y: "Clip" } });
+    expect(toTaffy({ overflow: "hidden" })).toEqual({ Overflow: { x: "Hidden", y: "Hidden" } });
+    expect(toTaffy({ overflow: "scroll" })).toEqual({ Overflow: { x: "Scroll", y: "Scroll" } });
   });
 }
