@@ -10,6 +10,11 @@ interface Point<T> {
   y: T;
 }
 
+interface Size<T> {
+  width: T;
+  height: T;
+}
+
 interface Rect<T> {
   top: T;
   right: T;
@@ -34,16 +39,17 @@ function toTaffy(css: Record<string, string | number>) {
   return pipe(
     css,
     R.toEntries,
-    A.map(([key, value]): Prop<string | Point<string> | Rect<LPA>> => {
+    A.map(([key, value]): Prop<string | Point<string> | Rect<LPA> | Size<LPA>> => {
       return match([key, value])
         .with(["display", P.string], pair => stringValue(pair))
         .with(["boxSizing", P.string], stringValue)
         .with(["overflow", P.string], pair => pipe(pair, shorthand2, point))
         .with(["position", P.string], stringValue)
         .with(["inset", P.union(P.string, P.number)], pair => pipe(pair, shorthand4, rect))
+        .with(["size", P.union(P.string, P.number)], pair => pipe(pair, shorthand2, size))
         .run();
     }),
-    A.map((a): [key: string, value: string | Point<string> | Rect<LPA>] => [...a]), // make readonly mutable
+    A.map((a): [key: string, value: string | Point<string> | Rect<LPA> | Size<LPA>] => [...a]), // make readonly -> mutable
     R.fromEntries
   );
 }
@@ -80,8 +86,18 @@ function rect([key, [top, right, bottom, left]]: Prop<[string, string, string, s
   ];
 }
 
-function shorthand2([key, value]: Prop<string>): Prop<[string, string]> {
-  const [a, b] = value.split(" ");
+function size([key, [width, height]]: Prop<[string, string]>): Prop<Size<LPA>> {
+  return [
+    pascalCase(key),
+    {
+      width: lpa(width),
+      height: lpa(height),
+    },
+  ];
+}
+
+function shorthand2([key, value]: Prop<string | number>): Prop<[string, string]> {
+  const [a, b] = String(value).split(" ");
   return [key, [a, b || a]];
 }
 
@@ -126,6 +142,21 @@ if (import.meta.vitest) {
     }),
   };
 
+  const size = {
+    px: (width: number, height: number) => ({
+      width: { Length: width },
+      height: { Length: height },
+    }),
+    percent: (width: number, height: number) => ({
+      width: { Percentage: width },
+      height: { Percentage: height },
+    }),
+    auto: (width: Auto, height: Auto) => ({
+      width,
+      height,
+    }),
+  };
+
   test("display", () => {
     expect(toTaffy({ display: "block" })).toEqual({ Display: "Block" });
     expect(toTaffy({ display: "flex" })).toEqual({ Display: "Flex" });
@@ -148,7 +179,6 @@ if (import.meta.vitest) {
     expect(toTaffy({ overflow: "clip" })).toEqual({ Overflow: { x: "Clip", y: "Clip" } });
     expect(toTaffy({ overflow: "hidden" })).toEqual({ Overflow: { x: "Hidden", y: "Hidden" } });
     expect(toTaffy({ overflow: "scroll" })).toEqual({ Overflow: { x: "Scroll", y: "Scroll" } });
-
     expect(toTaffy({ overflow: "visible scroll" })).toEqual({ Overflow: { x: "Visible", y: "Scroll" } });
     expect(toTaffy({ overflow: "clip hidden" })).toEqual({ Overflow: { x: "Clip", y: "Hidden" } });
   });
@@ -158,9 +188,16 @@ if (import.meta.vitest) {
     expect(toTaffy({ inset: "10px" })).toEqual({ Inset: rect.px(10, 10, 10, 10) });
     expect(toTaffy({ inset: "10%" })).toEqual({ Inset: rect.percent(0.1, 0.1, 0.1, 0.1) });
     expect(toTaffy({ inset: "auto" })).toEqual({ Inset: rect.auto("Auto", "Auto", "Auto", "Auto") });
-
     expect(toTaffy({ inset: "1px 2px" })).toEqual({ Inset: rect.px(1, 2, 1, 2) });
     expect(toTaffy({ inset: "1px 2px 3px" })).toEqual({ Inset: rect.px(1, 2, 3, 2) });
     expect(toTaffy({ inset: "1px 2px 3px 4px" })).toEqual({ Inset: rect.px(1, 2, 3, 4) });
+  });
+
+  test("size", () => {
+    expect(toTaffy({ size: 10 })).toEqual({ Size: size.px(10, 10) });
+    expect(toTaffy({ size: "10px" })).toEqual({ Size: size.px(10, 10) });
+    expect(toTaffy({ size: "10%" })).toEqual({ Size: size.percent(0.1, 0.1) });
+    expect(toTaffy({ size: "auto" })).toEqual({ Size: size.auto("Auto", "Auto") });
+    expect(toTaffy({ size: "1px 2px" })).toEqual({ Size: size.px(1, 2) });
   });
 }
