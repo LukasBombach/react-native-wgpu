@@ -3,7 +3,7 @@ import * as R from "fp-ts/Record";
 import * as A from "fp-ts/Array";
 import * as O from "fp-ts/Option";
 import { match, P } from "ts-pattern";
-import { pascalCase } from "change-case";
+import * as toCase from "change-case";
 
 interface Point<T> {
   x: T;
@@ -47,6 +47,7 @@ function toTaffy(css: Record<string, string | number>) {
         .with(["position", P.string], stringValue)
         .with(["inset", P.union(P.string, P.number)], pair => pipe(pair, shorthand4, rect))
         .with(["size", P.union(P.string, P.number)], pair => pipe(pair, shorthand2, size))
+        .with(["minSize", P.union(P.string, P.number)], pair => pipe(pair, shorthand2, size))
         .run();
     }),
     A.map((a): [key: string, value: string | Point<string> | Rect<LPA> | Size<LPA>] => [...a]), // make readonly -> mutable
@@ -55,11 +56,11 @@ function toTaffy(css: Record<string, string | number>) {
 }
 
 function stringValue([key, value]: Prop<string>): Prop<string> {
-  return [pascalCase(key), pascalCase(value)];
+  return [toCase.snakeCase(key), toCase.pascalCase(value)];
 }
 
 function point([key, [x, y]]: Prop<[string, string]>): Prop<Point<string>> {
-  return [pascalCase(key), { x: pascalCase(x), y: pascalCase(y) }];
+  return [toCase.snakeCase(key), { x: toCase.pascalCase(x), y: toCase.pascalCase(y) }];
 }
 
 function lpa(value: string): LPA {
@@ -76,7 +77,7 @@ function lpa(value: string): LPA {
 
 function rect([key, [top, right, bottom, left]]: Prop<[string, string, string, string]>): Prop<Rect<LPA>> {
   return [
-    pascalCase(key),
+    toCase.snakeCase(key),
     {
       top: lpa(top),
       right: lpa(right),
@@ -88,7 +89,7 @@ function rect([key, [top, right, bottom, left]]: Prop<[string, string, string, s
 
 function size([key, [width, height]]: Prop<[string, string]>): Prop<Size<LPA>> {
   return [
-    pascalCase(key),
+    toCase.snakeCase(key),
     {
       width: lpa(width),
       height: lpa(height),
@@ -158,46 +159,54 @@ if (import.meta.vitest) {
   };
 
   test("display", () => {
-    expect(toTaffy({ display: "block" })).toEqual({ Display: "Block" });
-    expect(toTaffy({ display: "flex" })).toEqual({ Display: "Flex" });
-    expect(toTaffy({ display: "grid" })).toEqual({ Display: "Grid" });
-    expect(toTaffy({ display: "none" })).toEqual({ Display: "None" });
+    expect(toTaffy({ display: "block" })).toEqual({ display: "Block" });
+    expect(toTaffy({ display: "flex" })).toEqual({ display: "Flex" });
+    expect(toTaffy({ display: "grid" })).toEqual({ display: "Grid" });
+    expect(toTaffy({ display: "none" })).toEqual({ display: "None" });
   });
 
   test("position", () => {
-    expect(toTaffy({ position: "relative" })).toEqual({ Position: "Relative" });
-    expect(toTaffy({ position: "absolute" })).toEqual({ Position: "Absolute" });
+    expect(toTaffy({ position: "relative" })).toEqual({ position: "Relative" });
+    expect(toTaffy({ position: "absolute" })).toEqual({ position: "Absolute" });
   });
 
   test("box-sizing", () => {
-    expect(toTaffy({ boxSizing: "border-box" })).toEqual({ BoxSizing: "BorderBox" });
-    expect(toTaffy({ boxSizing: "content-box" })).toEqual({ BoxSizing: "ContentBox" });
+    expect(toTaffy({ boxSizing: "border-box" })).toEqual({ box_sizing: "BorderBox" });
+    expect(toTaffy({ boxSizing: "content-box" })).toEqual({ box_sizing: "ContentBox" });
   });
 
   test("overflow", () => {
-    expect(toTaffy({ overflow: "visible" })).toEqual({ Overflow: { x: "Visible", y: "Visible" } });
-    expect(toTaffy({ overflow: "clip" })).toEqual({ Overflow: { x: "Clip", y: "Clip" } });
-    expect(toTaffy({ overflow: "hidden" })).toEqual({ Overflow: { x: "Hidden", y: "Hidden" } });
-    expect(toTaffy({ overflow: "scroll" })).toEqual({ Overflow: { x: "Scroll", y: "Scroll" } });
-    expect(toTaffy({ overflow: "visible scroll" })).toEqual({ Overflow: { x: "Visible", y: "Scroll" } });
-    expect(toTaffy({ overflow: "clip hidden" })).toEqual({ Overflow: { x: "Clip", y: "Hidden" } });
+    expect(toTaffy({ overflow: "visible" })).toEqual({ overflow: { x: "Visible", y: "Visible" } });
+    expect(toTaffy({ overflow: "clip" })).toEqual({ overflow: { x: "Clip", y: "Clip" } });
+    expect(toTaffy({ overflow: "hidden" })).toEqual({ overflow: { x: "Hidden", y: "Hidden" } });
+    expect(toTaffy({ overflow: "scroll" })).toEqual({ overflow: { x: "Scroll", y: "Scroll" } });
+    expect(toTaffy({ overflow: "visible scroll" })).toEqual({ overflow: { x: "Visible", y: "Scroll" } });
+    expect(toTaffy({ overflow: "clip hidden" })).toEqual({ overflow: { x: "Clip", y: "Hidden" } });
   });
 
   test("inset", () => {
-    expect(toTaffy({ inset: 10 })).toEqual({ Inset: rect.px(10, 10, 10, 10) });
-    expect(toTaffy({ inset: "10px" })).toEqual({ Inset: rect.px(10, 10, 10, 10) });
-    expect(toTaffy({ inset: "10%" })).toEqual({ Inset: rect.percent(0.1, 0.1, 0.1, 0.1) });
-    expect(toTaffy({ inset: "auto" })).toEqual({ Inset: rect.auto("Auto", "Auto", "Auto", "Auto") });
-    expect(toTaffy({ inset: "1px 2px" })).toEqual({ Inset: rect.px(1, 2, 1, 2) });
-    expect(toTaffy({ inset: "1px 2px 3px" })).toEqual({ Inset: rect.px(1, 2, 3, 2) });
-    expect(toTaffy({ inset: "1px 2px 3px 4px" })).toEqual({ Inset: rect.px(1, 2, 3, 4) });
+    expect(toTaffy({ inset: 10 })).toEqual({ inset: rect.px(10, 10, 10, 10) });
+    expect(toTaffy({ inset: "10px" })).toEqual({ inset: rect.px(10, 10, 10, 10) });
+    expect(toTaffy({ inset: "10%" })).toEqual({ inset: rect.percent(0.1, 0.1, 0.1, 0.1) });
+    expect(toTaffy({ inset: "auto" })).toEqual({ inset: rect.auto("Auto", "Auto", "Auto", "Auto") });
+    expect(toTaffy({ inset: "1px 2px" })).toEqual({ inset: rect.px(1, 2, 1, 2) });
+    expect(toTaffy({ inset: "1px 2px 3px" })).toEqual({ inset: rect.px(1, 2, 3, 2) });
+    expect(toTaffy({ inset: "1px 2px 3px 4px" })).toEqual({ inset: rect.px(1, 2, 3, 4) });
   });
 
   test("size", () => {
-    expect(toTaffy({ size: 10 })).toEqual({ Size: size.px(10, 10) });
-    expect(toTaffy({ size: "10px" })).toEqual({ Size: size.px(10, 10) });
-    expect(toTaffy({ size: "10%" })).toEqual({ Size: size.percent(0.1, 0.1) });
-    expect(toTaffy({ size: "auto" })).toEqual({ Size: size.auto("Auto", "Auto") });
-    expect(toTaffy({ size: "1px 2px" })).toEqual({ Size: size.px(1, 2) });
+    expect(toTaffy({ size: 10 })).toEqual({ size: size.px(10, 10) });
+    expect(toTaffy({ size: "10px" })).toEqual({ size: size.px(10, 10) });
+    expect(toTaffy({ size: "10%" })).toEqual({ size: size.percent(0.1, 0.1) });
+    expect(toTaffy({ size: "auto" })).toEqual({ size: size.auto("Auto", "Auto") });
+    expect(toTaffy({ size: "1px 2px" })).toEqual({ size: size.px(1, 2) });
+  });
+
+  test("min-size", () => {
+    expect(toTaffy({ minSize: 10 })).toEqual({ min_size: size.px(10, 10) });
+    expect(toTaffy({ minSize: "10px" })).toEqual({ min_size: size.px(10, 10) });
+    expect(toTaffy({ minSize: "10%" })).toEqual({ min_size: size.percent(0.1, 0.1) });
+    expect(toTaffy({ minSize: "auto" })).toEqual({ min_size: size.auto("Auto", "Auto") });
+    expect(toTaffy({ minSize: "1px 2px" })).toEqual({ min_size: size.px(1, 2) });
   });
 }
