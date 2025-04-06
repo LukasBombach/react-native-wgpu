@@ -48,6 +48,7 @@ function toTaffy(css: Record<string, string | number>) {
         .with(["inset", P.union(P.string, P.number)], pair => pipe(pair, shorthand4, rect))
         .with(["size", P.union(P.string, P.number)], pair => pipe(pair, shorthand2, size))
         .with(["minSize", P.union(P.string, P.number)], pair => pipe(pair, shorthand2, size))
+        .with(["maxSize", P.union(P.string, P.number)], pair => pipe(pair, shorthand2, size))
         .run();
     }),
     A.map((a): [key: string, value: string | Point<string> | Rect<LPA> | Size<LPA>] => [...a]), // make readonly -> mutable
@@ -208,5 +209,13 @@ if (import.meta.vitest) {
     expect(toTaffy({ minSize: "10%" })).toEqual({ min_size: size.percent(0.1, 0.1) });
     expect(toTaffy({ minSize: "auto" })).toEqual({ min_size: size.auto("Auto", "Auto") });
     expect(toTaffy({ minSize: "1px 2px" })).toEqual({ min_size: size.px(1, 2) });
+  });
+
+  test("max-size", () => {
+    expect(toTaffy({ maxSize: 10 })).toEqual({ max_size: size.px(10, 10) });
+    expect(toTaffy({ maxSize: "10px" })).toEqual({ max_size: size.px(10, 10) });
+    expect(toTaffy({ maxSize: "10%" })).toEqual({ max_size: size.percent(0.1, 0.1) });
+    expect(toTaffy({ maxSize: "auto" })).toEqual({ max_size: size.auto("Auto", "Auto") });
+    expect(toTaffy({ maxSize: "1px 2px" })).toEqual({ max_size: size.px(1, 2) });
   });
 }
