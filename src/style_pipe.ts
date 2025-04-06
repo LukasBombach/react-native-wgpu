@@ -61,6 +61,7 @@ function lpa(value: string): LPA {
     .with("auto", (): Auto => "Auto")
     .with(P.string.endsWith("%"), s => ({ Percentage: parseFloat(s) / 100 }))
     .with(P.string.endsWith("px"), s => ({ Length: parseFloat(s) }))
+    .with(P.string.regex(/^\d+$/), s => ({ Length: parseFloat(s) }))
     .with(P.number, n => ({ Length: parseFloat(n) }))
     .otherwise(() => {
       throw new Error(`Invalid value for length or percentage: ${value}`);
