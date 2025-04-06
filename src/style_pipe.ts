@@ -30,7 +30,7 @@ type LPA = Length | Percentage | Auto;
 
 type Prop<Value> = readonly [key: string, value: Value];
 
-function toTaffy(css: Record<string, string>) {
+function toTaffy(css: Record<string, string | number>) {
   return pipe(
     css,
     R.toEntries,
@@ -40,7 +40,7 @@ function toTaffy(css: Record<string, string>) {
         .with(["boxSizing", P.string], stringValue)
         .with(["overflow", P.string], pair => pipe(pair, shorthand2, point))
         .with(["position", P.string], stringValue)
-        .with(["inset", P.string], pair => pipe(pair, shorthand4, rect))
+        .with(["inset", P.union(P.string, P.number)], pair => pipe(pair, shorthand4, rect))
         .run();
     }),
     A.map((a): [key: string, value: string | Point<string> | Rect<LPA>] => [...a]), // make readonly mutable
@@ -85,8 +85,8 @@ function shorthand2([key, value]: Prop<string>): Prop<[string, string]> {
   return [key, [a, b || a]];
 }
 
-function shorthand4([key, value]: Prop<string>): Prop<[string, string, string, string]> {
-  const values = value.split(" ");
+function shorthand4<V = string | number>([key, value]: Prop<V>): Prop<[string, string, string, string]> {
+  const values = String(value).split(" ");
   const [a, b, c, d] = values;
   switch (values.length) {
     case 1:
@@ -104,6 +104,27 @@ function shorthand4([key, value]: Prop<string>): Prop<[string, string, string, s
 
 if (import.meta.vitest) {
   const { test, expect } = import.meta.vitest;
+
+  const rect = {
+    px: (top: number, right: number, bottom: number, left: number) => ({
+      top: { Length: top },
+      right: { Length: right },
+      bottom: { Length: bottom },
+      left: { Length: left },
+    }),
+    percent: (top: number, right: number, bottom: number, left: number) => ({
+      top: { Percentage: top },
+      right: { Percentage: right },
+      bottom: { Percentage: bottom },
+      left: { Percentage: left },
+    }),
+    auto: (top: Auto, right: Auto, bottom: Auto, left: Auto) => ({
+      top,
+      right,
+      bottom,
+      left,
+    }),
+  };
 
   test("display", () => {
     expect(toTaffy({ display: "block" })).toEqual({ Display: "Block" });
@@ -133,30 +154,13 @@ if (import.meta.vitest) {
   });
 
   test("inset", () => {
-    expect(toTaffy({ inset: "0" })).toEqual({
-      Inset: { top: { Length: 0 }, right: { Length: 0 }, bottom: { Length: 0 }, left: { Length: 0 } },
-    });
-    expect(toTaffy({ inset: "10px" })).toEqual({
-      Inset: { top: { Length: 10 }, right: { Length: 10 }, bottom: { Length: 10 }, left: { Length: 10 } },
-    });
-    expect(toTaffy({ inset: "10px 20px" })).toEqual({
-      Inset: { top: { Length: 10 }, right: { Length: 20 }, bottom: { Length: 10 }, left: { Length: 20 } },
-    });
-    expect(toTaffy({ inset: "10px 20px 30px" })).toEqual({
-      Inset: {
-        top: { Length: 10 },
-        right: { Length: 20 },
-        bottom: { Length: 30 },
-        left: { Length: 20 },
-      },
-    });
-    expect(toTaffy({ inset: "10px 20px 30px 40px" })).toEqual({
-      Inset: {
-        top: { Length: 10 },
-        right: { Length: 20 },
-        bottom: { Length: 30 },
-        left: { Length: 40 },
-      },
-    });
+    expect(toTaffy({ inset: 10 })).toEqual({ Inset: rect.px(10, 10, 10, 10) });
+    expect(toTaffy({ inset: "10px" })).toEqual({ Inset: rect.px(10, 10, 10, 10) });
+    expect(toTaffy({ inset: "10%" })).toEqual({ Inset: rect.percent(0.1, 0.1, 0.1, 0.1) });
+    expect(toTaffy({ inset: "auto" })).toEqual({ Inset: rect.auto("Auto", "Auto", "Auto", "Auto") });
+
+    expect(toTaffy({ inset: "1px 2px" })).toEqual({ Inset: rect.px(1, 2, 1, 2) });
+    expect(toTaffy({ inset: "1px 2px 3px" })).toEqual({ Inset: rect.px(1, 2, 3, 2) });
+    expect(toTaffy({ inset: "1px 2px 3px 4px" })).toEqual({ Inset: rect.px(1, 2, 3, 4) });
   });
 }
