@@ -43,6 +43,7 @@ function toTaffy(css: Record<string, string>) {
         .with(["inset", P.string], pair => pipe(pair, shorthand4, rect))
         .run();
     }),
+    A.map((a): [key: string, value: string | Point<string> | Rect<LPA>] => [...a]), // make readonly mutable
     R.fromEntries
   );
 }
@@ -57,17 +58,16 @@ function point([key, [x, y]]: Prop<[string, string]>): Prop<Point<string>> {
 
 function lpa(value: string): LPA {
   return match(value)
-    .with("auto", () => "Auto")
+    .with("auto", (): Auto => "Auto")
     .with(P.string.endsWith("%"), s => ({ Percentage: parseFloat(s) / 100 }))
     .with(P.string.endsWith("px"), s => ({ Length: parseFloat(s) }))
-    .with(P.string.regex(/^\d+$/), s => ({ Length: parseFloat(s) }))
     .with(P.number, n => ({ Length: parseFloat(n) }))
-    .otherwise((): never => {
+    .otherwise(() => {
       throw new Error(`Invalid value for length or percentage: ${value}`);
     });
 }
 
-function rect([key, [top, right, bottom, left]]: Prop<string>): Prop<Rect<LPA>> {
+function rect([key, [top, right, bottom, left]]: Prop<[string, string, string, string]>): Prop<Rect<LPA>> {
   return [
     pascalCase(key),
     {
