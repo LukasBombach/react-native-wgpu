@@ -39,25 +39,42 @@ function toTaffy(css: Record<string, string | number>) {
   return pipe(
     css,
     R.toEntries,
-    A.map(([key, value]): Prop<string | Point<string> | Rect<LPA> | Size<LPA>> => {
+    A.map(([key, value]): Prop<string | number | Point<string> | Rect<LPA> | Size<LPA>> => {
       return match([key, value])
-        .with(["display", P.string], pair => stringValue(pair))
-        .with(["boxSizing", P.string], stringValue)
+        .with(["display", P.string], str)
+        .with(["boxSizing", P.string], str)
         .with(["overflow", P.string], pair => pipe(pair, shorthand2, point))
-        .with(["position", P.string], stringValue)
+        .with(["position", P.string], str)
         .with(["inset", P.union(P.string, P.number)], pair => pipe(pair, shorthand4, rect))
         .with(["size", P.union(P.string, P.number)], pair => pipe(pair, shorthand2, size))
         .with(["minSize", P.union(P.string, P.number)], pair => pipe(pair, shorthand2, size))
         .with(["maxSize", P.union(P.string, P.number)], pair => pipe(pair, shorthand2, size))
+        .with(["aspectRatio", P.union(P.string, P.number)], aspectRatio)
         .run();
     }),
-    A.map((a): [key: string, value: string | Point<string> | Rect<LPA> | Size<LPA>] => [...a]), // make readonly -> mutable
+    A.map((a): [key: string, value: string | number | Point<string> | Rect<LPA> | Size<LPA>] => [...a]), // make readonly -> mutable
     R.fromEntries
   );
 }
 
-function stringValue([key, value]: Prop<string>): Prop<string> {
+function str([key, value]: Prop<string>): Prop<string> {
   return [toCase.snakeCase(key), toCase.pascalCase(value)];
+}
+
+function num([key, value]: Prop<number>): Prop<number> {
+  return [toCase.snakeCase(key), value];
+}
+
+function aspectRatio([key, value]: Prop<string | number>): Prop<number> {
+  return match(value)
+    .with(P.number, (n): Prop<number> => [toCase.snakeCase(key), n])
+    .with(P.string.regex(/^\d+\/\d+$/), (s): Prop<number> => {
+      const [a, b] = s.split("/");
+      return [toCase.snakeCase(key), parseFloat(a) / parseFloat(b)];
+    })
+    .otherwise(() => {
+      throw new Error(`Invalid value for aspect ratio: ${value}`);
+    });
 }
 
 function point([key, [x, y]]: Prop<[string, string]>): Prop<Point<string>> {
@@ -217,5 +234,12 @@ if (import.meta.vitest) {
     expect(toTaffy({ maxSize: "10%" })).toEqual({ max_size: size.percent(0.1, 0.1) });
     expect(toTaffy({ maxSize: "auto" })).toEqual({ max_size: size.auto("Auto", "Auto") });
     expect(toTaffy({ maxSize: "1px 2px" })).toEqual({ max_size: size.px(1, 2) });
+  });
+
+  test("aspect-ratio", () => {
+    expect(toTaffy({ aspectRatio: 1 })).toEqual({ aspect_ratio: 1 });
+    expect(toTaffy({ aspectRatio: 1.5 })).toEqual({ aspect_ratio: 1.5 });
+    expect(toTaffy({ aspectRatio: "1/2" })).toEqual({ aspect_ratio: 0.5 });
+    expect(toTaffy({ aspectRatio: "16/9" })).toEqual({ aspect_ratio: 1.7777777777777777 });
   });
 }
