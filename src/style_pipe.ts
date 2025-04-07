@@ -53,6 +53,14 @@ function toTaffy(css: Record<string, string | number>) {
         .with(["margin", P.union(P.string, P.number)], pair => pipe(pair, shorthand4, rect))
         .with(["padding", P.union(P.string, P.number)], pair => pipe(pair, shorthand4, rect))
         .with(["border", P.union(P.string, P.number)], pair => pipe(pair, shorthand4, rect))
+        .with(["alignItems", P.string], str)
+        .with(["alignSelf", P.string], str)
+        .with(["justifyItems", P.string], str)
+        .with(["alignContent", P.string], str)
+        .with(["justifySelf", P.string], str)
+        .with(["alignContent", P.string], str)
+        .with(["justifyContent", P.string], str)
+        .with(["gap", P.union(P.string, P.number)], pair => pipe(pair, shorthand2, size))
         .run();
     }),
     A.map((a): [key: string, value: string | number | Point<string> | Rect<LPA> | Size<LPA>] => [...a]), // make readonly -> mutable
@@ -272,5 +280,75 @@ if (import.meta.vitest) {
     expect(toTaffy({ border: "1px 2px" })).toEqual({ border: rect.px(1, 2, 1, 2) });
     expect(toTaffy({ border: "1px 2px 3px" })).toEqual({ border: rect.px(1, 2, 3, 2) });
     expect(toTaffy({ border: "1px 2px 3px 4px" })).toEqual({ border: rect.px(1, 2, 3, 4) });
+  });
+
+  test("align-items", () => {
+    expect(toTaffy({ alignItems: "start" })).toEqual({ align_items: "Start" });
+    expect(toTaffy({ alignItems: "end" })).toEqual({ align_items: "End" });
+    expect(toTaffy({ alignItems: "flex-start" })).toEqual({ align_items: "FlexStart" });
+    expect(toTaffy({ alignItems: "flex-end" })).toEqual({ align_items: "FlexEnd" });
+    expect(toTaffy({ alignItems: "center" })).toEqual({ align_items: "Center" });
+    expect(toTaffy({ alignItems: "baseline" })).toEqual({ align_items: "Baseline" });
+    expect(toTaffy({ alignItems: "stretch" })).toEqual({ align_items: "Stretch" });
+  });
+
+  test("align-self", () => {
+    expect(toTaffy({ alignSelf: "start" })).toEqual({ align_self: "Start" });
+    expect(toTaffy({ alignSelf: "end" })).toEqual({ align_self: "End" });
+    expect(toTaffy({ alignSelf: "flex-start" })).toEqual({ align_self: "FlexStart" });
+    expect(toTaffy({ alignSelf: "flex-end" })).toEqual({ align_self: "FlexEnd" });
+    expect(toTaffy({ alignSelf: "center" })).toEqual({ align_self: "Center" });
+    expect(toTaffy({ alignSelf: "baseline" })).toEqual({ align_self: "Baseline" });
+    expect(toTaffy({ alignSelf: "stretch" })).toEqual({ align_self: "Stretch" });
+  });
+
+  test("justify-items", () => {
+    expect(toTaffy({ justifyItems: "start" })).toEqual({ justify_items: "Start" });
+    expect(toTaffy({ justifyItems: "end" })).toEqual({ justify_items: "End" });
+    expect(toTaffy({ justifyItems: "flex-start" })).toEqual({ justify_items: "FlexStart" });
+    expect(toTaffy({ justifyItems: "flex-end" })).toEqual({ justify_items: "FlexEnd" });
+    expect(toTaffy({ justifyItems: "center" })).toEqual({ justify_items: "Center" });
+    expect(toTaffy({ justifyItems: "baseline" })).toEqual({ justify_items: "Baseline" });
+    expect(toTaffy({ justifyItems: "stretch" })).toEqual({ justify_items: "Stretch" });
+  });
+
+  test("justify-self", () => {
+    expect(toTaffy({ justifySelf: "start" })).toEqual({ justify_self: "Start" });
+    expect(toTaffy({ justifySelf: "end" })).toEqual({ justify_self: "End" });
+    expect(toTaffy({ justifySelf: "flex-start" })).toEqual({ justify_self: "FlexStart" });
+    expect(toTaffy({ justifySelf: "flex-end" })).toEqual({ justify_self: "FlexEnd" });
+    expect(toTaffy({ justifySelf: "center" })).toEqual({ justify_self: "Center" });
+    expect(toTaffy({ justifySelf: "baseline" })).toEqual({ justify_self: "Baseline" });
+    expect(toTaffy({ justifySelf: "stretch" })).toEqual({ justify_self: "Stretch" });
+  });
+  test("align-content", () => {
+    expect(toTaffy({ alignContent: "start" })).toEqual({ align_content: "Start" });
+    expect(toTaffy({ alignContent: "end" })).toEqual({ align_content: "End" });
+    expect(toTaffy({ alignContent: "flex-start" })).toEqual({ align_content: "FlexStart" });
+    expect(toTaffy({ alignContent: "flex-end" })).toEqual({ align_content: "FlexEnd" });
+    expect(toTaffy({ alignContent: "center" })).toEqual({ align_content: "Center" });
+    expect(toTaffy({ alignContent: "stretch" })).toEqual({ align_content: "Stretch" });
+    expect(toTaffy({ alignContent: "space-between" })).toEqual({ align_content: "SpaceBetween" });
+    expect(toTaffy({ alignContent: "space-evenly" })).toEqual({ align_content: "SpaceEvenly" });
+    expect(toTaffy({ alignContent: "space-around" })).toEqual({ align_content: "SpaceAround" });
+  });
+
+  test("justify-content", () => {
+    expect(toTaffy({ justifyContent: "start" })).toEqual({ justify_content: "Start" });
+    expect(toTaffy({ justifyContent: "end" })).toEqual({ justify_content: "End" });
+    expect(toTaffy({ justifyContent: "flex-start" })).toEqual({ justify_content: "FlexStart" });
+    expect(toTaffy({ justifyContent: "flex-end" })).toEqual({ justify_content: "FlexEnd" });
+    expect(toTaffy({ justifyContent: "center" })).toEqual({ justify_content: "Center" });
+    expect(toTaffy({ justifyContent: "stretch" })).toEqual({ justify_content: "Stretch" });
+    expect(toTaffy({ justifyContent: "space-between" })).toEqual({ justify_content: "SpaceBetween" });
+    expect(toTaffy({ justifyContent: "space-evenly" })).toEqual({ justify_content: "SpaceEvenly" });
+    expect(toTaffy({ justifyContent: "space-around" })).toEqual({ justify_content: "SpaceAround" });
+  });
+
+  test("gap", () => {
+    expect(toTaffy({ gap: 10 })).toEqual({ gap: size.px(10, 10) });
+    expect(toTaffy({ gap: "10px" })).toEqual({ gap: size.px(10, 10) });
+    expect(toTaffy({ gap: "10%" })).toEqual({ gap: size.percent(0.1, 0.1) });
+    expect(toTaffy({ gap: "1px 2px" })).toEqual({ gap: size.px(1, 2) });
   });
 }
