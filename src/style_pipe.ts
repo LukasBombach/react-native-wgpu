@@ -61,6 +61,11 @@ function toTaffy(css: Record<string, string | number>) {
         .with(["alignContent", P.string], str)
         .with(["justifyContent", P.string], str)
         .with(["gap", P.union(P.string, P.number)], pair => pipe(pair, shorthand2, size))
+        .with(["flexDirection", P.string], str)
+        .with(["flexWrap", P.string], flexWrap)
+        .with(["flexBasis", P.union(P.string, P.number)], pair => pipe(pair, shorthand2, size))
+        .with(["flexGrow", P.union(P.string, P.number)], num)
+        .with(["flexShrink", P.union(P.string, P.number)], num)
         .run();
     }),
     A.map((a): [key: string, value: string | number | Point<string> | Rect<LPA> | Size<LPA>] => [...a]), // make readonly -> mutable
@@ -72,8 +77,14 @@ function str([key, value]: Prop<string>): Prop<string> {
   return [toCase.snakeCase(key), toCase.pascalCase(value)];
 }
 
-function num([key, value]: Prop<number>): Prop<number> {
-  return [toCase.snakeCase(key), value];
+function num([key, value]: Prop<string | number>): Prop<number> {
+  return match(value)
+    .with(P.string.endsWith("px"), (s): Prop<number> => [toCase.snakeCase(key), parseFloat(s)])
+    .with(P.string.endsWith("%"), (s): Prop<number> => [toCase.snakeCase(key), parseFloat(s) / 100])
+    .with(P.number, (n): Prop<number> => [toCase.snakeCase(key), n])
+    .otherwise(() => {
+      throw new Error(`Invalid value for length or percentage: ${value}`);
+    });
 }
 
 function aspectRatio([key, value]: Prop<string | number>): Prop<number> {
@@ -92,13 +103,13 @@ function point([key, [x, y]]: Prop<[string, string]>): Prop<Point<string>> {
   return [toCase.snakeCase(key), { x: toCase.pascalCase(x), y: toCase.pascalCase(y) }];
 }
 
-function lpa(value: string): LPA {
+function lpa(value: string | number): LPA {
   return match(value)
     .with("auto", (): Auto => "Auto")
     .with(P.string.endsWith("%"), s => ({ Percentage: parseFloat(s) / 100 }))
     .with(P.string.endsWith("px"), s => ({ Length: parseFloat(s) }))
     .with(P.string.regex(/^\d+$/), s => ({ Length: parseFloat(s) }))
-    .with(P.number, n => ({ Length: parseFloat(n) }))
+    .with(P.number, n => ({ Length: n }))
     .otherwise(() => {
       throw new Error(`Invalid value for length or percentage: ${value}`);
     });
@@ -116,7 +127,7 @@ function rect([key, [top, right, bottom, left]]: Prop<[string, string, string, s
   ];
 }
 
-function size([key, [width, height]]: Prop<[string, string]>): Prop<Size<LPA>> {
+function size([key, [width, height]]: Prop<[string | number, string | number]>): Prop<Size<LPA>> {
   return [
     toCase.snakeCase(key),
     {
@@ -146,6 +157,16 @@ function shorthand4<V = string | number>([key, value]: Prop<V>): Prop<[string, s
     default:
       throw new Error("Invalid number of values for shorthand");
   }
+}
+
+function flexWrap([key, value]: Prop<string>): Prop<string> {
+  return match(value)
+    .with("nowrap", (): Prop<string> => [toCase.snakeCase(key), "NoWrap"])
+    .with("wrap", (): Prop<string> => [toCase.snakeCase(key), "Wrap"])
+    .with("wrap-reverse", (): Prop<string> => [toCase.snakeCase(key), "WrapReverse"])
+    .otherwise(() => {
+      throw new Error(`Invalid value for flex-wrap: ${value}`);
+    });
 }
 
 if (import.meta.vitest) {
@@ -321,6 +342,7 @@ if (import.meta.vitest) {
     expect(toTaffy({ justifySelf: "baseline" })).toEqual({ justify_self: "Baseline" });
     expect(toTaffy({ justifySelf: "stretch" })).toEqual({ justify_self: "Stretch" });
   });
+
   test("align-content", () => {
     expect(toTaffy({ alignContent: "start" })).toEqual({ align_content: "Start" });
     expect(toTaffy({ alignContent: "end" })).toEqual({ align_content: "End" });
@@ -350,5 +372,25 @@ if (import.meta.vitest) {
     expect(toTaffy({ gap: "10px" })).toEqual({ gap: size.px(10, 10) });
     expect(toTaffy({ gap: "10%" })).toEqual({ gap: size.percent(0.1, 0.1) });
     expect(toTaffy({ gap: "1px 2px" })).toEqual({ gap: size.px(1, 2) });
+  });
+
+  test("flex-direction", () => {
+    expect(toTaffy({ flexDirection: "row" })).toEqual({ flex_direction: "Row" });
+    expect(toTaffy({ flexDirection: "column" })).toEqual({ flex_direction: "Column" });
+    expect(toTaffy({ flexDirection: "row-reverse" })).toEqual({ flex_direction: "RowReverse" });
+    expect(toTaffy({ flexDirection: "column-reverse" })).toEqual({ flex_direction: "ColumnReverse" });
+  });
+
+  test("flex-wrap", () => {
+    expect(toTaffy({ flexWrap: "nowrap" })).toEqual({ flex_wrap: "NoWrap" });
+    expect(toTaffy({ flexWrap: "wrap" })).toEqual({ flex_wrap: "Wrap" });
+    expect(toTaffy({ flexWrap: "wrap-reverse" })).toEqual({ flex_wrap: "WrapReverse" });
+  });
+
+  test("flex-basis", () => {
+    expect(toTaffy({ flexBasis: 10 })).toEqual({ flex_basis: size.px(10, 10) });
+    expect(toTaffy({ flexBasis: "10px" })).toEqual({ flex_basis: size.px(10, 10) });
+    expect(toTaffy({ flexBasis: "10%" })).toEqual({ flex_basis: size.percent(0.1, 0.1) });
+    expect(toTaffy({ flexBasis: "auto" })).toEqual({ flex_basis: size.auto("Auto", "Auto") });
   });
 }
