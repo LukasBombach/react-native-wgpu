@@ -50,6 +50,9 @@ function toTaffy(css: Record<string, string | number>) {
         .with(["minSize", P.union(P.string, P.number)], pair => pipe(pair, shorthand2, size))
         .with(["maxSize", P.union(P.string, P.number)], pair => pipe(pair, shorthand2, size))
         .with(["aspectRatio", P.union(P.string, P.number)], aspectRatio)
+        .with(["margin", P.union(P.string, P.number)], pair => pipe(pair, shorthand4, rect))
+        .with(["padding", P.union(P.string, P.number)], pair => pipe(pair, shorthand4, rect))
+        .with(["border", P.union(P.string, P.number)], pair => pipe(pair, shorthand4, rect))
         .run();
     }),
     A.map((a): [key: string, value: string | number | Point<string> | Rect<LPA> | Size<LPA>] => [...a]), // make readonly -> mutable
@@ -241,5 +244,33 @@ if (import.meta.vitest) {
     expect(toTaffy({ aspectRatio: 1.5 })).toEqual({ aspect_ratio: 1.5 });
     expect(toTaffy({ aspectRatio: "1/2" })).toEqual({ aspect_ratio: 0.5 });
     expect(toTaffy({ aspectRatio: "16/9" })).toEqual({ aspect_ratio: 1.7777777777777777 });
+  });
+
+  test("margin", () => {
+    expect(toTaffy({ margin: 10 })).toEqual({ margin: rect.px(10, 10, 10, 10) });
+    expect(toTaffy({ margin: "10px" })).toEqual({ margin: rect.px(10, 10, 10, 10) });
+    expect(toTaffy({ margin: "10%" })).toEqual({ margin: rect.percent(0.1, 0.1, 0.1, 0.1) });
+    expect(toTaffy({ margin: "auto" })).toEqual({ margin: rect.auto("Auto", "Auto", "Auto", "Auto") });
+    expect(toTaffy({ margin: "1px 2px" })).toEqual({ margin: rect.px(1, 2, 1, 2) });
+    expect(toTaffy({ margin: "1px 2px 3px" })).toEqual({ margin: rect.px(1, 2, 3, 2) });
+    expect(toTaffy({ margin: "1px 2px 3px 4px" })).toEqual({ margin: rect.px(1, 2, 3, 4) });
+  });
+
+  test("padding", () => {
+    expect(toTaffy({ padding: 10 })).toEqual({ padding: rect.px(10, 10, 10, 10) });
+    expect(toTaffy({ padding: "10px" })).toEqual({ padding: rect.px(10, 10, 10, 10) });
+    expect(toTaffy({ padding: "10%" })).toEqual({ padding: rect.percent(0.1, 0.1, 0.1, 0.1) });
+    expect(toTaffy({ padding: "1px 2px" })).toEqual({ padding: rect.px(1, 2, 1, 2) });
+    expect(toTaffy({ padding: "1px 2px 3px" })).toEqual({ padding: rect.px(1, 2, 3, 2) });
+    expect(toTaffy({ padding: "1px 2px 3px 4px" })).toEqual({ padding: rect.px(1, 2, 3, 4) });
+  });
+
+  test("border", () => {
+    expect(toTaffy({ border: 10 })).toEqual({ border: rect.px(10, 10, 10, 10) });
+    expect(toTaffy({ border: "10px" })).toEqual({ border: rect.px(10, 10, 10, 10) });
+    expect(toTaffy({ border: "10%" })).toEqual({ border: rect.percent(0.1, 0.1, 0.1, 0.1) });
+    expect(toTaffy({ border: "1px 2px" })).toEqual({ border: rect.px(1, 2, 1, 2) });
+    expect(toTaffy({ border: "1px 2px 3px" })).toEqual({ border: rect.px(1, 2, 3, 2) });
+    expect(toTaffy({ border: "1px 2px 3px 4px" })).toEqual({ border: rect.px(1, 2, 3, 4) });
   });
 }
