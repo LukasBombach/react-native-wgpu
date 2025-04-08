@@ -36,11 +36,11 @@ type LPA = Length | Percentage | Auto;
 type GridTemplateRows = (Single | Repeat)[];
 
 type Single = {
-  Single: NonRepeatedTrackSizingFunction;
+  Single: MinMax;
 };
 
 type Repeat = {
-  Repeat: [GridTrackRepetition, NonRepeatedTrackSizingFunction[]];
+  Repeat: [GridTrackRepetition, MinMax[]];
 };
 
 type GridTrackRepetition =
@@ -50,20 +50,17 @@ type GridTrackRepetition =
       Count: number;
     };
 
-interface NonRepeatedTrackSizingFunction {
-  min: MinTrackSizingFunction;
-  max: MaxTrackSizingFunction;
+interface MinMax<Min = MinTrackSizingFunction, Max = MaxTrackSizingFunction> {
+  min: Min;
+  max: Max;
 }
 
-type MinTrackSizingFunction = "MinContent" | "MaxContent" | "Auto" | { Fixed: LP };
+type MinTrackSizingFunction = "MinContent" | "MaxContent" | "Auto" | Fixed;
+type MaxTrackSizingFunction = MinTrackSizingFunction | { FitContent: LP } | { Fraction: number };
 
-type MaxTrackSizingFunction =
-  | "MinContent"
-  | "MaxContent"
-  | "Auto"
-  | { Fixed: LP }
-  | { FitContent: LP }
-  | { Fraction: number };
+type Fixed = {
+  Fixed: number;
+};
 
 type Prop<Value> = readonly [key: string, value: Value];
 
@@ -103,6 +100,39 @@ function toTaffy(css: Record<string, string | number>) {
     A.map((a): [key: string, value: string | number | Point<string> | Rect<LPA> | Size<LPA>] => [...a]), // make readonly -> mutable
     R.fromEntries
   );
+}
+
+function trackListValue(value: string): MinMax {
+  return match(value)
+    .with(P.string.endsWith("px"), v => minMax(fixed(length(v))))
+    .with(P.string.endsWith("%"), v => minMax(fixed(percentage(v))))
+    .with(P.string.regex(/^\d+$/), v => minMax(fixed(length(v))))
+    .with(P.number, v => minMax(fixed(length(v))))
+    .with("min-content", () => minMax("MinContent"))
+    .with("max-content", () => minMax("MaxContent"))
+    .with("auto", () => minMax("Auto"))
+    .otherwise(() => {
+      throw new Error(`Invalid value for track sizing function: ${value}`);
+    });
+}
+
+function length(value: string): Length {
+  return { Length: parseFloat(value) };
+}
+
+function percentage(value: string): Percentage {
+  return { Percentage: parseFloat(value) / 100 };
+}
+
+function fixed(value: LP): Fixed {
+  return { Fixed: parseFloat(value.toString()) };
+}
+
+function minMax<Min extends MinTrackSizingFunction, Max extends MaxTrackSizingFunction = Min>(
+  min: Min,
+  max?: Max
+): Max extends undefined ? MinMax<Min, Min> : MinMax<Min, Max> {
+  return { min, max: max ?? min } as Max extends undefined ? MinMax<Min, Min> : MinMax<Min, Max>;
 }
 
 function str([key, value]: Prop<string>): Prop<string> {
@@ -189,6 +219,10 @@ function shorthand4<V = string | number>([key, value]: Prop<V>): Prop<[string, s
     default:
       throw new Error("Invalid number of values for shorthand");
   }
+}
+
+function valueList([key, value]: Prop<string>): Prop<string[]> {
+  return [key, value.split(" ")];
 }
 
 function flexWrap([key, value]: Prop<string>): Prop<string> {
