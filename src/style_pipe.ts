@@ -1,7 +1,6 @@
 import { pipe } from "fp-ts/function";
 import * as R from "fp-ts/Record";
 import * as A from "fp-ts/Array";
-import * as O from "fp-ts/Option";
 import { match, P } from "ts-pattern";
 import * as toCase from "change-case";
 
@@ -31,7 +30,40 @@ type Percentage = {
 };
 
 type Auto = "Auto";
+type LP = Length | Percentage;
 type LPA = Length | Percentage | Auto;
+
+type GridTemplateRows = (Single | Repeat)[];
+
+type Single = {
+  Single: NonRepeatedTrackSizingFunction;
+};
+
+type Repeat = {
+  Repeat: [GridTrackRepetition, NonRepeatedTrackSizingFunction[]];
+};
+
+type GridTrackRepetition =
+  | "AutoFill"
+  | "AutoFit"
+  | {
+      Count: number;
+    };
+
+interface NonRepeatedTrackSizingFunction {
+  min: MinTrackSizingFunction;
+  max: MaxTrackSizingFunction;
+}
+
+type MinTrackSizingFunction = "MinContent" | "MaxContent" | "Auto" | { Fixed: LP };
+
+type MaxTrackSizingFunction =
+  | "MinContent"
+  | "MaxContent"
+  | "Auto"
+  | { Fixed: LP }
+  | { FitContent: LP }
+  | { Fraction: number };
 
 type Prop<Value> = readonly [key: string, value: Value];
 

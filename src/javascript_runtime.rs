@@ -1,6 +1,8 @@
 #![allow(clippy::print_stdout)]
 #![allow(clippy::print_stderr)]
 
+use taffy::prelude::*;
+
 use deno_core::extension;
 use deno_core::op2;
 use deno_core::OpState;
@@ -15,8 +17,6 @@ use std::sync::Arc;
 use std::sync::Mutex;
 use std::thread;
 use taffy::NodeId;
-
-use taffy::prelude::*;
 
 use crate::app::AppState;
 use crate::app::Js;
@@ -90,7 +90,21 @@ fn op_append_child(state: &mut OpState, parent_id: f64, child_id: f64) -> Result
 #[op2]
 #[serde]
 fn op_get_style_defaults() -> Result<Style, JsErrorBox> {
-    Ok(Style::default())
+    Ok(Style {
+        display: Display::Grid,
+        size: Size {
+            width: length(800.0),
+            height: length(600.0),
+        },
+        grid_template_columns: vec![length(250.0), fr(1.0), length(250.0)],
+        grid_template_rows: vec![repeat(1, vec![fr(1.0)])],
+        grid_auto_flow: GridAutoFlow::Row,
+        grid_auto_columns: vec![length(100.0)],
+        grid_auto_rows: vec![length(100.0)],
+        grid_row: line(1),
+        grid_column: span(3),
+        ..Default::default()
+    })
 }
 
 #[op2(fast)]

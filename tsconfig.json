@@ -1,6 +1,7 @@
 {
   "extends": ["@tsconfig/node23/tsconfig.json", "@tsconfig/node-ts/tsconfig.json"],
   "compilerOptions": {
+    "jsx": "react",
     "module": "es2022",
     "moduleResolution": "Node",
     "types": ["vitest/importMeta"]
