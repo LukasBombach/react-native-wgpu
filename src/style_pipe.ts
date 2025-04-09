@@ -50,7 +50,7 @@ type GridTrackRepetition =
       Count: number;
     };
 
-type TrackListValue = MinMax<MinTrackSizingFunction, MaxTrackSizingFunction>;
+type TrackListValue = Single;
 type TrackList = TrackListValue[];
 
 interface MinMax<Min = MinTrackSizingFunction, Max = MaxTrackSizingFunction> {
@@ -62,7 +62,7 @@ type MinTrackSizingFunction = "MinContent" | "MaxContent" | "Auto" | Fixed;
 type MaxTrackSizingFunction = MinTrackSizingFunction | { FitContent: LP } | { Fraction: number };
 
 type Fixed = {
-  Fixed: number;
+  Fixed: LP;
 };
 
 type Prop<Value> = readonly [key: string, value: Value];
@@ -112,15 +112,15 @@ function toTaffy(css: Record<string, string | number>) {
   );
 }
 
-function trackListValue(value: string): MinMax {
+function trackListValue(value: string): Single {
   return match(value)
-    .with(P.string.endsWith("px"), v => minMax(fixed(length(v))))
-    .with(P.string.endsWith("%"), v => minMax(fixed(percentage(v))))
-    .with(P.string.regex(/^\d+$/), v => minMax(fixed(length(v))))
-    .with(P.number, v => minMax(fixed(length(v))))
-    .with("min-content", () => minMax("MinContent"))
-    .with("max-content", () => minMax("MaxContent"))
-    .with("auto", () => minMax("Auto"))
+    .with(P.string.endsWith("px"), v => single(minMax(fixed(length(v)))))
+    .with(P.string.endsWith("%"), v => single(minMax(fixed(percentage(v)))))
+    .with(P.string.regex(/^\d+$/), v => single(minMax(fixed(length(v)))))
+    .with(P.number, v => single(minMax(fixed(length(v)))))
+    .with("min-content", () => single(minMax("MinContent")))
+    .with("max-content", () => single(minMax("MaxContent")))
+    .with("auto", () => single(minMax("Auto")))
     .otherwise(() => {
       throw new Error(`Invalid value for track sizing function: ${value}`);
     });
@@ -135,7 +135,11 @@ function percentage(value: string): Percentage {
 }
 
 function fixed(value: LP): Fixed {
-  return { Fixed: parseFloat(value.toString()) };
+  return { Fixed: value };
+}
+
+function single(value: MinMax): Single {
+  return { Single: value };
 }
 
 function minMax<Min extends MinTrackSizingFunction, Max extends MaxTrackSizingFunction = Min>(
@@ -468,5 +472,54 @@ if (import.meta.vitest) {
     expect(toTaffy({ flexBasis: "10px" })).toEqual({ flex_basis: size.px(10, 10) });
     expect(toTaffy({ flexBasis: "10%" })).toEqual({ flex_basis: size.percent(0.1, 0.1) });
     expect(toTaffy({ flexBasis: "auto" })).toEqual({ flex_basis: size.auto("Auto", "Auto") });
+  });
+
+  test("grid-template-rows", () => {
+    expect(toTaffy({ gridTemplateRows: "1px 2px" })).toEqual({
+      grid_template_rows: [
+        {
+          Single: {
+            min: { Fixed: { Length: 1 } },
+            max: { Fixed: { Length: 1 } },
+          },
+        },
+        {
+          Single: {
+            min: { Fixed: { Length: 2 } },
+            max: { Fixed: { Length: 2 } },
+          },
+        },
+      ],
+    });
+    expect(toTaffy({ gridTemplateRows: "min-content" })).toEqual({
+      grid_template_rows: [
+        {
+          Single: {
+            min: "MinContent",
+            max: "MinContent",
+          },
+        },
+      ],
+    });
+    expect(toTaffy({ gridTemplateRows: "max-content" })).toEqual({
+      grid_template_rows: [
+        {
+          Single: {
+            min: "MaxContent",
+            max: "MaxContent",
+          },
+        },
+      ],
+    });
+    expect(toTaffy({ gridTemplateRows: "auto" })).toEqual({
+      grid_template_rows: [
+        {
+          Single: {
+            min: "Auto",
+            max: "Auto",
+          },
+        },
+      ],
+    });
   });
 }
