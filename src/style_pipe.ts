@@ -50,6 +50,9 @@ type GridTrackRepetition =
       Count: number;
     };
 
+type TrackListValue = MinMax<MinTrackSizingFunction, MaxTrackSizingFunction>;
+type TrackList = TrackListValue[];
+
 interface MinMax<Min = MinTrackSizingFunction, Max = MaxTrackSizingFunction> {
   min: Min;
   max: Max;
@@ -68,7 +71,7 @@ function toTaffy(css: Record<string, string | number>) {
   return pipe(
     css,
     R.toEntries,
-    A.map(([key, value]): Prop<string | number | Point<string> | Rect<LPA> | Size<LPA>> => {
+    A.map(([key, value]): Prop<string | number | Point<string> | Rect<LPA> | Size<LPA> | TrackList> => {
       return match([key, value])
         .with(["display", P.string], str)
         .with(["boxSizing", P.string], str)
@@ -95,9 +98,16 @@ function toTaffy(css: Record<string, string | number>) {
         .with(["flexBasis", P.union(P.string, P.number)], pair => pipe(pair, shorthand2, size))
         .with(["flexGrow", P.union(P.string, P.number)], num)
         .with(["flexShrink", P.union(P.string, P.number)], num)
+        .with(
+          ["gridTemplateRows", P.union(P.string, P.number)],
+          (pair): Prop<TrackList> => [
+            toCase.snakeCase(pair[0]),
+            pipe(pair, valueList, ([, values]) => values.map(v => trackListValue(v))),
+          ]
+        )
         .run();
     }),
-    A.map((a): [key: string, value: string | number | Point<string> | Rect<LPA> | Size<LPA>] => [...a]), // make readonly -> mutable
+    A.map((a): [key: string, value: string | number | Point<string> | Rect<LPA> | Size<LPA> | TrackList] => [...a]), // turn readonly into mutable
     R.fromEntries
   );
 }
@@ -221,8 +231,8 @@ function shorthand4<V = string | number>([key, value]: Prop<V>): Prop<[string, s
   }
 }
 
-function valueList([key, value]: Prop<string>): Prop<string[]> {
-  return [key, value.split(" ")];
+function valueList([key, value]: Prop<string | number>): Prop<string[]> {
+  return [key, String(value).split(" ")];
 }
 
 function flexWrap([key, value]: Prop<string>): Prop<string> {
