@@ -1,8 +1,8 @@
-import { pipe } from "fp-ts/function";
-import * as R from "fp-ts/Record";
-import * as A from "fp-ts/Array";
-import { match, P } from "ts-pattern";
-import * as toCase from "change-case";
+import { pipe } from "npm:fp-ts/lib/function.js";
+import * as R from "npm:fp-ts/lib/Record.js";
+import * as A from "npm:fp-ts/lib/Array.js";
+import { match, P } from "npm:ts-pattern";
+import * as toCase from "npm:change-case";
 
 interface Point<T> {
   x: T;
@@ -25,13 +25,13 @@ type Length = {
   Length: number;
 };
 
-type Percentage = {
-  Percentage: number;
+type Percent = {
+  Percent: number;
 };
 
 type Auto = "Auto";
-type LP = Length | Percentage;
-type LPA = Length | Percentage | Auto;
+type LP = Length | Percent;
+type LPA = Length | Percent | Auto;
 
 type GridTemplateRows = (Single | Repeat)[];
 
@@ -67,55 +67,70 @@ type Fixed = {
 
 type Prop<Value> = readonly [key: string, value: Value];
 
-function toTaffy(css: Record<string, string | number>) {
+export function toTaffy(css: Record<string, string | number>) {
   return pipe(
     css,
     R.toEntries,
     A.map(([key, value]): Prop<string | number | Point<string> | Rect<LPA> | Size<LPA> | TrackList> => {
-      return match([key, value])
-        .with(["display", P.string], str)
-        .with(["boxSizing", P.string], str)
-        .with(["overflow", P.string], pair => pipe(pair, shorthand2, point))
-        .with(["position", P.string], str)
-        .with(["inset", P.union(P.string, P.number)], pair => pipe(pair, shorthand4, rect))
-        .with(["size", P.union(P.string, P.number)], pair => pipe(pair, shorthand2, size))
-        .with(["minSize", P.union(P.string, P.number)], pair => pipe(pair, shorthand2, size))
-        .with(["maxSize", P.union(P.string, P.number)], pair => pipe(pair, shorthand2, size))
-        .with(["aspectRatio", P.union(P.string, P.number)], aspectRatio)
-        .with(["margin", P.union(P.string, P.number)], pair => pipe(pair, shorthand4, rect))
-        .with(["padding", P.union(P.string, P.number)], pair => pipe(pair, shorthand4, rect))
-        .with(["border", P.union(P.string, P.number)], pair => pipe(pair, shorthand4, rect))
-        .with(["alignItems", P.string], str)
-        .with(["alignSelf", P.string], str)
-        .with(["justifyItems", P.string], str)
-        .with(["alignContent", P.string], str)
-        .with(["justifySelf", P.string], str)
-        .with(["alignContent", P.string], str)
-        .with(["justifyContent", P.string], str)
-        .with(["gap", P.union(P.string, P.number)], pair => pipe(pair, shorthand2, size))
-        .with(["flexDirection", P.string], str)
-        .with(["flexWrap", P.string], flexWrap)
-        .with(["flexBasis", P.union(P.string, P.number)], pair => pipe(pair, shorthand2, size))
-        .with(["flexGrow", P.union(P.string, P.number)], num)
-        .with(["flexShrink", P.union(P.string, P.number)], num)
-        .with(
-          ["gridTemplateRows", P.union(P.string, P.number)],
-          (pair): Prop<TrackList> => [
-            toCase.snakeCase(pair[0]),
-            pipe(pair, valueList, ([, values]) => values.map(v => trackListValue(v))),
-          ]
-        )
-        .run();
+      return (
+        match([key, value])
+          .with(["display", P.string], str)
+          .with(["boxSizing", P.string], str)
+          .with(["overflow", P.string], pair => pipe(pair, shorthand2, point))
+          .with(["position", P.string], str)
+          .with(["inset", P.union(P.string, P.number)], pair => pipe(pair, shorthand4, rect))
+          //.with(["size", P.union(P.string, P.number)], pair => pipe(pair, shorthand2, size))
+          .with(["width", P.union(P.string, P.number)], length_pair)
+          .with(["height", P.union(P.string, P.number)], length_pair)
+          .with(["minSize", P.union(P.string, P.number)], pair => pipe(pair, shorthand2, size))
+          .with(["maxSize", P.union(P.string, P.number)], pair => pipe(pair, shorthand2, size))
+          .with(["aspectRatio", P.union(P.string, P.number)], aspectRatio)
+          .with(["margin", P.union(P.string, P.number)], pair => pipe(pair, shorthand4, rect))
+          .with(["padding", P.union(P.string, P.number)], pair => pipe(pair, shorthand4, rect))
+          .with(["border", P.union(P.string, P.number)], pair => pipe(pair, shorthand4, rect))
+          .with(["alignItems", P.string], str)
+          .with(["alignSelf", P.string], str)
+          .with(["justifyItems", P.string], str)
+          .with(["alignContent", P.string], str)
+          .with(["justifySelf", P.string], str)
+          .with(["alignContent", P.string], str)
+          .with(["justifyContent", P.string], str)
+          .with(["gap", P.union(P.string, P.number)], pair => pipe(pair, shorthand2, size))
+          .with(["flexDirection", P.string], str)
+          .with(["flexWrap", P.string], flexWrap)
+          .with(["flexBasis", P.union(P.string, P.number)], pair => pipe(pair, shorthand2, size))
+          .with(["flexGrow", P.union(P.string, P.number)], num)
+          .with(["flexShrink", P.union(P.string, P.number)], num)
+          .with(
+            ["gridTemplateRows", P.union(P.string, P.number)],
+            (pair): Prop<TrackList> => [
+              toCase.snakeCase(pair[0]),
+              pipe(pair, valueList, ([, values]) => values.map(v => trackListValue(v))),
+            ]
+          )
+          .run()
+      );
     }),
+    // convert the entries ["width", ..], ["height", ..] into ["size", { width: .., height: .. }]
+    mergeSize,
     A.map((a): [key: string, value: string | number | Point<string> | Rect<LPA> | Size<LPA> | TrackList] => [...a]), // turn readonly into mutable
     R.fromEntries
   );
 }
 
+function mergeSize(entries: any[]) {
+  const rest = entries.filter(([k]) => k !== "width" && k !== "height");
+
+  const width = entries.find(([k]) => k === "width")?.[1] ?? "Auto";
+  const height = entries.find(([k]) => k === "height")?.[1] ?? "Auto";
+
+  return [...rest, ["size", { width, height }]];
+}
+
 function trackListValue(value: string): Single {
   return match(value)
     .with(P.string.endsWith("px"), v => single(minMax(fixed(length(v)))))
-    .with(P.string.endsWith("%"), v => single(minMax(fixed(percentage(v)))))
+    .with(P.string.endsWith("%"), v => single(minMax(fixed(percent(v)))))
     .with(P.string.regex(/^\d+$/), v => single(minMax(fixed(length(v)))))
     .with(P.number, v => single(minMax(fixed(length(v)))))
     .with("min-content", () => single(minMax("MinContent")))
@@ -126,12 +141,16 @@ function trackListValue(value: string): Single {
     });
 }
 
+function length_pair([key, value]: Prop<string>): Prop<LPA> {
+  return [toCase.snakeCase(key), lpa(value)];
+}
+
 function length(value: string): Length {
   return { Length: parseFloat(value) };
 }
 
-function percentage(value: string): Percentage {
-  return { Percentage: parseFloat(value) / 100 };
+function percent(value: string): Percent {
+  return { Percent: parseFloat(value) / 100 };
 }
 
 function fixed(value: LP): Fixed {
@@ -159,7 +178,7 @@ function num([key, value]: Prop<string | number>): Prop<number> {
     .with(P.string.endsWith("%"), (s): Prop<number> => [toCase.snakeCase(key), parseFloat(s) / 100])
     .with(P.number, (n): Prop<number> => [toCase.snakeCase(key), n])
     .otherwise(() => {
-      throw new Error(`Invalid value for length or percentage: ${value}`);
+      throw new Error(`Invalid value for length or percent: ${value}`);
     });
 }
 
@@ -182,12 +201,12 @@ function point([key, [x, y]]: Prop<[string, string]>): Prop<Point<string>> {
 function lpa(value: string | number): LPA {
   return match(value)
     .with("auto", (): Auto => "Auto")
-    .with(P.string.endsWith("%"), s => ({ Percentage: parseFloat(s) / 100 }))
+    .with(P.string.endsWith("%"), s => ({ Percent: parseFloat(s) / 100 }))
     .with(P.string.endsWith("px"), s => ({ Length: parseFloat(s) }))
     .with(P.string.regex(/^\d+$/), s => ({ Length: parseFloat(s) }))
     .with(P.number, n => ({ Length: n }))
     .otherwise(() => {
-      throw new Error(`Invalid value for length or percentage: ${value}`);
+      throw new Error(`Invalid value for length or percent: ${value}`);
     });
 }
 
@@ -260,10 +279,10 @@ if (import.meta.vitest) {
       left: { Length: left },
     }),
     percent: (top: number, right: number, bottom: number, left: number) => ({
-      top: { Percentage: top },
-      right: { Percentage: right },
-      bottom: { Percentage: bottom },
-      left: { Percentage: left },
+      top: { Percent: top },
+      right: { Percent: right },
+      bottom: { Percent: bottom },
+      left: { Percent: left },
     }),
     auto: (top: Auto, right: Auto, bottom: Auto, left: Auto) => ({
       top,
@@ -279,8 +298,8 @@ if (import.meta.vitest) {
       height: { Length: height },
     }),
     percent: (width: number, height: number) => ({
-      width: { Percentage: width },
-      height: { Percentage: height },
+      width: { Percent: width },
+      height: { Percent: height },
     }),
     auto: (width: Auto, height: Auto) => ({
       width,
