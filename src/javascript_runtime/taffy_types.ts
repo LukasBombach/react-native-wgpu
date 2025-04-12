@@ -35,54 +35,54 @@ export interface Style {
   grid_column: Line<GridPlacement>;
 }
 
-type Display = "Block" | "Flex" | "Grid" | "None";
+export type Display = "Block" | "Flex" | "Grid" | "None";
 
-type BoxSizing = "BorderBox" | "ContentBox";
+export type BoxSizing = "BorderBox" | "ContentBox";
 
-interface Point<T> {
+export interface Point<T> {
   x: T;
   y: T;
 }
 
-type Overflow = "Visible" | "Clip" | "Hidden" | "Scroll";
+export type Overflow = "Visible" | "Clip" | "Hidden" | "Scroll";
 
-type Position = "Relative" | "Absolute";
+export type Position = "Relative" | "Absolute";
 
-interface Rect<T> {
+export interface Rect<T> {
   left: T;
   right: T;
   top: T;
   bottom: T;
 }
 
-type LengthPercentageAuto = Length<number> | Percent<number> | Auto;
+export type LengthPercentageAuto = Length<number> | Percent<number> | Auto;
 
-interface Length<T> {
+export interface Length<T> {
   Length: T;
 }
 
-interface Percent<T> {
+export interface Percent<T> {
   Percent: T;
 }
 
-type Auto = "Auto";
+export type Auto = "Auto";
 
-interface Size<T> {
+export interface Size<T> {
   width: T;
   height: T;
 }
 
-type Dimension = Length<number> | Percent<number> | Auto;
+export type Dimension = Length<number> | Percent<number> | Auto;
 
-type Option<T> = T | undefined;
+export type Option<T> = T | undefined;
 
-type LengthPercentage = Length<number> | Percent<number>;
+export type LengthPercentage = Length<number> | Percent<number>;
 
-type AlignItems = "Start" | "End" | "FlexStart" | "FlexEnd" | "Center" | "Baseline" | "Stretch";
+export type AlignItems = "Start" | "End" | "FlexStart" | "FlexEnd" | "Center" | "Baseline" | "Stretch";
 
-type AlignSelf = AlignItems;
+export type AlignSelf = AlignItems;
 
-type AlignContent =
+export type AlignContent =
   | "Start"
   | "End"
   | "FlexStart"
@@ -93,36 +93,36 @@ type AlignContent =
   | "SpaceEvenly"
   | "SpaceAround";
 
-type JustifyContent = AlignContent;
+export type JustifyContent = AlignContent;
 
-type TextAlign = "Auto" | "LegacyLeft" | "LegacyRight" | "LegacyCenter";
+export type TextAlign = "Auto" | "LegacyLeft" | "LegacyRight" | "LegacyCenter";
 
-type FlexDirection = "Row" | "Column" | "RowReverse" | "ColumnReverse";
+export type FlexDirection = "Row" | "Column" | "RowReverse" | "ColumnReverse";
 
-type FlexWrap = "NoWrap" | "Wrap" | "WrapReverse";
+export type FlexWrap = "NoWrap" | "Wrap" | "WrapReverse";
 
-type GridTrackVec<T> = Array<T>;
+export type GridTrackVec<T> = Array<T>;
 
-type TrackSizingFunction =
+export type TrackSizingFunction =
   | Single<NonRepeatedTrackSizingFunction>
   | Repeat<GridTrackRepetition, GridTrackVec<NonRepeatedTrackSizingFunction>>;
 
-interface Single<T> {
+export interface Single<T> {
   Single: T;
 }
 
-type Repeat<R, T> = [R, T];
+export type Repeat<R, T> = [R, T];
 
-type NonRepeatedTrackSizingFunction = MinMax<MinTrackSizingFunction, MaxTrackSizingFunction>;
+export type NonRepeatedTrackSizingFunction = MinMax<MinTrackSizingFunction, MaxTrackSizingFunction>;
 
-interface MinMax<Min, Max> {
+export interface MinMax<Min, Max> {
   min: Min;
   max: Max;
 }
 
-type MinTrackSizingFunction = Fixed<LengthPercentage> | MinContent | MaxContent | Auto;
+export type MinTrackSizingFunction = Fixed<LengthPercentage> | MinContent | MaxContent | Auto;
 
-type MaxTrackSizingFunction =
+export type MaxTrackSizingFunction =
   | Fixed<LengthPercentage>
   | MinContent
   | MaxContent
@@ -130,46 +130,46 @@ type MaxTrackSizingFunction =
   | Auto
   | Fraction<number>;
 
-interface Fixed<T> {
+export interface Fixed<T> {
   Fixed: T;
 }
 
-interface FitContent<T> {
+export interface FitContent<T> {
   FitContent: T;
 }
 
-interface Fraction<T> {
+export interface Fraction<T> {
   Fraction: T;
 }
 
-type MinContent = "MinContent";
-type MaxContent = "MaxContent";
+export type MinContent = "MinContent";
+export type MaxContent = "MaxContent";
 
-type GridTrackRepetition = AutoFill | AutoFit | Count<number>;
+export type GridTrackRepetition = AutoFill | AutoFit | Count<number>;
 
-type AutoFill = "AutoFill";
+export type AutoFill = "AutoFill";
 
-type AutoFit = "AutoFit";
+export type AutoFit = "AutoFit";
 
-interface Count<T> {
+export interface Count<T> {
   Count: T;
 }
 
-type GridAutoFlow = "Row" | "Column" | "RowDense" | "ColumnDense";
+export type GridAutoFlow = "Row" | "Column" | "RowDense" | "ColumnDense";
 
-interface Line<T> {
+export interface Line<T> {
   start: T;
   end: T;
 }
 
-type GridPlacement = GenericGridPlacement<GridLine>;
+export type GridPlacement = GenericGridPlacement<GridLine>;
 
-type GenericGridPlacement<LineType> = Auto | Line<LineType> | Span<number>;
+export type GenericGridPlacement<LineType> = Auto | Line<LineType> | Span<number>;
 
-interface GridLine<T = number> {
+export interface GridLine<T = number> {
   GridLine: T;
 }
 
-interface Span<T = number> {
+export interface Span<T = number> {
   Span: T;
 }
