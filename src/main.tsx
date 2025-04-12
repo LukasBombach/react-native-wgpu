@@ -9,4 +9,4 @@ ReactWGPU.render(
   </rectangle>
 );
 
-console.dir(get_style_defaults(), { depth: Infinity });
+// console.dir(get_style_defaults(), { depth: Infinity });
