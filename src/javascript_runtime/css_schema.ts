@@ -9,4 +9,4 @@ export const boxSizing = z.literal(["border-box", "content-box"]).transform(v =>
 
 export const overflow = z
   .literal(["visible", "hidden", "clip", "scroll", "auto"])
-  .transform(v => pascalCase(v) as Overflow);
+  .transform(v => pascalCase(v) as Point<Overflow>);

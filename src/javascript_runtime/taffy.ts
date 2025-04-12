@@ -16,7 +16,7 @@ export function cssToTaffy<T extends CSSProperties>(css: T): Partial<Taffy.Style
   for (const k of keys) {
     match(k)
       .with("display", () => (taffy["display"] = display.parse(css[k])))
-      .with("boxSizing", () => (taffy["box_sizing"] = boxSizing.parse(css[k])))
+      // .with("boxSizing", () => (taffy["box_sizing"] = boxSizing.parse(css[k])))
       .with("overflow", () => (taffy["overflow"] = overflow.parse(css[k])))
       .otherwise(() => console.warn(`Unknown CSS property "${k.toString()}: ${css[k]}"`));
   }
