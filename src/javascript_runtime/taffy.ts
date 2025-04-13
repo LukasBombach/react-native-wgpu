@@ -20,14 +20,14 @@ const overflowShorthand = z
   .max(2)
   .transform(([first, second]) => [first, second ?? first] as [string, string]);
 
-export function cssToTaffy<T extends CSSProperties>(css: T): Partial<Taffy.Style> {
+export function cssToTaffy<T extends Record<string, unknown>>(css: T): Partial<Taffy.Style> {
   const taffy: Partial<Taffy.Style> = {};
   const keys = Object.keys(css) as (keyof T)[];
 
   for (const k of keys) {
     match(k)
       .with("display", () => (taffy["display"] = display.parse(css[k])))
-      .with("overflow", () => {
+      /* .with("overflow", () => {
         const value = pipe(
           css[k],
           isString,
@@ -35,7 +35,12 @@ export function cssToTaffy<T extends CSSProperties>(css: T): Partial<Taffy.Style
           O.flatMap(toShorthand),
           O.map(A.map(overflow.parse))
         );
-      })
+      }) */
+      .with("overflow", () => match(css[k])
+        .with("visible", () => (taffy["overflow"] = "Visible")) 
+        .with("hidden", () => (taffy["overflow"] = "Hidden"))
+        .with("clip", () => (taffy["overflow"] = "Clip"))
+        .with("scroll", () => (taffy["overflow"] = "Scroll"))
       .otherwise(() => console.warn(`Unknown CSS property "${k.toString()}: ${css[k]}"`));
   }
 
