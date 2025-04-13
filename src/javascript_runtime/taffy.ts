@@ -6,12 +6,18 @@ import * as O from "fp-ts/lib/Option";
 import { match, P } from "ts-pattern";
 import * as z from "zod";
 import { snakeCase, pascalCase } from "change-case";
-import { display, boxSizing, overflow } from "./css_schema";
+import { display, boxSizing /* overflow */ } from "./css_schema";
 
 import type { CSSProperties } from "react";
 import type * as Taffy from "./taffy_types";
 
 const overflow = z.literal(["visible", "hidden", "clip", "scroll", "auto"]);
+
+const overflowShorthand = z
+  .array(overflow)
+  .min(1)
+  .max(2)
+  .transform(([first, second]) => [first, second ?? first] as [string, string]);
 
 export function cssToTaffy<T extends CSSProperties>(css: T): Partial<Taffy.Style> {
   const taffy: Partial<Taffy.Style> = {};
@@ -21,9 +27,7 @@ export function cssToTaffy<T extends CSSProperties>(css: T): Partial<Taffy.Style
     match(k)
       .with("display", () => (taffy["display"] = display.parse(css[k])))
       .with("overflow", () => {
-        const value = pipe(css[k], isString, O.map(splitShortHand));
-
-        taffy["overflow"] = overflow.parse(css[k]);
+        const value = pipe(css[k], isString, O.flatMap(toShorthand));
       })
       .otherwise(() => console.warn(`Unknown CSS property "${k.toString()}: ${css[k]}"`));
   }
@@ -31,12 +35,28 @@ export function cssToTaffy<T extends CSSProperties>(css: T): Partial<Taffy.Style
   return taffy;
 }
 
+/* function zod<Output = unknown, Input = unknown>(
+  schema: z.ZodType<Output, Input>
+): (value: unknown) => O.Option<Output> {
+  return value =>
+    match(schema.safeParse(value))
+      .with({ success: true, data: P.select() }, data => O.some(data))
+      .otherwise(() => O.none);
+} */
+
 function isString(value: unknown): O.Option<string> {
   return match(z.string().safeParse(value))
     .with({ success: true, data: P.select() }, data => O.some(data))
     .otherwise(() => O.none);
 }
 
-function splitShortHand(value: string): string[] {
-  return value.split(/\s+/);
+function toShorthand(value: string): O.Option<[string, string]> {
+  const values = value.split(/\s+/);
+  const toupleSchema = z.tuple([z.string(), z.string().optional()]);
+
+  return match(toupleSchema.safeParse(values))
+    .with({ success: true, data: P.select() }, ([first, second]) => {
+      return O.some<[string, string]>([first, second ?? first]);
+    })
+    .otherwise(() => O.none);
 }
