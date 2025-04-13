@@ -5,34 +5,56 @@ import * as S from "fp-ts/string";
 import * as O from "fp-ts/lib/Option";
 import { match, P } from "ts-pattern";
 
-import type * as Taffy from "./taffy_types";
+import type * as t from "./taffy_types";
 
-export function cssToTaffy<T extends Record<string, unknown>>(css: T): Partial<Taffy.Style> {
-  const taffy: Partial<Taffy.Style> = {};
+export function cssToTaffy<T extends Record<string, unknown>>(css: T): Partial<t.Style> {
+  const taffy: Partial<t.Style> = {};
 
   for (const [key, value] of Object.entries(css)) {
+    const wtf = thrw(key, value);
+
     match(key)
       .with("display", () => {
-        taffy["display"] = match(value)
+        taffy["display"] = match<unknown, t.Display | undefined>(value)
           .with("block", () => "Block")
           .with("flex", () => "Flex")
           .with("grid", () => "Grid")
           .with("none", () => "None")
-          .otherwise(() => {
-            console.warn(`Unknown CSS property "${key.toString()}: ${value}"`);
-            return undefined;
-          });
+          .otherwise(wtf);
       })
       .with("boxSizing", () => {
-        taffy["boxSizing"] = match(value)
+        taffy["box_sizing"] = match<unknown, t.BoxSizing | undefined>(value)
           .with("border-box", () => "BorderBox")
           .with("content-box", () => "ContentBox")
-          .otherwise(() => {
-            console.warn(`Unknown CSS property "${key.toString()}: ${value}"`);
-            return undefined;
-          });
+          .otherwise(wtf);
+      })
+      .with("overflow", () => {
+        taffy["overflow"] = pipe(value, toShortHand, A.map(toOverflow), toPoint);
       });
   }
 
   return taffy;
+}
+
+function toShortHand(value: unknown): [string, string] {
+  return value.split(/\s+/);
+}
+
+function toOverflow(value: unknown): t.Overflow {
+  return match<unknown, t.Overflow>(value)
+    .with("visible", () => "Visible")
+    .with("hidden", () => "Hidden")
+    .with("clip", () => "Clip")
+    .with("scroll", () => "Scroll")
+    .otherwise(thrw("overflow", value));
+}
+
+function toPoint<T>([x, y]: [T, T]): t.Point<T> {
+  return { x, y };
+}
+
+function thrw(key: string, value: unknown): () => never {
+  return () => {
+    throw new Error(`Unknown CSS property "${key}: ${value}"`);
+  };
 }
