@@ -21,7 +21,7 @@ export function cssToTaffy<T extends CSSProperties>(css: T): Partial<Taffy.Style
     match(k)
       .with("display", () => (taffy["display"] = display.parse(css[k])))
       .with("overflow", () => {
-        pipe(isString(css[k]), O.map(S.split(/\s+/)));
+        const value = pipe(css[k], isString, O.map(splitShortHand));
 
         taffy["overflow"] = overflow.parse(css[k]);
       })
@@ -31,8 +31,12 @@ export function cssToTaffy<T extends CSSProperties>(css: T): Partial<Taffy.Style
   return taffy;
 }
 
-export function isString(value: unknown): O.Option<string> {
+function isString(value: unknown): O.Option<string> {
   return match(z.string().safeParse(value))
     .with({ success: true, data: P.select() }, data => O.some(data))
     .otherwise(() => O.none);
+}
+
+function splitShortHand(value: string): string[] {
+  return value.split(/\s+/);
 }
