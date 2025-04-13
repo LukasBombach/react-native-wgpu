@@ -8,5 +8,12 @@ export const display = z.literal(["block", "flex", "grid", "none"]).transform(v 
 export const boxSizing = z.literal(["border-box", "content-box"]).transform(v => pascalCase(v) as BoxSizing);
 
 export const overflow = z
-  .literal(["visible", "hidden", "clip", "scroll", "auto"])
-  .transform(v => pascalCase(v) as Overflow);
+  .string()
+  .pipe(z.transform(v => v.split(/\W/)))
+  .pipe(
+    z
+      .array(z.literal(["visible", "hidden", "clip", "scroll", "auto"]))
+      .min(1)
+      .max(2)
+  )
+  .pipe(z.transform(vs => vs.map(v => pascalCase(v))));
