@@ -9,6 +9,7 @@ import { snakeCase, pascalCase } from "change-case";
 import { display, boxSizing /* overflow */ } from "./css_schema";
 
 import type { CSSProperties } from "react";
+import type { ReadonlyNonEmptyArray } from "fp-ts/lib/ReadonlyNonEmptyArray";
 import type * as Taffy from "./taffy_types";
 
 const overflow = z.literal(["visible", "hidden", "clip", "scroll", "auto"]);
@@ -27,7 +28,13 @@ export function cssToTaffy<T extends CSSProperties>(css: T): Partial<Taffy.Style
     match(k)
       .with("display", () => (taffy["display"] = display.parse(css[k])))
       .with("overflow", () => {
-        const value = pipe(css[k], isString, O.flatMap(toShorthand));
+        const value = pipe(
+          css[k],
+          isString,
+          O.map(S.split(/\s+/)),
+          O.flatMap(toShorthand),
+          O.map(A.map(overflow.parse))
+        );
       })
       .otherwise(() => console.warn(`Unknown CSS property "${k.toString()}: ${css[k]}"`));
   }
@@ -35,23 +42,13 @@ export function cssToTaffy<T extends CSSProperties>(css: T): Partial<Taffy.Style
   return taffy;
 }
 
-/* function zod<Output = unknown, Input = unknown>(
-  schema: z.ZodType<Output, Input>
-): (value: unknown) => O.Option<Output> {
-  return value =>
-    match(schema.safeParse(value))
-      .with({ success: true, data: P.select() }, data => O.some(data))
-      .otherwise(() => O.none);
-} */
-
 function isString(value: unknown): O.Option<string> {
   return match(z.string().safeParse(value))
     .with({ success: true, data: P.select() }, data => O.some(data))
     .otherwise(() => O.none);
 }
 
-function toShorthand(value: string): O.Option<[string, string]> {
-  const values = value.split(/\s+/);
+function toShorthand(values: ReadonlyNonEmptyArray<string>): O.Option<[string, string]> {
   const toupleSchema = z.tuple([z.string(), z.string().optional()]);
 
   return match(toupleSchema.safeParse(values))
