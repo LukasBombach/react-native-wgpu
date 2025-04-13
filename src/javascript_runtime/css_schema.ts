@@ -16,4 +16,10 @@ export const overflow = z
       .min(1)
       .max(2)
   )
-  .pipe(z.transform(vs => vs.map(v => pascalCase(v))));
+  .pipe(z.transform(vs => vs.map(v => pascalCase(v))))
+  .pipe(
+    z.tuple([
+      z.literal(["Visible", "Hidden", "Clip", "Scroll", "Auto"]),
+      z.literal(["Visible", "Hidden", "Clip", "Scroll", "Auto"]),
+    ])
+  );
