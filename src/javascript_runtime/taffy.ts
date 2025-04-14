@@ -72,6 +72,15 @@ export function cssToTaffy<T extends Record<string, unknown>>(css: T): Partial<t
       })
       .with("justifySelf", () => {
         taffy.justify_self = pipe(value, isString, toAlignItems);
+      })
+      .with("alignContent", () => {
+        taffy.align_content = pipe(value, isString, toAlignContent);
+      })
+      .with("justifyContent", () => {
+        taffy.justify_content = pipe(value, isString, toAlignContent);
+      })
+      .with("gap", () => {
+        taffy.gap = pipe(value, isStringOrNum, toShorthand2, map2(toLengthPercentage), toSize);
       });
   }
 
@@ -123,7 +132,21 @@ function toAlignItems(value: string): t.AlignItems {
     .with("center", () => "Center")
     .with("baseline", () => "Baseline")
     .with("stretch", () => "Stretch")
-    .otherwise(unknownProp("position", value));
+    .otherwise(unknownValue(value));
+}
+
+function toAlignContent(value: string): t.AlignContent {
+  return match<string, t.AlignContent>(value)
+    .with("start", () => "Start")
+    .with("end", () => "End")
+    .with("flex-start", () => "FlexStart")
+    .with("flex-end", () => "FlexEnd")
+    .with("center", () => "Center")
+    .with("stretch", () => "Stretch")
+    .with("space-between", () => "SpaceBetween")
+    .with("space-evenly", () => "SpaceEvenly")
+    .with("space-around", () => "SpaceAround")
+    .otherwise(unknownValue(value));
 }
 
 function toAspectRatio(value: string | number): number {
@@ -184,6 +207,10 @@ function toPoint<T>([x, y]: [T, T]): t.Point<T> {
   return { x, y };
 }
 
+function toSize<T>([width, height]: [T, T]): t.Size<T> {
+  return { width, height };
+}
+
 function toRect<T>([left, right, top, bottom]: [T, T, T, T]): t.Rect<T> {
   return { left, right, top, bottom };
 }
@@ -204,18 +231,26 @@ function map4<T, U>(fn: (value: T) => U): (values: [T, T, T, T]) => [U, U, U, U]
   return values => values.map(fn) as [U, U, U, U];
 }
 
-function toShorthand2(value: string): [string, string] {
-  return z
-    .array(z.string())
-    .min(1)
-    .max(2)
-    .transform(([first, second]) => [first, second ?? first])
-    .pipe(z.tuple([z.string(), z.string()]))
-    .parse(value.split(/\s+/));
+function toShorthand2(value: string): [string, string];
+function toShorthand2(value: number): [number, number];
+function toShorthand2(value: string | number): [string, string] | [number, number] {
+  return match(value)
+    .with(P.number, v => z.tuple([z.number(), z.number()]).parse([v, v]))
+    .with(P.string, v =>
+      z
+        .array(z.string())
+        .min(1)
+        .max(2)
+        .transform(([first, second]) => [first, second ?? first])
+        .pipe(z.tuple([z.string(), z.string()]))
+        .parse(v.split(/\s+/))
+    )
+    .exhaustive();
 }
 
 function toShorthand4(value: string | number): [string, string, string, string] | [number, number, number, number] {
   return match(value)
+    .with(P.number, v => z.tuple([z.number(), z.number(), z.number(), z.number()]).parse([v, v, v, v]))
     .with(P.string, v =>
       z
         .array(z.string())
@@ -239,7 +274,6 @@ function toShorthand4(value: string | number): [string, string, string, string] 
         .pipe(z.tuple([z.string(), z.string(), z.string(), z.string()]))
         .parse(v.split(/\s+/))
     )
-    .with(P.number, v => z.tuple([z.number(), z.number(), z.number(), z.number()]).parse([v, v, v, v]))
     .exhaustive();
 }
 
