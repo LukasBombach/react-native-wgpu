@@ -51,6 +51,15 @@ export function cssToTaffy<T extends Record<string, unknown>>(css: T): Partial<t
       })
       .with("aspectRatio", () => {
         taffy.aspect_ratio = pipe(value, isStringOrNum, toAspectRatio);
+      })
+      .with("margin", () => {
+        taffy.margin = pipe(value, isStringOrNum, toShorthand4, map4(toLengthPercentageAuto), toRect);
+      })
+      .with("padding", () => {
+        taffy.padding = pipe(value, isStringOrNum, toShorthand4, map4(toLengthPercentage), toRect);
+      })
+      .with("border", () => {
+        taffy.border = pipe(value, isStringOrNum, toShorthand4, map4(toLengthPercentage), toRect);
       });
   }
 
@@ -112,6 +121,14 @@ function toLengthPercentageAuto(value: string | number): t.LengthPercentageAuto 
     .with(P.string.endsWith("px"), v => toLength(parseFloat(v)))
     .with(P.number, toLength)
     .with("auto", toAuto)
+    .otherwise(unknownValue(value));
+}
+
+function toLengthPercentage(value: string | number): t.LengthPercentage {
+  return match(value)
+    .with(P.string.endsWith("%"), v => toPercent(parseFloat(v) / 100))
+    .with(P.string.endsWith("px"), v => toLength(parseFloat(v)))
+    .with(P.number, toLength)
     .otherwise(unknownValue(value));
 }
 
