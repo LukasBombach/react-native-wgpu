@@ -1,9 +1,5 @@
-import { pipe } from "fp-ts/lib/function";
-import * as R from "fp-ts/lib/Record";
-import * as A from "fp-ts/lib/Array";
-import * as S from "fp-ts/string";
-import * as O from "fp-ts/lib/Option";
 import { match, P } from "ts-pattern";
+import { pipe } from "fp-ts/lib/function";
 import * as z from "zod";
 
 import type * as t from "./taffy_types";
@@ -193,19 +189,6 @@ function toFlexWrap(value: string): t.FlexWrap {
     .otherwise(unknownProp("flexWrap", value));
 }
 
-function toAspectRatio(value: string | number): number {
-  return match(value)
-    .with(P.number, v => v)
-    .with(P.string, v => {
-      return z
-        .tuple([z.string(), z.string()])
-        .pipe(z.transform(([a, b]) => parseFloat(a) / parseFloat(b)))
-        .pipe(z.number())
-        .parse(v.split("/"));
-    })
-    .otherwise(unknownValue(value));
-}
-
 function toLengthPercentageAuto(value: string | number): t.LengthPercentageAuto {
   return match(value)
     .with(P.string.endsWith("%"), v => toPercent(parseFloat(v) / 100))
@@ -220,6 +203,19 @@ function toLengthPercentage(value: string | number): t.LengthPercentage {
     .with(P.string.endsWith("%"), v => toPercent(parseFloat(v) / 100))
     .with(P.string.endsWith("px"), v => toLength(parseFloat(v)))
     .with(P.number, toLength)
+    .otherwise(unknownValue(value));
+}
+
+function toAspectRatio(value: string | number): number {
+  return match(value)
+    .with(P.number, v => v)
+    .with(P.string, v => {
+      return z
+        .tuple([z.string(), z.string()])
+        .pipe(z.transform(([a, b]) => parseFloat(a) / parseFloat(b)))
+        .pipe(z.number())
+        .parse(v.split("/"));
+    })
     .otherwise(unknownValue(value));
 }
 
