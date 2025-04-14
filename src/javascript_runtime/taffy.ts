@@ -60,6 +60,18 @@ export function cssToTaffy<T extends Record<string, unknown>>(css: T): Partial<t
       })
       .with("border", () => {
         taffy.border = pipe(value, isStringOrNum, toShorthand4, map4(toLengthPercentage), toRect);
+      })
+      .with("alignItems", () => {
+        taffy.align_items = pipe(value, isString, toAlignItems);
+      })
+      .with("alignSelf", () => {
+        taffy.align_self = pipe(value, isString, toAlignItems);
+      })
+      .with("justifyItems", () => {
+        taffy.justify_items = pipe(value, isString, toAlignItems);
+      })
+      .with("justifySelf", () => {
+        taffy.justify_self = pipe(value, isString, toAlignItems);
       });
   }
 
@@ -99,6 +111,18 @@ function toPosition(value: string): t.Position {
   return match<string, t.Position>(value)
     .with("absolute", () => "Absolute")
     .with("relative", () => "Relative")
+    .otherwise(unknownProp("position", value));
+}
+
+function toAlignItems(value: string): t.AlignItems {
+  return match<string, t.AlignItems>(value)
+    .with("start", () => "Start")
+    .with("end", () => "End")
+    .with("flex-start", () => "FlexStart")
+    .with("flex-end", () => "FlexEnd")
+    .with("center", () => "Center")
+    .with("baseline", () => "Baseline")
+    .with("stretch", () => "Stretch")
     .otherwise(unknownProp("position", value));
 }
 
