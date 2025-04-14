@@ -233,6 +233,7 @@ function map4<T, U>(fn: (value: T) => U): (values: [T, T, T, T]) => [U, U, U, U]
 
 function toShorthand2(value: string): [string, string];
 function toShorthand2(value: number): [number, number];
+function toShorthand2(value: string | number): [string, string] | [number, number];
 function toShorthand2(value: string | number): [string, string] | [number, number] {
   return match(value)
     .with(P.number, v => z.tuple([z.number(), z.number()]).parse([v, v]))
@@ -248,6 +249,9 @@ function toShorthand2(value: string | number): [string, string] | [number, numbe
     .exhaustive();
 }
 
+function toShorthand4(value: string): [string, string, string, string];
+function toShorthand4(value: number): [number, number, number, number];
+function toShorthand4(value: string | number): [string, string, string, string] | [number, number, number, number];
 function toShorthand4(value: string | number): [string, string, string, string] | [number, number, number, number] {
   return match(value)
     .with(P.number, v => z.tuple([z.number(), z.number(), z.number(), z.number()]).parse([v, v, v, v]))
