@@ -48,6 +48,9 @@ export function cssToTaffy<T extends Record<string, unknown>>(css: T): Partial<t
       })
       .with("maxHeight", () => {
         max_size.height = pipe(value, isStringOrNum, toLengthPercentageAuto);
+      })
+      .with("aspectRatio", () => {
+        taffy.aspect_ratio = pipe(value, isStringOrNum, toAspectRatio);
       });
   }
 
@@ -88,6 +91,19 @@ function toPosition(value: string): t.Position {
     .with("absolute", () => "Absolute")
     .with("relative", () => "Relative")
     .otherwise(unknownProp("position", value));
+}
+
+function toAspectRatio(value: string | number): number {
+  return match(value)
+    .with(P.number, v => v)
+    .with(P.string, v => {
+      return z
+        .tuple([z.string(), z.string()])
+        .pipe(z.transform(([a, b]) => parseFloat(a) / parseFloat(b)))
+        .pipe(z.number())
+        .parse(v.split("/"));
+    })
+    .otherwise(unknownValue(value));
 }
 
 function toLengthPercentageAuto(value: string | number): t.LengthPercentageAuto {
