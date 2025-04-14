@@ -10,7 +10,9 @@ import type * as t from "./taffy_types";
 
 export function cssToTaffy<T extends Record<string, unknown>>(css: T): Partial<t.Style> {
   const size: t.Size<t.Dimension> = { width: "Auto", height: "Auto" };
-  const taffy: Partial<t.Style> = { size };
+  const min_size: t.Size<t.Dimension> = { width: "Auto", height: "Auto" };
+  const max_size: t.Size<t.Dimension> = { width: "Auto", height: "Auto" };
+  const taffy: Partial<t.Style> = { size, min_size, max_size };
 
   for (const [key, value] of Object.entries(css)) {
     match(key)
@@ -34,6 +36,18 @@ export function cssToTaffy<T extends Record<string, unknown>>(css: T): Partial<t
       })
       .with("height", () => {
         size.height = pipe(value, isStringOrNum, toLengthPercentageAuto);
+      })
+      .with("minWidth", () => {
+        min_size.width = pipe(value, isStringOrNum, toLengthPercentageAuto);
+      })
+      .with("minHeight", () => {
+        min_size.height = pipe(value, isStringOrNum, toLengthPercentageAuto);
+      })
+      .with("maxWidth", () => {
+        max_size.width = pipe(value, isStringOrNum, toLengthPercentageAuto);
+      })
+      .with("maxHeight", () => {
+        max_size.height = pipe(value, isStringOrNum, toLengthPercentageAuto);
       });
   }
 
