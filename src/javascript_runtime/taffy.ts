@@ -81,6 +81,24 @@ export function cssToTaffy<T extends Record<string, unknown>>(css: T): Partial<t
       })
       .with("gap", () => {
         taffy.gap = pipe(value, isStringOrNum, toShorthand2, map2(toLengthPercentage), toSize);
+      })
+      .with("textAlign", () => {
+        taffy.text_align = pipe(value, isString, toTextAlign);
+      })
+      .with("flexDirection", () => {
+        taffy.flex_direction = pipe(value, isString, toFlexDirection);
+      })
+      .with("flexWrap", () => {
+        taffy.flex_wrap = pipe(value, isString, toFlexWrap);
+      })
+      .with("flexBasis", () => {
+        taffy.flex_basis = pipe(value, isStringOrNum, toLengthPercentageAuto);
+      })
+      .with("flexGrow", () => {
+        taffy.flex_grow = pipe(value, isNumber);
+      })
+      .with("flexShrink", () => {
+        taffy.flex_shrink = pipe(value, isNumber);
       });
   }
 
@@ -149,6 +167,32 @@ function toAlignContent(value: string): t.AlignContent {
     .otherwise(unknownValue(value));
 }
 
+function toTextAlign(value: string): t.TextAlign {
+  return match<string, t.TextAlign>(value)
+    .with("auto", () => "Auto")
+    .with("legacy-left", () => "LegacyLeft")
+    .with("legacy-right", () => "LegacyRight")
+    .with("legacy-center", () => "LegacyCenter")
+    .otherwise(unknownProp("textAlign", value));
+}
+
+function toFlexDirection(value: string): t.FlexDirection {
+  return match<string, t.FlexDirection>(value)
+    .with("row", () => "Row")
+    .with("column", () => "Column")
+    .with("row-reverse", () => "RowReverse")
+    .with("column-reverse", () => "ColumnReverse")
+    .otherwise(unknownProp("flexDirection", value));
+}
+
+function toFlexWrap(value: string): t.FlexWrap {
+  return match<string, t.FlexWrap>(value)
+    .with("nowrap", () => "NoWrap")
+    .with("wrap", () => "Wrap")
+    .with("wrap-reverse", () => "WrapReverse")
+    .otherwise(unknownProp("flexWrap", value));
+}
+
 function toAspectRatio(value: string | number): number {
   return match(value)
     .with(P.number, v => v)
@@ -185,6 +229,10 @@ function toLengthPercentage(value: string | number): t.LengthPercentage {
 
 function isString(value: unknown): string {
   return z.string().parse(value);
+}
+
+function isNumber(value: unknown): number {
+  return z.number().parse(value);
 }
 
 function isStringOrNum(value: unknown): string | number {
