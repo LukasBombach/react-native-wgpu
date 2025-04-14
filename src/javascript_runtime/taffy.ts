@@ -20,7 +20,13 @@ export function cssToTaffy<T extends Record<string, unknown>>(css: T): Partial<t
         taffy["box_sizing"] = pipe(value, isString, toBoxSizing);
       })
       .with("overflow", () => {
-        taffy["overflow"] = pipe(value, isString, toShortHand, toOverflow, toPoint);
+        taffy["overflow"] = pipe(value, isString, toShorthand2, toOverflow, toPoint);
+      })
+      .with("position", () => {
+        taffy["position"] = pipe(value, isString, toPosition);
+      })
+      .with("inset", () => {
+        taffy["inset"] = pipe(value, isStringOrNum, toShorthand4, map4(toLengthPercentageAuto), toRect);
       });
   }
 
@@ -33,14 +39,14 @@ function toDisplay(value: string): t.Display {
     .with("flex", () => "Flex")
     .with("grid", () => "Grid")
     .with("none", () => "None")
-    .otherwise(thrw("display", value));
+    .otherwise(unknownProp("display", value));
 }
 
 function toBoxSizing(value: string): t.BoxSizing {
   return match<string, t.BoxSizing>(value)
     .with("border-box", () => "BorderBox")
     .with("content-box", () => "ContentBox")
-    .otherwise(thrw("boxSizing", value));
+    .otherwise(unknownProp("boxSizing", value));
 }
 
 function toOverflow(values: [string, string]): [t.Overflow, t.Overflow] {
@@ -50,15 +56,43 @@ function toOverflow(values: [string, string]): [t.Overflow, t.Overflow] {
       .with("hidden", () => "Hidden")
       .with("clip", () => "Clip")
       .with("scroll", () => "Scroll")
-      .otherwise(thrw("overflow", value))
+      .otherwise(unknownProp("overflow", value))
   ) as [t.Overflow, t.Overflow];
+}
+
+function toPosition(value: string): t.Position {
+  return match<string, t.Position>(value)
+    .with("absolute", () => "Absolute")
+    .with("relative", () => "Relative")
+    .otherwise(unknownProp("position", value));
+}
+
+function toLengthPercentageAuto(value: string | number): t.LengthPercentageAuto {
+  return match(value)
+    .with(P.string.endsWith("%"), v => toLength(parseFloat(v) / 100))
+    .with(P.string.endsWith("px"), toLength)
+    .with(P.number, toLength)
+    .with("auto", toAuto)
+    .otherwise(unknownValue(value));
+}
+
+function toLength(value: string | number): t.Length<number> {
+  return { Length: parseFloat(String(value)) };
+}
+
+function toAuto(): t.Auto {
+  return "Auto";
 }
 
 function isString(value: unknown): string {
   return z.string().parse(value);
 }
 
-function toShortHand(value: string): [string, string] {
+function isStringOrNum(value: unknown): string | number {
+  return z.union([z.string(), z.number()]).parse(value);
+}
+
+function toShorthand2(value: string): [string, string] {
   return z
     .array(z.string())
     .min(1)
@@ -68,12 +102,55 @@ function toShortHand(value: string): [string, string] {
     .parse(value.split(/\s+/));
 }
 
+function toShorthand4(value: string | number): [string, string, string, string] | [number, number, number, number] {
+  return match(value)
+    .with(P.string, v =>
+      z
+        .array(z.string())
+        .min(1)
+        .max(4)
+        .transform(values => {
+          const [a, b, c, d] = values;
+          switch (values.length) {
+            case 1:
+              return [a, a, a, a];
+            case 2:
+              return [a, b, a, b];
+            case 3:
+              return [a, b, c, b];
+            case 4:
+              return [a, b, c, d];
+            default:
+              throw new Error("Invalid number of values for shorthand");
+          }
+        })
+        .pipe(z.tuple([z.string(), z.string(), z.string(), z.string()]))
+        .parse(v.split(/\s+/))
+    )
+    .with(P.number, v => z.tuple([z.number(), z.number(), z.number(), z.number()]).parse([v, v, v, v]))
+    .exhaustive();
+}
+
+function map4<T, U>(fn: (value: T) => U): (values: [T, T, T, T]) => [U, U, U, U] {
+  return values => values.map(fn) as [U, U, U, U];
+}
+
 function toPoint<T>([x, y]: [T, T]): t.Point<T> {
   return { x, y };
 }
 
-function thrw(key: string, value: unknown): () => never {
+function toRect<T>([left, right, top, bottom]: [T, T, T, T]): t.Rect<T> {
+  return { left, right, top, bottom };
+}
+
+function unknownProp(key: string, value: unknown): () => never {
   return () => {
     throw new Error(`Unknown CSS property "${key}: ${value}"`);
+  };
+}
+
+function unknownValue(value: unknown): () => never {
+  return () => {
+    throw new Error(`Unknown Value "${value}"`);
   };
 }
