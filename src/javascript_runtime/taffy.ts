@@ -8,6 +8,7 @@ export function cssToTaffy<T extends Record<string, unknown>>(css: T): Partial<t
   const size: t.Size<t.Dimension> = { width: "Auto", height: "Auto" };
   const min_size: t.Size<t.Dimension> = { width: "Auto", height: "Auto" };
   const max_size: t.Size<t.Dimension> = { width: "Auto", height: "Auto" };
+
   const taffy: Partial<t.Style> = { size, min_size, max_size };
 
   for (const [key, value] of Object.entries(css)) {
