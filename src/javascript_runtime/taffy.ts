@@ -4,6 +4,7 @@ import * as A from "fp-ts/lib/Array";
 import * as S from "fp-ts/string";
 import * as O from "fp-ts/lib/Option";
 import { match, P } from "ts-pattern";
+import * as z from "zod";
 
 import type * as t from "./taffy_types";
 
@@ -29,24 +30,36 @@ export function cssToTaffy<T extends Record<string, unknown>>(css: T): Partial<t
           .otherwise(wtf);
       })
       .with("overflow", () => {
-        taffy["overflow"] = pipe(value, toShortHand, A.map(toOverflow), toPoint);
+        taffy["overflow"] = pipe(value, isString, toShortHand, toOverflow, toPoint);
       });
   }
 
   return taffy;
 }
 
-function toShortHand(value: unknown): [string, string] {
-  return value.split(/\s+/);
+function isString(value: unknown): string {
+  return z.string().parse(value);
 }
 
-function toOverflow(value: unknown): t.Overflow {
-  return match<unknown, t.Overflow>(value)
-    .with("visible", () => "Visible")
-    .with("hidden", () => "Hidden")
-    .with("clip", () => "Clip")
-    .with("scroll", () => "Scroll")
-    .otherwise(thrw("overflow", value));
+function toShortHand(value: string): [string, string] {
+  return z
+    .array(z.string())
+    .min(1)
+    .max(2)
+    .transform(([first, second]) => [first, second ?? first])
+    .pipe(z.tuple([z.string(), z.string()]))
+    .parse(value.split(/\s+/));
+}
+
+function toOverflow(values: [string, string]): [t.Overflow, t.Overflow] {
+  return values.map(value =>
+    match<string, t.Overflow>(value)
+      .with("visible", () => "Visible")
+      .with("hidden", () => "Hidden")
+      .with("clip", () => "Clip")
+      .with("scroll", () => "Scroll")
+      .otherwise(thrw("overflow", value))
+  ) as [t.Overflow, t.Overflow];
 }
 
 function toPoint<T>([x, y]: [T, T]): t.Point<T> {
