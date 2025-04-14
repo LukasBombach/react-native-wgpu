@@ -67,9 +67,9 @@ export interface Percent<T> {
 
 export type Auto = "Auto";
 
-export interface Size<T> {
-  width: T;
-  height: T;
+export interface Size<Width, Height = Width> {
+  width: Width;
+  height: Height;
 }
 
 export type Dimension = Length<number> | Percent<number> | Auto;

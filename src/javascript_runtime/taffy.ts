@@ -9,24 +9,31 @@ import * as z from "zod";
 import type * as t from "./taffy_types";
 
 export function cssToTaffy<T extends Record<string, unknown>>(css: T): Partial<t.Style> {
-  const taffy: Partial<t.Style> = {};
+  const size: t.Size<t.Dimension> = { width: "Auto", height: "Auto" };
+  const taffy: Partial<t.Style> = { size };
 
   for (const [key, value] of Object.entries(css)) {
     match(key)
       .with("display", () => {
-        taffy["display"] = pipe(value, isString, toDisplay);
+        taffy.display = pipe(value, isString, toDisplay);
       })
       .with("boxSizing", () => {
-        taffy["box_sizing"] = pipe(value, isString, toBoxSizing);
+        taffy.box_sizing = pipe(value, isString, toBoxSizing);
       })
       .with("overflow", () => {
-        taffy["overflow"] = pipe(value, isString, toShorthand2, map2(toOverflow), toPoint);
+        taffy.overflow = pipe(value, isString, toShorthand2, map2(toOverflow), toPoint);
       })
       .with("position", () => {
-        taffy["position"] = pipe(value, isString, toPosition);
+        taffy.position = pipe(value, isString, toPosition);
       })
       .with("inset", () => {
-        taffy["inset"] = pipe(value, isStringOrNum, toShorthand4, map4(toLengthPercentageAuto), toRect);
+        taffy.inset = pipe(value, isStringOrNum, toShorthand4, map4(toLengthPercentageAuto), toRect);
+      })
+      .with("width", () => {
+        size.width = pipe(value, isStringOrNum, toLengthPercentageAuto);
+      })
+      .with("height", () => {
+        size.height = pipe(value, isStringOrNum, toLengthPercentageAuto);
       });
   }
 
