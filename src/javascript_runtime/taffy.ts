@@ -238,11 +238,8 @@ function toNonRepeatedTrackSizingFunction(value: string): t.NonRepeatedTrackSizi
   return match(value)
     .with(P.string.regex(minMax), v => {
       return z
-        .object({
-          min: z.string(),
-          max: z.string(),
-        })
-        .pipe(z.transform(({ min, max }) => toMinMax([toMinTrackSizingFunction(min), toMaxTrackSizingFunction(max)])))
+        .tuple([z.string(), z.string(), z.string()])
+        .pipe(z.transform(([, min, max]) => toMinMax([toMinTrackSizingFunction(min), toMaxTrackSizingFunction(max)])))
         .parse(v.match(minMax)?.groups);
     })
     .otherwise(unknownValue(value));
@@ -256,7 +253,29 @@ function toMinTrackSizingFunction(value: string): t.MinTrackSizingFunction {
     .otherwise(unknownValue(value));
 }
 
-function toMaxTrackSizingFunction(value: string): t.MaxTrackSizingFunction {}
+function toMaxTrackSizingFunction(value: string): t.MaxTrackSizingFunction {
+  const fitContent = /fit-content\(\s*(?<arg>\S+)\s*\)/;
+  const fraction = /(?<value>[0-9.]+)fr/;
+
+  return match<string, t.MaxTrackSizingFunction>(value)
+    .with("min-content", () => "MinContent")
+    .with("max-content", () => "MaxContent")
+    .with(P.string.regex(fraction), v => {
+      return z
+        .tuple([z.string(), z.string()])
+        .pipe(z.transform(([, fragVal]) => toFraction(parseFloat(fragVal))))
+        .parse(v.match(fraction));
+    })
+    .with(P.string.regex(fitContent), v => {
+      return z
+        .tuple([z.string(), z.string()])
+        .pipe(z.transform(([, arg]) => toLengthPercentage(arg)))
+        .pipe(z.transform(toFitContent))
+        .parse(v.match(fitContent));
+    })
+    .with(P.string, v => pipe(v, toLengthPercentage, toFixed))
+    .otherwise(unknownValue(value));
+}
 
 /*
  * checks
@@ -288,6 +307,14 @@ function toPercent<T>(Percent: T): t.Percent<T> {
 
 function toFixed<T>(Fixed: T): t.Fixed<T> {
   return { Fixed };
+}
+
+function toFitContent<T>(FitContent: T): t.FitContent<T> {
+  return { FitContent };
+}
+
+function toFraction<T>(Fraction: T): t.Fraction<T> {
+  return { Fraction };
 }
 
 function toPoint<T>([x, y]: [T, T]): t.Point<T> {
