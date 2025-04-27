@@ -96,6 +96,9 @@ export function cssToTaffy<T extends Record<string, unknown>>(css: T): Partial<t
       })
       .with("flexShrink", () => {
         taffy.flex_shrink = pipe(value, isNumber);
+      })
+      .with("gridTemplateRows", () => {
+        taffy.grid_template_rows = pipe(value, isString, split, map(toTrackSizingFunction));
       });
   }
 
@@ -220,6 +223,41 @@ function toAspectRatio(value: string | number): number {
     .otherwise(unknownValue(value));
 }
 
+function toTrackSizingFunction(value: string): t.TrackSizingFunction {
+  return match(value)
+    .with("repeat", () => "Repeat")
+    .with("auto", () => "Auto")
+    .with("minmax", () => "MinMax")
+    .with("fit-content", () => "FitContent")
+    .otherwise(unknownValue(value));
+}
+
+function toNonRepeatedTrackSizingFunction(value: string): t.NonRepeatedTrackSizingFunction {
+  const minMax = /minmax\(\s*(?<min>\S+)\s*,\s*(?<max>\S+)\s*\)/;
+
+  return match(value)
+    .with(P.string.regex(minMax), v => {
+      return z
+        .object({
+          min: z.string(),
+          max: z.string(),
+        })
+        .pipe(z.transform(({ min, max }) => toMinMax([toMinTrackSizingFunction(min), toMaxTrackSizingFunction(max)])))
+        .parse(v.match(minMax)?.groups);
+    })
+    .otherwise(unknownValue(value));
+}
+
+function toMinTrackSizingFunction(value: string): t.MinTrackSizingFunction {
+  return match<string, t.MinTrackSizingFunction>(value)
+    .with("min-content", () => "MinContent")
+    .with("max-content", () => "MaxContent")
+    .with(P.string, v => pipe(v, toLengthPercentage, toFixed))
+    .otherwise(unknownValue(value));
+}
+
+function toMaxTrackSizingFunction(value: string): t.MaxTrackSizingFunction {}
+
 /*
  * checks
  */
@@ -248,12 +286,20 @@ function toPercent<T>(Percent: T): t.Percent<T> {
   return { Percent };
 }
 
+function toFixed<T>(Fixed: T): t.Fixed<T> {
+  return { Fixed };
+}
+
 function toPoint<T>([x, y]: [T, T]): t.Point<T> {
   return { x, y };
 }
 
 function toSize<T>([width, height]: [T, T]): t.Size<T> {
   return { width, height };
+}
+
+function toMinMax<Min, Max>([min, max]: [Min, Max]): t.MinMax<Min, Max> {
+  return { min, max };
 }
 
 function toRect<T>([left, right, top, bottom]: [T, T, T, T]): t.Rect<T> {
@@ -267,6 +313,10 @@ function toAuto(): t.Auto {
 /*
  * multiples
  */
+
+function map<T, U>(fn: (value: T) => U): (values: T[]) => U[] {
+  return values => values.map(fn);
+}
 
 function map2<T, U>(fn: (value: T) => U): (values: [T, T]) => [U, U] {
   return values => values.map(fn) as [U, U];
@@ -324,6 +374,10 @@ function toShorthand4(value: string | number): [string, string, string, string] 
         .parse(v.split(/\s+/))
     )
     .exhaustive();
+}
+
+function split(value: string): string[] {
+  return value.split(/\s+/);
 }
 
 /*
