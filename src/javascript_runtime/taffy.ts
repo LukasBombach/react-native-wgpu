@@ -224,11 +224,25 @@ function toAspectRatio(value: string | number): number {
 }
 
 function toTrackSizingFunction(value: string): t.TrackSizingFunction {
+  const repeat = /repeat\(\s*(?<count>\S+)\s*,\s*(?<value>\S+)\s*\)/;
+
   return match(value)
-    .with("repeat", () => "Repeat")
-    .with("auto", () => "Auto")
-    .with("minmax", () => "MinMax")
-    .with("fit-content", () => "FitContent")
+    .with(P.string.regex(repeat), v => {
+      return z
+        .tuple([z.string(), z.string(), z.string()])
+        .pipe(
+          z.transform(([, count, value]) =>
+            toRepeat(toGridTrackRepetition(count), pipe(value, split, map(toNonRepeatedTrackSizingFunction)))
+          )
+        )
+        .parse(v.match(repeat)?.groups);
+    })
+    .with(P.string, v => {
+      return z
+        .tuple([z.string(), z.string()])
+        .pipe(z.transform(([, value]) => toSingle(toNonRepeatedTrackSizingFunction(value))))
+        .parse(v.split(/\s+/));
+    })
     .otherwise(unknownValue(value));
 }
 
@@ -277,6 +291,19 @@ function toMaxTrackSizingFunction(value: string): t.MaxTrackSizingFunction {
     .otherwise(unknownValue(value));
 }
 
+function toGridTrackRepetition(value: string): t.GridTrackRepetition {
+  return match<string, t.GridTrackRepetition>(value)
+    .with("auto-fill", () => "AutoFill")
+    .with("auto-fit", () => "AutoFit")
+    .with(P.string, v => {
+      return z
+        .string()
+        .pipe(z.transform(([, count]) => toCount(parseInt(count))))
+        .parse(v);
+    })
+    .otherwise(unknownValue(value));
+}
+
 /*
  * checks
  */
@@ -315,6 +342,18 @@ function toFitContent<T>(FitContent: T): t.FitContent<T> {
 
 function toFraction<T>(Fraction: T): t.Fraction<T> {
   return { Fraction };
+}
+
+function toCount<T>(Count: T): t.Count<T> {
+  return { Count };
+}
+
+function toSingle<T>(Single: T): t.Single<T> {
+  return { Single };
+}
+
+function toRepeat<T, R>(Count: T, value: R): t.Repeat<T, R> {
+  return [Count, value];
 }
 
 function toPoint<T>([x, y]: [T, T]): t.Point<T> {
