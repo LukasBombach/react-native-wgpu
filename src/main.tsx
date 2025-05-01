@@ -1,6 +1,5 @@
-import React from "npm:react";
-import { ReactWGPU } from "./renderer.ts";
-import { get_style_defaults } from "rn-wgpu:rect";
+import React from "react";
+import { ReactWGPU } from "./javascript_runtime/react_renderer";
 
 ReactWGPU.render(
   <rectangle style={{ width: "100%", height: "100%", alignItems: "center", justifyContent: "center", gap: "10%" }}>
@@ -9,4 +8,5 @@ ReactWGPU.render(
   </rectangle>
 );
 
+// import { get_style_defaults } from "rn-wgpu:rect";
 // console.dir(get_style_defaults(), { depth: Infinity });

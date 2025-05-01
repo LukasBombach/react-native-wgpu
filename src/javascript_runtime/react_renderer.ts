@@ -1,6 +1,6 @@
-import ReactReconciler from "npm:react-reconciler";
+import ReactReconciler from "react-reconciler";
 import { create_instance, append_child_to_container, append_child } from "rn-wgpu:rect";
-import { toTaffy } from "./style_pipe.ts";
+import { cssToTaffy } from "./taffy";
 import type { CSSProperties, ReactNode } from "react";
 
 type RectId = number;
@@ -49,7 +49,7 @@ const reconciler = ReactReconciler<
   noTimeout: -1,
 
   createInstance(_type, props, _rootContainerInstance, _hostContext, _internalInstanceHandle) {
-    const taffyStyle = toTaffy(props.style);
+    const taffyStyle = cssToTaffy(props.style as Record<string, unknown>);
     const id = create_instance(taffyStyle);
     return { type: "rectangle", id };
   },
@@ -94,6 +94,7 @@ const reconciler = ReactReconciler<
   beforeActiveInstanceBlur: () => {},
   afterActiveInstanceBlur: () => {},
   detachDeletedInstance: () => {},
+  // @ts-expect-error badly typed by react-reconciler
   scheduleTimeout: setTimeout,
   cancelTimeout: clearTimeout,
   getInstanceFromNode: () => null,
