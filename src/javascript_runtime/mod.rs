@@ -225,8 +225,8 @@ fn init_runtime(app_state: Arc<Mutex<AppState>>) -> Result<Runtime, Error> {
     schema_whlist.insert("rn-wgpu:".to_string());
 
     let mut runtime = Runtime::new(RuntimeOptions {
-        schema_whlist,
         extensions: vec![rect_extension::init_ops_and_esm()],
+        schema_whlist,
         ..RuntimeOptions::default()
     })?;
 
