@@ -1,5 +1,5 @@
 import React from "react";
-import { ReactWGPU } from "./javascript_runtime/react_renderer";
+import { ReactWGPU } from "./javascript_runtime/react_renderer.ts";
 
 ReactWGPU.render(
   <rectangle style={{ width: "100%", height: "100%", alignItems: "center", justifyContent: "center", gap: "10%" }}>

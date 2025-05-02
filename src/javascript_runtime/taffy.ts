@@ -1,8 +1,8 @@
 import { match, P } from "ts-pattern";
-import { pipe } from "fp-ts/lib/function";
+import { pipe } from "fp-ts/lib/function.js";
 import * as z from "zod";
 
-import type * as t from "./taffy_types";
+import type * as t from "./taffy_types.ts";
 
 export function cssToTaffy<T extends Record<string, unknown>>(css: T): Partial<t.Style> {
   const size: t.Size<t.Dimension> = { width: "Auto", height: "Auto" };
