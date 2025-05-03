@@ -1,3 +1,4 @@
+use crate::graphics::Instance;
 use taffy::prelude::*;
 
 #[derive(Debug)]
@@ -55,8 +56,32 @@ impl UserInterface {
             ..Default::default()
         };
 
-        // print!("\n root {style:?}");
-
         taffy.new_with_children(style, &[]).unwrap()
+    }
+}
+
+impl UserInterface {
+    pub fn get_instances(&mut self, width: f32, height: f32) -> Option<Vec<Instance>> {
+        self.compute_layout(width, height);
+
+        fn collect_instances(
+            taffy: &taffy::TaffyTree,
+            node: taffy::NodeId,
+            offset_x: f32,
+            offset_y: f32,
+            instances: &mut Vec<Instance>,
+        ) {
+            let layout = taffy.layout(node).unwrap();
+            let (x, y) = (offset_x + layout.location.x, offset_y + layout.location.y);
+            instances.push(Instance::new(x, y, layout.size.width, layout.size.height));
+
+            for child in taffy.children(node).unwrap() {
+                collect_instances(taffy, child, x, y, instances);
+            }
+        }
+
+        let mut instances = Vec::new();
+        collect_instances(&self.taffy, self.root, 0.0, 0.0, &mut instances);
+        Some(instances)
     }
 }

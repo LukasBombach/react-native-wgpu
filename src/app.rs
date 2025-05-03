@@ -9,7 +9,6 @@ use winit::window::Window;
 use winit::window::WindowId;
 
 use crate::graphics::Gpu;
-use crate::graphics::Instance;
 use crate::user_interface::UserInterface;
 
 #[derive(Debug)]
@@ -48,45 +47,6 @@ impl App<'_> {
             state: state.clone(),
         }
     }
-
-    fn user_interface_to_instances(&self) -> Option<Vec<Instance>> {
-        if let Some(window) = &self.window {
-            let width = window.inner_size().width as f32;
-            let height = window.inner_size().height as f32;
-
-            let state = self.state.lock().unwrap();
-            let mut user_interface = state.user_interface.lock().unwrap();
-            user_interface.compute_layout(width, height);
-
-            fn collect_instances(
-                taffy: &taffy::TaffyTree,
-                node: taffy::NodeId,
-                offset_x: f32,
-                offset_y: f32,
-                instances: &mut Vec<Instance>,
-            ) {
-                let layout = taffy.layout(node).unwrap();
-                let (x, y) = (offset_x + layout.location.x, offset_y + layout.location.y);
-                instances.push(Instance::new(x, y, layout.size.width, layout.size.height));
-
-                for child in taffy.children(node).unwrap() {
-                    collect_instances(taffy, child, x, y, instances);
-                }
-            }
-
-            let mut instances = Vec::new();
-            collect_instances(
-                &user_interface.taffy,
-                user_interface.root,
-                0.0,
-                0.0,
-                &mut instances,
-            );
-            Some(instances)
-        } else {
-            None
-        }
-    }
 }
 
 impl<'window> ApplicationHandler<Js> for App<'window> {
@@ -110,11 +70,20 @@ impl<'window> ApplicationHandler<Js> for App<'window> {
     fn user_event(&mut self, _event_loop: &ActiveEventLoop, event: Js) {
         match event {
             Js::RectsUpdated => {
-                if let Some(instances) = self.user_interface_to_instances() {
-                    if let Some(gpu) = self.gpu.as_mut() {
-                        gpu.update_instance_buffer(&instances);
-                    }
-                    if let Some(window) = self.window.as_ref() {
+                if let Some(window) = self.window.as_ref() {
+                    let size = window.inner_size();
+                    if let Some(instances) = self
+                        .state
+                        .lock()
+                        .unwrap()
+                        .user_interface
+                        .lock()
+                        .unwrap()
+                        .get_instances(size.width as f32, size.height as f32)
+                    {
+                        if let Some(gpu) = self.gpu.as_mut() {
+                            gpu.update_instance_buffer(&instances);
+                        }
                         window.request_redraw();
                     }
                 }
@@ -128,7 +97,15 @@ impl<'window> ApplicationHandler<Js> for App<'window> {
                 event_loop.exit();
             }
             WindowEvent::Resized(size) => {
-                if let Some(instances) = self.user_interface_to_instances() {
+                if let Some(instances) = self
+                    .state
+                    .lock()
+                    .unwrap()
+                    .user_interface
+                    .lock()
+                    .unwrap()
+                    .get_instances(size.width as f32, size.height as f32)
+                {
                     if let Some(gpu) = self.gpu.as_mut() {
                         gpu.update_instance_buffer(&instances);
                         gpu.set_size(size.width, size.height);
