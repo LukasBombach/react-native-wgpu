@@ -1,6 +1,6 @@
 import ReactReconciler from "react-reconciler";
 import { create_instance, append_child_to_container, append_child } from "rn-wgpu:rect";
-import { cssToTaffy } from "./taffy.ts";
+import { taffyFromCss } from "./taffy.ts";
 
 import type { CSSProperties, ReactNode } from "react";
 
@@ -28,7 +28,7 @@ const ConcurrentRoot = 1;
 
 let currentUpdatePriority = NoEventPriority;
 
-const reconciler = ReactReconciler<
+export const reconciler = ReactReconciler<
   Type,
   Props,
   Container,
@@ -50,7 +50,7 @@ const reconciler = ReactReconciler<
   noTimeout: -1,
 
   createInstance(_type, props, _rootContainerInstance, _hostContext, _internalInstanceHandle) {
-    const taffyStyle = cssToTaffy(props.style as Record<string, unknown>);
+    const taffyStyle = taffyFromCss(props.style as Record<string, unknown>);
     const id = create_instance(taffyStyle);
     return { type: "rectangle", id };
   },
@@ -118,19 +118,3 @@ const reconciler = ReactReconciler<
     return currentUpdatePriority || DefaultEventPriority;
   },
 });
-
-export const ReactWGPU = {
-  render(rootInstance: ReactNode) {
-    const container = reconciler.createContainer(
-      { type: "container" },
-      ConcurrentRoot,
-      null,
-      true,
-      null,
-      "",
-      error => console.error("Recoverable error:", error),
-      null
-    );
-    reconciler.updateContainer(rootInstance, container, null, null);
-  },
-};

@@ -2,14 +2,188 @@ import { match, P } from "ts-pattern";
 import { pipe } from "fp-ts/lib/function.js";
 import * as z from "zod";
 
-import type * as t from "./taffy_types.ts";
+export interface Style {
+  display: Display;
+  item_is_table: boolean;
+  box_sizing: BoxSizing;
+  overflow: Point<Overflow>;
+  scrollbar_width: number;
+  position: Position;
+  inset: Rect<LengthPercentageAuto>;
+  size: Size<Dimension>;
+  min_size: Size<Dimension>;
+  max_size: Size<Dimension>;
+  aspect_ratio: Option<number>;
+  margin: Rect<LengthPercentageAuto>;
+  padding: Rect<LengthPercentage>;
+  border: Rect<LengthPercentage>;
+  align_items: Option<AlignItems>;
+  align_self: Option<AlignSelf>;
+  justify_items: Option<AlignItems>;
+  justify_self: Option<AlignSelf>;
+  align_content: Option<AlignContent>;
+  justify_content: Option<JustifyContent>;
+  gap: Size<LengthPercentage>;
+  text_align: TextAlign;
+  flex_direction: FlexDirection;
+  flex_wrap: FlexWrap;
+  flex_basis: Dimension;
+  flex_grow: number;
+  flex_shrink: number;
+  grid_template_rows: GridTrackVec<TrackSizingFunction>;
+  grid_template_columns: GridTrackVec<TrackSizingFunction>;
+  grid_auto_rows: GridTrackVec<NonRepeatedTrackSizingFunction>;
+  grid_auto_columns: GridTrackVec<NonRepeatedTrackSizingFunction>;
+  grid_auto_flow: GridAutoFlow;
+  grid_row: Line<GridPlacement>;
+  grid_column: Line<GridPlacement>;
+}
 
-export function cssToTaffy<T extends Record<string, unknown>>(css: T): Partial<t.Style> {
-  const size: t.Size<t.Dimension> = { width: "Auto", height: "Auto" };
-  const min_size: t.Size<t.Dimension> = { width: "Auto", height: "Auto" };
-  const max_size: t.Size<t.Dimension> = { width: "Auto", height: "Auto" };
+export type Display = "Block" | "Flex" | "Grid" | "None";
 
-  const taffy: Partial<t.Style> = { size, min_size, max_size };
+export type BoxSizing = "BorderBox" | "ContentBox";
+
+export interface Point<T> {
+  x: T;
+  y: T;
+}
+
+export type Overflow = "Visible" | "Clip" | "Hidden" | "Scroll";
+
+export type Position = "Relative" | "Absolute";
+
+export interface Rect<T> {
+  left: T;
+  right: T;
+  top: T;
+  bottom: T;
+}
+
+export type LengthPercentageAuto = Length<number> | Percent<number> | Auto;
+
+export interface Length<T> {
+  Length: T;
+}
+
+export interface Percent<T> {
+  Percent: T;
+}
+
+export type Auto = "Auto";
+
+export interface Size<Width, Height = Width> {
+  width: Width;
+  height: Height;
+}
+
+export type Dimension = Length<number> | Percent<number> | Auto;
+
+export type Option<T> = T | undefined;
+
+export type LengthPercentage = Length<number> | Percent<number>;
+
+export type AlignItems = "Start" | "End" | "FlexStart" | "FlexEnd" | "Center" | "Baseline" | "Stretch";
+
+export type AlignSelf = AlignItems;
+
+export type AlignContent =
+  | "Start"
+  | "End"
+  | "FlexStart"
+  | "FlexEnd"
+  | "Center"
+  | "Stretch"
+  | "SpaceBetween"
+  | "SpaceEvenly"
+  | "SpaceAround";
+
+export type JustifyContent = AlignContent;
+
+export type TextAlign = "Auto" | "LegacyLeft" | "LegacyRight" | "LegacyCenter";
+
+export type FlexDirection = "Row" | "Column" | "RowReverse" | "ColumnReverse";
+
+export type FlexWrap = "NoWrap" | "Wrap" | "WrapReverse";
+
+export type GridTrackVec<T> = Array<T>;
+
+export type TrackSizingFunction =
+  | Single<NonRepeatedTrackSizingFunction>
+  | Repeat<GridTrackRepetition, GridTrackVec<NonRepeatedTrackSizingFunction>>;
+
+export interface Single<T> {
+  Single: T;
+}
+
+export type Repeat<R, T> = [R, T];
+
+export type NonRepeatedTrackSizingFunction = MinMax<MinTrackSizingFunction, MaxTrackSizingFunction>;
+
+export interface MinMax<Min, Max> {
+  min: Min;
+  max: Max;
+}
+
+export type MinTrackSizingFunction = Fixed<LengthPercentage> | MinContent | MaxContent | Auto;
+
+export type MaxTrackSizingFunction =
+  | Fixed<LengthPercentage>
+  | MinContent
+  | MaxContent
+  | FitContent<LengthPercentage>
+  | Auto
+  | Fraction<number>;
+
+export interface Fixed<T> {
+  Fixed: T;
+}
+
+export interface FitContent<T> {
+  FitContent: T;
+}
+
+export interface Fraction<T> {
+  Fraction: T;
+}
+
+export type MinContent = "MinContent";
+export type MaxContent = "MaxContent";
+
+export type GridTrackRepetition = AutoFill | AutoFit | Count<number>;
+
+export type AutoFill = "AutoFill";
+
+export type AutoFit = "AutoFit";
+
+export interface Count<T> {
+  Count: T;
+}
+
+export type GridAutoFlow = "Row" | "Column" | "RowDense" | "ColumnDense";
+
+export interface Line<T> {
+  start: T;
+  end: T;
+}
+
+export type GridPlacement = GenericGridPlacement<GridLine>;
+
+export type GenericGridPlacement<LineType> = Auto | Line<LineType> | Span<number>;
+
+export interface GridLine<T = number> {
+  GridLine: T;
+}
+
+export interface Span<T = number> {
+  Span: T;
+}
+
+export function taffyFromCss<T extends Record<string, unknown>>(css: T): Partial<Style> {
+  const size: Size<Dimension> = { width: "Auto", height: "Auto" };
+  const min_size: Size<Dimension> = { width: "Auto", height: "Auto" };
+  const max_size: Size<Dimension> = { width: "Auto", height: "Auto" };
+
+  const taffy: Partial<Style> = { size, min_size, max_size };
 
   for (const [key, value] of Object.entries(css)) {
     match(key)
@@ -109,8 +283,8 @@ export function cssToTaffy<T extends Record<string, unknown>>(css: T): Partial<t
  * to values
  */
 
-function toDisplay(value: string): t.Display {
-  return match<string, t.Display>(value)
+function toDisplay(value: string): Display {
+  return match<string, Display>(value)
     .with("block", () => "Block")
     .with("flex", () => "Flex")
     .with("grid", () => "Grid")
@@ -118,15 +292,15 @@ function toDisplay(value: string): t.Display {
     .otherwise(unknownProp("display", value));
 }
 
-function toBoxSizing(value: string): t.BoxSizing {
-  return match<string, t.BoxSizing>(value)
+function toBoxSizing(value: string): BoxSizing {
+  return match<string, BoxSizing>(value)
     .with("border-box", () => "BorderBox")
     .with("content-box", () => "ContentBox")
     .otherwise(unknownProp("boxSizing", value));
 }
 
-function toOverflow(value: string): t.Overflow {
-  return match<string, t.Overflow>(value)
+function toOverflow(value: string): Overflow {
+  return match<string, Overflow>(value)
     .with("visible", () => "Visible")
     .with("hidden", () => "Hidden")
     .with("clip", () => "Clip")
@@ -134,15 +308,15 @@ function toOverflow(value: string): t.Overflow {
     .otherwise(unknownProp("overflow", value));
 }
 
-function toPosition(value: string): t.Position {
-  return match<string, t.Position>(value)
+function toPosition(value: string): Position {
+  return match<string, Position>(value)
     .with("absolute", () => "Absolute")
     .with("relative", () => "Relative")
     .otherwise(unknownProp("position", value));
 }
 
-function toAlignItems(value: string): t.AlignItems {
-  return match<string, t.AlignItems>(value)
+function toAlignItems(value: string): AlignItems {
+  return match<string, AlignItems>(value)
     .with("start", () => "Start")
     .with("end", () => "End")
     .with("flex-start", () => "FlexStart")
@@ -153,8 +327,8 @@ function toAlignItems(value: string): t.AlignItems {
     .otherwise(unknownValue(value));
 }
 
-function toAlignContent(value: string): t.AlignContent {
-  return match<string, t.AlignContent>(value)
+function toAlignContent(value: string): AlignContent {
+  return match<string, AlignContent>(value)
     .with("start", () => "Start")
     .with("end", () => "End")
     .with("flex-start", () => "FlexStart")
@@ -167,8 +341,8 @@ function toAlignContent(value: string): t.AlignContent {
     .otherwise(unknownValue(value));
 }
 
-function toTextAlign(value: string): t.TextAlign {
-  return match<string, t.TextAlign>(value)
+function toTextAlign(value: string): TextAlign {
+  return match<string, TextAlign>(value)
     .with("auto", () => "Auto")
     .with("legacy-left", () => "LegacyLeft")
     .with("legacy-right", () => "LegacyRight")
@@ -176,8 +350,8 @@ function toTextAlign(value: string): t.TextAlign {
     .otherwise(unknownProp("textAlign", value));
 }
 
-function toFlexDirection(value: string): t.FlexDirection {
-  return match<string, t.FlexDirection>(value)
+function toFlexDirection(value: string): FlexDirection {
+  return match<string, FlexDirection>(value)
     .with("row", () => "Row")
     .with("column", () => "Column")
     .with("row-reverse", () => "RowReverse")
@@ -185,15 +359,15 @@ function toFlexDirection(value: string): t.FlexDirection {
     .otherwise(unknownProp("flexDirection", value));
 }
 
-function toFlexWrap(value: string): t.FlexWrap {
-  return match<string, t.FlexWrap>(value)
+function toFlexWrap(value: string): FlexWrap {
+  return match<string, FlexWrap>(value)
     .with("nowrap", () => "NoWrap")
     .with("wrap", () => "Wrap")
     .with("wrap-reverse", () => "WrapReverse")
     .otherwise(unknownProp("flexWrap", value));
 }
 
-function toLengthPercentageAuto(value: string | number): t.LengthPercentageAuto {
+function toLengthPercentageAuto(value: string | number): LengthPercentageAuto {
   return match(value)
     .with(P.string.endsWith("%"), v => toPercent(parseFloat(v) / 100))
     .with(P.string.endsWith("px"), v => toLength(parseFloat(v)))
@@ -202,7 +376,7 @@ function toLengthPercentageAuto(value: string | number): t.LengthPercentageAuto 
     .otherwise(unknownValue(value));
 }
 
-function toLengthPercentage(value: string | number): t.LengthPercentage {
+function toLengthPercentage(value: string | number): LengthPercentage {
   return match(value)
     .with(P.string.endsWith("%"), v => toPercent(parseFloat(v) / 100))
     .with(P.string.endsWith("px"), v => toLength(parseFloat(v)))
@@ -223,7 +397,7 @@ function toAspectRatio(value: string | number): number {
     .otherwise(unknownValue(value));
 }
 
-function toTrackSizingFunction(value: string): t.TrackSizingFunction {
+function toTrackSizingFunction(value: string): TrackSizingFunction {
   const repeat = /repeat\(\s*(?<count>\S+)\s*,\s*(?<value>\S+)\s*\)/;
 
   return match(value)
@@ -246,7 +420,7 @@ function toTrackSizingFunction(value: string): t.TrackSizingFunction {
     .otherwise(unknownValue(value));
 }
 
-function toNonRepeatedTrackSizingFunction(value: string): t.NonRepeatedTrackSizingFunction {
+function toNonRepeatedTrackSizingFunction(value: string): NonRepeatedTrackSizingFunction {
   const minMax = /minmax\(\s*(?<min>\S+)\s*,\s*(?<max>\S+)\s*\)/;
 
   return match(value)
@@ -259,19 +433,19 @@ function toNonRepeatedTrackSizingFunction(value: string): t.NonRepeatedTrackSizi
     .otherwise(unknownValue(value));
 }
 
-function toMinTrackSizingFunction(value: string): t.MinTrackSizingFunction {
-  return match<string, t.MinTrackSizingFunction>(value)
+function toMinTrackSizingFunction(value: string): MinTrackSizingFunction {
+  return match<string, MinTrackSizingFunction>(value)
     .with("min-content", () => "MinContent")
     .with("max-content", () => "MaxContent")
     .with(P.string, v => pipe(v, toLengthPercentage, toFixed))
     .otherwise(unknownValue(value));
 }
 
-function toMaxTrackSizingFunction(value: string): t.MaxTrackSizingFunction {
+function toMaxTrackSizingFunction(value: string): MaxTrackSizingFunction {
   const fitContent = /fit-content\(\s*(?<arg>\S+)\s*\)/;
   const fraction = /(?<value>[0-9.]+)fr/;
 
-  return match<string, t.MaxTrackSizingFunction>(value)
+  return match<string, MaxTrackSizingFunction>(value)
     .with("min-content", () => "MinContent")
     .with("max-content", () => "MaxContent")
     .with(P.string.regex(fraction), v => {
@@ -291,8 +465,8 @@ function toMaxTrackSizingFunction(value: string): t.MaxTrackSizingFunction {
     .otherwise(unknownValue(value));
 }
 
-function toGridTrackRepetition(value: string): t.GridTrackRepetition {
-  return match<string, t.GridTrackRepetition>(value)
+function toGridTrackRepetition(value: string): GridTrackRepetition {
+  return match<string, GridTrackRepetition>(value)
     .with("auto-fill", () => "AutoFill")
     .with("auto-fit", () => "AutoFit")
     .with(P.string, v => {
@@ -324,55 +498,55 @@ function isStringOrNum(value: unknown): string | number {
  * containers
  */
 
-function toLength<T>(Length: T): t.Length<T> {
+function toLength<T>(Length: T): Length<T> {
   return { Length };
 }
 
-function toPercent<T>(Percent: T): t.Percent<T> {
+function toPercent<T>(Percent: T): Percent<T> {
   return { Percent };
 }
 
-function toFixed<T>(Fixed: T): t.Fixed<T> {
+function toFixed<T>(Fixed: T): Fixed<T> {
   return { Fixed };
 }
 
-function toFitContent<T>(FitContent: T): t.FitContent<T> {
+function toFitContent<T>(FitContent: T): FitContent<T> {
   return { FitContent };
 }
 
-function toFraction<T>(Fraction: T): t.Fraction<T> {
+function toFraction<T>(Fraction: T): Fraction<T> {
   return { Fraction };
 }
 
-function toCount<T>(Count: T): t.Count<T> {
+function toCount<T>(Count: T): Count<T> {
   return { Count };
 }
 
-function toSingle<T>(Single: T): t.Single<T> {
+function toSingle<T>(Single: T): Single<T> {
   return { Single };
 }
 
-function toRepeat<T, R>(Count: T, value: R): t.Repeat<T, R> {
+function toRepeat<T, R>(Count: T, value: R): Repeat<T, R> {
   return [Count, value];
 }
 
-function toPoint<T>([x, y]: [T, T]): t.Point<T> {
+function toPoint<T>([x, y]: [T, T]): Point<T> {
   return { x, y };
 }
 
-function toSize<T>([width, height]: [T, T]): t.Size<T> {
+function toSize<T>([width, height]: [T, T]): Size<T> {
   return { width, height };
 }
 
-function toMinMax<Min, Max>([min, max]: [Min, Max]): t.MinMax<Min, Max> {
+function toMinMax<Min, Max>([min, max]: [Min, Max]): MinMax<Min, Max> {
   return { min, max };
 }
 
-function toRect<T>([left, right, top, bottom]: [T, T, T, T]): t.Rect<T> {
+function toRect<T>([left, right, top, bottom]: [T, T, T, T]): Rect<T> {
   return { left, right, top, bottom };
 }
 
-function toAuto(): t.Auto {
+function toAuto(): Auto {
   return "Auto";
 }
 
