@@ -1,4 +1,4 @@
-use crate::graphics::Instance;
+use crate::gpu::Instance;
 use taffy::prelude::*;
 
 #[derive(Debug)]

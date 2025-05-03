@@ -9,7 +9,7 @@ use crate::app::Js;
 use crate::javascript_runtime::run_script;
 
 mod app;
-mod graphics;
+mod gpu;
 mod javascript_runtime;
 mod user_interface;
 

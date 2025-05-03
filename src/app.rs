@@ -8,7 +8,7 @@ use winit::event_loop::EventLoopProxy;
 use winit::window::Window;
 use winit::window::WindowId;
 
-use crate::graphics::Gpu;
+use crate::gpu::Gpu;
 use crate::user_interface::UserInterface;
 
 #[derive(Debug)]
