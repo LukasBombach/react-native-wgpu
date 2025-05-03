@@ -1,6 +1,17 @@
 import ReactReconciler from "react-reconciler";
-import { create_instance, append_child_to_container, append_child } from "rn-wgpu:rect";
+// import { create_instance, append_child_to_container, append_child } from "rn-wgpu:rect";
 import { taffyFromCss } from "./taffy.ts";
+
+// @ts-expect-error not typed yet
+export const create_instance = Deno.core.ops.op_create_instance;
+// @ts-expect-error not typed yet
+export const append_child_to_container = Deno.core.ops.op_append_child_to_container;
+// @ts-expect-error not typed yet
+export const append_child = Deno.core.ops.op_append_child;
+// @ts-expect-error not typed yet
+export const get_style_defaults = Deno.core.ops.op_get_style_defaults;
+// @ts-expect-error not typed yet
+export const debug = Deno.core.ops.op_debug;
 
 import type { CSSProperties, ReactNode } from "react";
 

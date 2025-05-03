@@ -130,8 +130,6 @@ extension!(
         op_get_style_defaults,
         op_debug,
     ],
-    esm_entry_point = "rn-wgpu:rect",
-    esm = [ dir "src", "rn-wgpu:rect" = "extension.js" ],
 );
 
 pub fn run_script(app_state: Arc<Mutex<AppState>>, js_path: &str) {
