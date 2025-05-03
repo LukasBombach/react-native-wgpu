@@ -34,7 +34,6 @@ type NoTimeout = -1;
 // from react-reconciler/constants, which cannot be imported with rustyscript
 const NoEventPriority = 0;
 const DefaultEventPriority = 0b0000000000000000000000000010000;
-const ConcurrentRoot = 1;
 
 let currentUpdatePriority = NoEventPriority;
 
