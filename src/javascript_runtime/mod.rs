@@ -10,7 +10,6 @@ use deno_error::JsErrorBox;
 use notify::event::ModifyKind;
 use notify::{recommended_watcher, EventKind, RecursiveMode, Watcher};
 use rustyscript::{Error, Module, Runtime, RuntimeOptions};
-use std::collections::HashSet;
 use std::path::Path;
 use std::sync::mpsc;
 use std::sync::Arc;
@@ -23,8 +22,6 @@ use crate::app::Js;
 
 #[op2]
 fn op_create_instance(state: &mut OpState, #[serde] style: Style) -> Result<f64, JsErrorBox> {
-    // print!("\n instance {style:?}");
-
     let node_id = state
         .borrow::<Arc<Mutex<AppState>>>()
         .lock()
@@ -219,12 +216,8 @@ pub fn run_script(app_state: Arc<Mutex<AppState>>, js_path: &str) {
 }
 
 fn init_runtime(app_state: Arc<Mutex<AppState>>) -> Result<Runtime, Error> {
-    let mut schema_whlist = HashSet::new();
-    schema_whlist.insert("rn-wgpu:".to_string());
-
     let mut runtime = Runtime::new(RuntimeOptions {
         extensions: vec![rect_extension::init_ops_and_esm()],
-        schema_whlist,
         ..RuntimeOptions::default()
     })?;
 
