@@ -5,12 +5,24 @@
   "author": "Lukas Bombach <lukas.bombach@googlemail.com>",
   "license": "MIT",
   "description": "React Native WGPU renderer",
+  "scripts": {
+    "test": "vitest"
+  },
   "dependencies": {
+    "change-case": "5.4.4",
+    "fp-ts": "2.16.9",
     "react": "19.0.0",
-    "react-reconciler": "0.31.0"
+    "react-reconciler": "0.31.0",
+    "ts-pattern": "5.7.0",
+    "zod": "4.0.0-beta.20250412T085909"
   },
   "devDependencies": {
+    "@tsconfig/node-ts": "23.6.1",
+    "@tsconfig/node23": "23.0.1",
+    "@tsconfig/recommended": "1.0.8",
+    "@types/node": "22.14.1",
     "@types/react": "19.0.12",
-    "@types/react-reconciler": "0.31.0"
+    "@types/react-reconciler": "0.31.0",
+    "vitest": "3.1.1"
   }
 }

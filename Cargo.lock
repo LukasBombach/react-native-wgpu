@@ -3308,6 +3308,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "grid"
+version = "0.15.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "36119f3a540b086b4e436bb2b588cf98a68863470e0e880f4d0842f112a3183a"
+
+[[package]]
 name = "group"
 version = "0.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5915,6 +5921,7 @@ dependencies = [
  "rustyscript",
  "serde",
  "sys_traits",
+ "taffy",
  "wgpu",
  "winit",
 ]
@@ -6334,7 +6341,6 @@ dependencies = [
 [[package]]
 name = "rustyscript"
 version = "0.11.0"
-source = "git+https://github.com/rscarson/rustyscript?rev=f85e33a9f44eaf35807857f2a5b743a7421ddceb#f85e33a9f44eaf35807857f2a5b743a7421ddceb"
 dependencies = [
  "async-trait",
  "base64-simd 0.8.0",
@@ -7475,6 +7481,18 @@ checksum = "638f0e61b5134e56b2abdf4c704fd44672603f15ca09013f314649056f3fee4d"
 dependencies = [
  "libc",
  "windows-sys 0.59.0",
+]
+
+[[package]]
+name = "taffy"
+version = "0.7.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ab4f4d046dd956a47a7e1a2947083d7ac3e6aa3cfaaead36173ceaa5ab11878c"
+dependencies = [
+ "arrayvec",
+ "grid",
+ "serde",
+ "slotmap",
 ]
 
 [[package]]

@@ -1,9 +1,12 @@
-import React from "npm:react";
-import { ReactWGPU } from "./renderer.ts";
+import React from "react";
+import { ReactWGPU } from "./javascript_runtime/react_wgpu.ts";
 
 ReactWGPU.render(
-  <rectangle top={200} left={200} width={400} height={400}>
-    <rectangle top={400} left={400} width={400} height={400} />
-    <rectangle top={500} left={500} width={200} height={200} />
+  <rectangle style={{ width: "100%", height: "100%", alignItems: "center", justifyContent: "center", gap: "10%" }}>
+    <rectangle style={{ width: "500px", height: "500px" }}></rectangle>
+    <rectangle style={{ width: "500px", height: "500px" }}></rectangle>
   </rectangle>
 );
+
+// import { get_style_defaults } from "rn-wgpu:rect";
+// console.dir(get_style_defaults(), { depth: Infinity });

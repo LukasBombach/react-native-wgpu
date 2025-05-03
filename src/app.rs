@@ -8,9 +8,8 @@ use winit::event_loop::EventLoopProxy;
 use winit::window::Window;
 use winit::window::WindowId;
 
-use crate::graphics::Gpu;
-use crate::graphics::Instance;
-use crate::graphics::Rect;
+use crate::gpu::Gpu;
+use crate::user_interface::UserInterface;
 
 #[derive(Debug)]
 pub enum Js {
@@ -19,14 +18,14 @@ pub enum Js {
 
 #[derive(Debug, Clone)]
 pub struct AppState {
-    pub rects: Arc<Mutex<Vec<Arc<Mutex<Rect>>>>>,
+    pub user_interface: Arc<Mutex<UserInterface>>,
     pub event_loop: Arc<Mutex<EventLoopProxy<Js>>>,
 }
 
 impl AppState {
     pub fn new(event_loop: Arc<Mutex<EventLoopProxy<Js>>>) -> Self {
         Self {
-            rects: Arc::new(Mutex::new(Vec::new())),
+            user_interface: Arc::new(Mutex::new(UserInterface::new())),
             event_loop,
         }
     }
@@ -47,21 +46,6 @@ impl App<'_> {
             gpu: None,
             state: state.clone(),
         }
-    }
-
-    fn rects_to_instances(&self) -> Vec<Instance> {
-        self.state
-            .lock()
-            .unwrap()
-            .rects
-            .lock()
-            .unwrap()
-            .iter()
-            .map(|r| {
-                let rect = r.lock().unwrap();
-                Instance::new(rect.0 as f32, rect.1 as f32, rect.2 as f32, rect.3 as f32)
-            })
-            .collect()
     }
 }
 
@@ -86,12 +70,22 @@ impl<'window> ApplicationHandler<Js> for App<'window> {
     fn user_event(&mut self, _event_loop: &ActiveEventLoop, event: Js) {
         match event {
             Js::RectsUpdated => {
-                let instances = self.rects_to_instances();
-                if let Some(gpu) = self.gpu.as_mut() {
-                    gpu.update_instance_buffer(&instances);
-                }
                 if let Some(window) = self.window.as_ref() {
-                    window.request_redraw();
+                    let size = window.inner_size();
+                    if let Some(instances) = self
+                        .state
+                        .lock()
+                        .unwrap()
+                        .user_interface
+                        .lock()
+                        .unwrap()
+                        .get_instances(size.width as f32, size.height as f32)
+                    {
+                        if let Some(gpu) = self.gpu.as_mut() {
+                            gpu.update_instance_buffer(&instances);
+                        }
+                        window.request_redraw();
+                    }
                 }
             }
         }
@@ -103,8 +97,19 @@ impl<'window> ApplicationHandler<Js> for App<'window> {
                 event_loop.exit();
             }
             WindowEvent::Resized(size) => {
-                if let Some(gpu) = self.gpu.as_mut() {
-                    gpu.set_size(size.width, size.height);
+                if let Some(instances) = self
+                    .state
+                    .lock()
+                    .unwrap()
+                    .user_interface
+                    .lock()
+                    .unwrap()
+                    .get_instances(size.width as f32, size.height as f32)
+                {
+                    if let Some(gpu) = self.gpu.as_mut() {
+                        gpu.update_instance_buffer(&instances);
+                        gpu.set_size(size.width, size.height);
+                    }
                 }
             }
             WindowEvent::RedrawRequested => {

@@ -1,14 +1,21 @@
-import ReactReconciler from "npm:react-reconciler";
-import { create_rect, append_rect_to_window } from "rn-wgpu:rect";
+import ReactReconciler from "react-reconciler";
+import { taffyFromCss } from "./taffy.ts";
 
-// from react-reconciler/constants, which cannot be imported with rustyscript
-const NoEventPriority = 0;
-const DefaultEventPriority = 0b0000000000000000000000000010000;
+// @ts-expect-error not typed yet
+export const create_instance = Deno.core.ops.op_create_instance;
+// @ts-expect-error not typed yet
+export const append_child_to_container = Deno.core.ops.op_append_child_to_container;
+// @ts-expect-error not typed yet
+export const append_child = Deno.core.ops.op_append_child;
+// @ts-expect-error not typed yet
+export const get_style_defaults = Deno.core.ops.op_get_style_defaults;
+// @ts-expect-error not typed yet
+export const debug = Deno.core.ops.op_debug;
 
-let currentUpdatePriority: number = NoEventPriority;
+import type { CSSProperties, ReactNode } from "react";
 
 type RectId = number;
-type RectProps = { top: number; left: number; width: number; height: number };
+type RectProps = { style: CSSProperties };
 
 type Type = Pick<Container | Instance | TextInstance | HostContext, "type">;
 type Props = RectProps;
@@ -23,6 +30,12 @@ type UpdatePayload = RectProps;
 type ChildSet = never;
 type TimeoutHandle = number;
 type NoTimeout = -1;
+
+// from react-reconciler/constants, which cannot be imported with rustyscript
+const NoEventPriority = 0;
+const DefaultEventPriority = 0b0000000000000000000000000010000;
+
+let currentUpdatePriority = NoEventPriority;
 
 export const reconciler = ReactReconciler<
   Type,
@@ -46,34 +59,39 @@ export const reconciler = ReactReconciler<
   noTimeout: -1,
 
   createInstance(_type, props, _rootContainerInstance, _hostContext, _internalInstanceHandle) {
-    const { top, left, width, height } = props;
-    const id = create_rect(top, left, width, height);
+    const taffyStyle = taffyFromCss(props.style as Record<string, unknown>);
+    const id = create_instance(taffyStyle);
     return { type: "rectangle", id };
   },
-  createTextInstance(_text, _rootContainerInstance, _hostContext, _internalInstanceHandle) {
-    return { type: "text" };
-  },
+
   appendChildToContainer(_container, child) {
     if (child.type === "rectangle") {
-      append_rect_to_window(child.id);
+      append_child_to_container(child.id);
     } else {
       console.warn("appendChildToContainer: Ignoring child", child);
     }
   },
-  appendChild(_parent, child) {
+
+  appendInitialChild(parent, child) {
     if (child.type === "rectangle") {
-      append_rect_to_window(child.id);
-    } else {
-      console.warn("appendChild: Ignoring child", child);
-    }
-  },
-  appendInitialChild(_parent, child) {
-    if (child.type === "rectangle") {
-      append_rect_to_window(child.id);
+      append_child(parent.id, child.id);
     } else {
       console.warn("appendInitialChild: Ignoring child", child);
     }
   },
+
+  appendChild(parent, child) {
+    if (child.type === "rectangle") {
+      append_child(parent.id, child.id);
+    } else {
+      console.warn("appendChild: Ignoring child", child);
+    }
+  },
+
+  createTextInstance(_text, _rootContainerInstance, _hostContext, _internalInstanceHandle) {
+    return { type: "text" };
+  },
+
   clearContainer: () => false,
   prepareForCommit: () => null,
   preparePortalMount: () => {},
@@ -86,6 +104,7 @@ export const reconciler = ReactReconciler<
   beforeActiveInstanceBlur: () => {},
   afterActiveInstanceBlur: () => {},
   detachDeletedInstance: () => {},
+  // @ts-expect-error badly typed by react-reconciler
   scheduleTimeout: setTimeout,
   cancelTimeout: clearTimeout,
   getInstanceFromNode: () => null,
