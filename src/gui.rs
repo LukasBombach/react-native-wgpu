@@ -24,6 +24,15 @@ enum NodeKind {
     Grid,
 }
 
+#[derive(Debug, Copy, Clone)]
+pub struct Gui {}
+
+impl Gui {
+    pub fn new() -> Self {
+        Self {}
+    }
+}
+
 struct Node {
     kind: NodeKind,
     style: Style,

@@ -9,6 +9,7 @@ use winit::window::Window;
 use winit::window::WindowId;
 
 use crate::gpu::Gpu;
+use crate::gui::Gui;
 use crate::user_interface::UserInterface;
 
 #[derive(Debug)]
@@ -34,6 +35,7 @@ impl AppState {
 pub struct App<'window> {
     window: Option<Arc<Window>>,
     gpu: Option<Gpu<'window>>,
+    pub gui: Arc<Mutex<Gui>>,
     pub state: Arc<Mutex<AppState>>,
 }
 
@@ -44,6 +46,7 @@ impl App<'_> {
         Self {
             window: None,
             gpu: None,
+            gui: Arc::new(Mutex::new(Gui::new())),
             state: state.clone(),
         }
     }
