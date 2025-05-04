@@ -20,7 +20,7 @@ type RectProps = { style: CSSProperties };
 type Type = Pick<Container | Instance | TextInstance | HostContext, "type">;
 type Props = RectProps;
 type Container = { type: "container" };
-type Instance = { type: "rectangle"; id: RectId };
+type Instance = { type: "div"; id: RectId };
 type TextInstance = { type: "text" };
 type SuspenseInstance = never;
 type HydratableInstance = never;
@@ -61,11 +61,11 @@ export const reconciler = ReactReconciler<
   createInstance(_type, props, _rootContainerInstance, _hostContext, _internalInstanceHandle) {
     const taffyStyle = taffyFromCss(props.style as Record<string, unknown>);
     const id = create_instance(taffyStyle);
-    return { type: "rectangle", id };
+    return { type: "div", id };
   },
 
   appendChildToContainer(_container, child) {
-    if (child.type === "rectangle") {
+    if (child.type === "div") {
       append_child_to_container(child.id);
     } else {
       console.warn("appendChildToContainer: Ignoring child", child);
@@ -73,7 +73,7 @@ export const reconciler = ReactReconciler<
   },
 
   appendInitialChild(parent, child) {
-    if (child.type === "rectangle") {
+    if (child.type === "div") {
       append_child(parent.id, child.id);
     } else {
       console.warn("appendInitialChild: Ignoring child", child);
@@ -81,7 +81,7 @@ export const reconciler = ReactReconciler<
   },
 
   appendChild(parent, child) {
-    if (child.type === "rectangle") {
+    if (child.type === "div") {
       append_child(parent.id, child.id);
     } else {
       console.warn("appendChild: Ignoring child", child);
