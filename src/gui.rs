@@ -24,12 +24,22 @@ enum NodeKind {
     Grid,
 }
 
-#[derive(Debug, Copy, Clone)]
-pub struct Gui {}
+pub struct Gui {
+    nodes: Vec<Node>,
+}
 
 impl Gui {
     pub fn new() -> Self {
-        Self {}
+        Self { nodes: Vec::new() }
+    }
+
+    pub fn create_instance(&mut self, style: Style) -> usize {
+        let node = Node {
+            style,
+            ..Node::default()
+        };
+        self.nodes.push(node);
+        self.nodes.len() - 1
     }
 }
 

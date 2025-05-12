@@ -19,19 +19,18 @@ use taffy::NodeId;
 
 use crate::app::AppState;
 use crate::app::Js;
+use crate::gui::Gui;
 
 #[op2]
-fn op_create_instance(state: &mut OpState, #[serde] style: Style) -> Result<f64, JsErrorBox> {
+#[bigint]
+fn op_create_instance(state: &mut OpState, #[serde] style: Style) -> Result<usize, JsErrorBox> {
     let node_id = state
-        .borrow::<Arc<Mutex<AppState>>>()
+        .borrow::<Arc<Mutex<Gui>>>()
         .lock()
         .unwrap()
-        .user_interface
-        .lock()
-        .unwrap()
-        .create_node(style);
+        .create_instance(style);
 
-    Ok(u64::from(node_id) as f64)
+    Ok(node_id)
 }
 
 #[op2(fast)]
