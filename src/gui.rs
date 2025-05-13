@@ -34,10 +34,18 @@ impl Gui {
     }
 
     pub fn create_instance(&mut self, style: Style) -> usize {
+        let kind = if style.display == Display::Grid {
+            NodeKind::Grid
+        } else {
+            NodeKind::Flexbox
+        };
+
         let node = Node {
             style,
+            kind,
             ..Node::default()
         };
+
         self.nodes.push(node);
         self.nodes.len() - 1
     }
