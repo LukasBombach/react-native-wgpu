@@ -26,11 +26,15 @@ enum NodeKind {
 
 pub struct Gui {
     nodes: Vec<Node>,
+    root: usize,
 }
 
 impl Gui {
     pub fn new() -> Self {
-        Self { nodes: Vec::new() }
+        let mut nodes = Vec::new();
+        nodes.push(Node::default());
+        let root = nodes.len() - 1;
+        Self { nodes, root }
     }
 
     pub fn create_instance(&mut self, style: Style) -> usize {
@@ -49,6 +53,14 @@ impl Gui {
         self.nodes.push(node);
         self.nodes.len() - 1
     }
+
+    pub fn append_child_to_container(&mut self, child: usize) -> () {
+        self.nodes[self.root].append_child(child);
+    }
+
+    pub fn append_child(&mut self, parent: usize, child: usize) {
+        self.nodes[parent].children.push(child);
+    }
 }
 
 struct Node {
@@ -56,7 +68,7 @@ struct Node {
     style: Style,
     cache: Cache,
     layout: Layout,
-    children: Vec<Node>,
+    children: Vec<usize>,
 }
 
 impl Default for Node {
@@ -72,7 +84,7 @@ impl Default for Node {
 }
 
 impl Node {
-    pub fn append_child(&mut self, node: Node) {
+    pub fn append_child(&mut self, node: usize) {
         self.children.push(node);
     }
 
