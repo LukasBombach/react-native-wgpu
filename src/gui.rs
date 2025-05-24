@@ -10,12 +10,12 @@ enum NodeKind {
     Grid,
 }
 
-struct Node {
+pub struct Node {
     kind: NodeKind,
     style: Style,
     cache: Cache,
-    layout: Layout,
-    children: Vec<NodeId>,
+    pub layout: Layout,
+    pub children: Vec<NodeId>,
 }
 
 impl Default for Node {
@@ -37,7 +37,7 @@ impl Node {
 }
 
 pub struct Gui {
-    root: Node,
+    pub root: NodeId,
     nodes: SlotMap<DefaultKey, Node>,
 }
 
@@ -79,17 +79,34 @@ impl Gui {
     }
 
     #[inline(always)]
-    fn node_from_id(&self, node_id: NodeId) -> &Node {
+    pub fn node_from_id(&self, node_id: NodeId) -> &Node {
         &self.nodes.get(node_id.into()).unwrap()
     }
 
     #[inline(always)]
-    fn node_from_id_mut(&mut self, node_id: NodeId) -> &mut Node {
+    pub fn node_from_id_mut(&mut self, node_id: NodeId) -> &mut Node {
         self.nodes.get_mut(node_id.into()).unwrap()
     }
 
-    pub fn compute_layout(&mut self, root: usize, available_space: Size<AvailableSpace>) {
-        compute_root_layout(self, NodeId::from(root), available_space);
+    #[inline(always)]
+    pub fn children_from_id(&self, node_id: NodeId) -> &Vec<NodeId> {
+        &self.nodes.get(node_id.into()).unwrap().children
+    }
+
+    #[inline(always)]
+    pub fn layout_from_id(&self, node_id: NodeId) -> &Layout {
+        &self.nodes.get(node_id.into()).unwrap().layout
+    }
+
+    pub fn compute_layout(&mut self, width: f32, height: f32) {
+        compute_root_layout(
+            self,
+            NodeId::from(self.root),
+            Size {
+                width: length(width),
+                height: length(height),
+            },
+        );
     }
 }
 
