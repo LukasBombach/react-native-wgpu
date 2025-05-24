@@ -1,3 +1,4 @@
+use crate::gpu::Instance;
 use slotmap::{DefaultKey, SlotMap};
 use taffy::{
     compute_cached_layout, compute_flexbox_layout, compute_grid_layout, compute_root_layout,
@@ -107,6 +108,31 @@ impl Gui {
                 height: length(height),
             },
         );
+    }
+
+    pub fn get_instances(&mut self, width: f32, height: f32) -> Option<Vec<Instance>> {
+        fn collect_instances(
+            gui: &Gui,
+            node_id: taffy::NodeId,
+            offset_x: f32,
+            offset_y: f32,
+            instances: &mut Vec<Instance>,
+        ) {
+            let layout = gui.layout_from_id(node_id);
+            let (x, y) = (offset_x + layout.location.x, offset_y + layout.location.y);
+            instances.push(Instance::new(x, y, layout.size.width, layout.size.height));
+
+            for child_id in gui.children_from_id(node_id) {
+                collect_instances(gui, *child_id, x, y, instances);
+            }
+        }
+
+        self.compute_layout(width, height);
+
+        let mut instances = Vec::new();
+        collect_instances(&self, self.root, 0.0, 0.0, &mut instances);
+
+        Some(instances)
     }
 }
 

@@ -100,15 +100,17 @@ impl<'window> ApplicationHandler<Js> for App<'window> {
                 if let Some(window) = self.window.as_ref() {
                     let size = window.inner_size();
 
-                    let instances = self
-                        .get_instances_temp(size.width as f32, size.height as f32)
-                        .unwrap();
-
-                    if let Some(gpu) = self.gpu.as_mut() {
-                        gpu.update_instance_buffer(&instances);
+                    if let Some(instances) = self
+                        .gui
+                        .lock()
+                        .unwrap()
+                        .get_instances(size.width as f32, size.height as f32)
+                    {
+                        if let Some(gpu) = self.gpu.as_mut() {
+                            gpu.update_instance_buffer(&instances);
+                        }
+                        window.request_redraw();
                     }
-
-                    window.request_redraw();
                 }
             }
         }
@@ -121,10 +123,7 @@ impl<'window> ApplicationHandler<Js> for App<'window> {
             }
             WindowEvent::Resized(size) => {
                 if let Some(instances) = self
-                    .state
-                    .lock()
-                    .unwrap()
-                    .user_interface
+                    .gui
                     .lock()
                     .unwrap()
                     .get_instances(size.width as f32, size.height as f32)
