@@ -45,8 +45,25 @@ pub struct Gui {
 impl Gui {
     pub fn new() -> Self {
         let mut nodes = SlotMap::new();
-        let root = nodes.insert(Node::default()).into();
+        let root = nodes.insert(Self::create_root()).into();
         Self { root, nodes }
+    }
+
+    fn create_root() -> Node {
+        let style = Style {
+            display: Display::Flex,
+            size: Size {
+                width: percent(1.0),
+                height: percent(1.0),
+            },
+            ..Default::default()
+        };
+
+        Node {
+            style,
+            kind: NodeKind::Flexbox,
+            ..Node::default()
+        }
     }
 
     pub fn create_node(&mut self, style: Style) -> NodeId {

@@ -171,6 +171,7 @@ pub fn run_script(app_state: Arc<Mutex<AppState>>, gui: Arc<Mutex<Gui>>, js_path
 }
 
 fn init_runtime(app_state: Arc<Mutex<AppState>>, gui: Arc<Mutex<Gui>>) -> Result<Runtime, Error> {
+    println!("Initializing runtime...");
     let mut runtime = Runtime::new(RuntimeOptions {
         extensions: vec![rect_extension::init_ops_and_esm()],
         ..RuntimeOptions::default()
@@ -185,6 +186,8 @@ fn init_runtime(app_state: Arc<Mutex<AppState>>, gui: Arc<Mutex<Gui>>) -> Result
     runtime.deno_runtime().op_state().borrow_mut().put(gui);
 
     runtime.set_current_dir("src")?;
+
+    println!("Runtime initialized successfully.");
 
     Ok(runtime)
 }
