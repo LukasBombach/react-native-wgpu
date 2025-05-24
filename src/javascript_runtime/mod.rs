@@ -28,21 +28,21 @@ fn op_create_instance(state: &mut OpState, #[serde] style: Style) -> Result<usiz
         .borrow::<Arc<Mutex<Gui>>>()
         .lock()
         .unwrap()
-        .create_instance(style);
+        .create_node(style);
 
-    Ok(node_id)
+    Ok(usize::from(node_id))
 }
 
 #[op2(fast)]
-fn op_append_child_to_container(state: &mut OpState, node_id: f64) -> Result<(), JsErrorBox> {
+fn op_append_child_to_container(
+    state: &mut OpState,
+    #[bigint] node_id: usize,
+) -> Result<(), JsErrorBox> {
     state
-        .borrow::<Arc<Mutex<AppState>>>()
+        .borrow::<Arc<Mutex<Gui>>>()
         .lock()
         .unwrap()
-        .user_interface
-        .lock()
-        .unwrap()
-        .add_child_to_root(NodeId::from(node_id as u64));
+        .append_child_to_root(NodeId::from(node_id));
 
     state
         .borrow::<Arc<Mutex<AppState>>>()
