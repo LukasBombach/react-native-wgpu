@@ -81,48 +81,12 @@ fn op_append_child(
     Ok(())
 }
 
-#[op2]
-#[serde]
-fn op_get_style_defaults() -> Result<Style, JsErrorBox> {
-    Ok(Style {
-        display: Display::Grid,
-        size: Size {
-            width: length(800.0),
-            height: length(600.0),
-        },
-        grid_template_columns: vec![length(250.0), fr(1.0), length(250.0)],
-        grid_template_rows: vec![repeat(1, vec![fr(1.0)])],
-        grid_auto_flow: GridAutoFlow::Row,
-        grid_auto_columns: vec![length(100.0)],
-        grid_auto_rows: vec![length(100.0)],
-        grid_row: line(1),
-        grid_column: span(3),
-        ..Default::default()
-    })
-}
-
-#[op2(fast)]
-fn op_debug(state: &mut OpState) -> Result<(), JsErrorBox> {
-    state
-        .borrow::<Arc<Mutex<AppState>>>()
-        .lock()
-        .unwrap()
-        .user_interface
-        .lock()
-        .unwrap()
-        .debug();
-
-    Ok(())
-}
-
 extension!(
     rect_extension,
     ops = [
         op_create_instance,
         op_append_child_to_container,
         op_append_child,
-        op_get_style_defaults,
-        op_debug,
     ],
 );
 

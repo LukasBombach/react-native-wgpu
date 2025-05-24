@@ -44,10 +44,9 @@ pub struct Gui {
 
 impl Gui {
     pub fn new() -> Self {
-        Self {
-            root: Node::default(),
-            nodes: SlotMap::new(),
-        }
+        let mut nodes = SlotMap::new();
+        let root = nodes.insert(Node::default()).into();
+        Self { root, nodes }
     }
 
     pub fn create_node(&mut self, style: Style) -> NodeId {
@@ -70,7 +69,7 @@ impl Gui {
     }
 
     pub fn append_child_to_root(&mut self, child_id: NodeId) -> () {
-        self.root.append_child(child_id);
+        self.append_child(self.root, child_id);
     }
 
     pub fn append_child(&mut self, parent_id: NodeId, child_id: NodeId) {
@@ -97,6 +96,11 @@ impl Gui {
     #[inline(always)]
     pub fn layout_from_id(&self, node_id: NodeId) -> &Layout {
         &self.nodes.get(node_id.into()).unwrap().layout
+    }
+
+    pub fn clear(&mut self) {
+        self.nodes.clear();
+        self.root = self.nodes.insert(Node::default()).into();
     }
 
     pub fn compute_layout(&mut self, width: f32, height: f32) {
