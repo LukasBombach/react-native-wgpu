@@ -57,18 +57,16 @@ fn op_append_child_to_container(
     Ok(())
 }
 #[op2(fast)]
-fn op_append_child(state: &mut OpState, parent_id: f64, child_id: f64) -> Result<(), JsErrorBox> {
+fn op_append_child(
+    state: &mut OpState,
+    #[bigint] parent_id: usize,
+    #[bigint] child_id: usize,
+) -> Result<(), JsErrorBox> {
     state
-        .borrow::<Arc<Mutex<AppState>>>()
+        .borrow::<Arc<Mutex<Gui>>>()
         .lock()
         .unwrap()
-        .user_interface
-        .lock()
-        .unwrap()
-        .add_child(
-            NodeId::from(parent_id as u64),
-            NodeId::from(child_id as u64),
-        );
+        .append_child(NodeId::from(parent_id), NodeId::from(child_id));
 
     state
         .borrow::<Arc<Mutex<AppState>>>()
