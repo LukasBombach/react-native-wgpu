@@ -9,10 +9,7 @@ use winit::window::Window;
 use winit::window::WindowId;
 
 use crate::gpu::Gpu;
-use crate::gpu::Instance;
-use crate::gui;
 use crate::gui::Gui;
-use crate::user_interface::UserInterface;
 
 #[derive(Debug)]
 pub enum Js {
@@ -47,32 +44,6 @@ impl App<'_> {
             gui: Arc::new(Mutex::new(Gui::new())),
             state: state.clone(),
         }
-    }
-
-    fn get_instances_temp(&mut self, width: f32, height: f32) -> Option<Vec<Instance>> {
-        fn collect_instances(
-            gui: &Gui,
-            node_id: taffy::NodeId,
-            offset_x: f32,
-            offset_y: f32,
-            instances: &mut Vec<Instance>,
-        ) {
-            let layout = gui.layout_from_id(node_id);
-            let (x, y) = (offset_x + layout.location.x, offset_y + layout.location.y);
-            instances.push(Instance::new(x, y, layout.size.width, layout.size.height));
-
-            for child_id in gui.children_from_id(node_id) {
-                collect_instances(gui, *child_id, x, y, instances);
-            }
-        }
-
-        let mut gui = self.gui.lock().unwrap();
-        gui.compute_layout(width, height);
-
-        let mut instances = Vec::new();
-        collect_instances(&gui, gui.root, 0.0, 0.0, &mut instances);
-
-        Some(instances)
     }
 }
 

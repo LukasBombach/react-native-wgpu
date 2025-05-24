@@ -90,7 +90,7 @@ extension!(
     ],
 );
 
-pub fn run_script(app_state: Arc<Mutex<AppState>>, js_path: &str) {
+pub fn run_script(app_state: Arc<Mutex<AppState>>, gui: Arc<Mutex<Gui>>, js_path: &str) {
     let js_path_buf = Path::new(env!("CARGO_MANIFEST_DIR")).join(js_path);
 
     let app_state_for_thread = app_state.clone();
@@ -106,7 +106,7 @@ pub fn run_script(app_state: Arc<Mutex<AppState>>, js_path: &str) {
             )
             .unwrap();
 
-        let mut runtime = match init_runtime(app_state.clone()) {
+        let mut runtime = match init_runtime(app_state.clone(), gui.clone()) {
             Ok(runtime) => runtime,
             Err(error) => {
                 eprintln!("{error}");
@@ -140,13 +140,7 @@ pub fn run_script(app_state: Arc<Mutex<AppState>>, js_path: &str) {
                                 }
                             };
 
-                            app_state
-                                .lock()
-                                .unwrap()
-                                .user_interface
-                                .lock()
-                                .unwrap()
-                                .clear();
+                            gui.lock().unwrap().clear();
 
                             app_state_for_thread
                                 .lock()
@@ -176,7 +170,7 @@ pub fn run_script(app_state: Arc<Mutex<AppState>>, js_path: &str) {
     });
 }
 
-fn init_runtime(app_state: Arc<Mutex<AppState>>) -> Result<Runtime, Error> {
+fn init_runtime(app_state: Arc<Mutex<AppState>>, gui: Arc<Mutex<Gui>>) -> Result<Runtime, Error> {
     let mut runtime = Runtime::new(RuntimeOptions {
         extensions: vec![rect_extension::init_ops_and_esm()],
         ..RuntimeOptions::default()
@@ -187,6 +181,8 @@ fn init_runtime(app_state: Arc<Mutex<AppState>>) -> Result<Runtime, Error> {
         .op_state()
         .borrow_mut()
         .put(app_state);
+
+    runtime.deno_runtime().op_state().borrow_mut().put(gui);
 
     runtime.set_current_dir("src")?;
 
