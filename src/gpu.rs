@@ -290,8 +290,6 @@ impl<'window> Gpu<'window> {
 
             rpass.set_pipeline(&self.render_pipeline);
 
-            print!("Drawing {} instances\n", self.instance_count);
-
             if self.instance_count > 0 {
                 rpass.set_push_constants(wgpu::ShaderStages::VERTEX, 0, bytes_of(&self.viewport));
                 rpass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
