@@ -16,9 +16,7 @@ use std::sync::Arc;
 use std::sync::Mutex;
 use std::thread;
 use taffy::NodeId;
-use winit::event_loop::EventLoopProxy;
 
-use crate::app::Js;
 use crate::gui::Gui;
 
 #[op2]
@@ -44,13 +42,6 @@ fn op_append_child_to_container(
         .unwrap()
         .append_child_to_root(NodeId::from(node_id));
 
-    state
-        .borrow::<Arc<Mutex<EventLoopProxy<Js>>>>()
-        .lock()
-        .unwrap()
-        .send_event(Js::RectsUpdated)
-        .unwrap();
-
     Ok(())
 }
 #[op2(fast)]
@@ -65,13 +56,6 @@ fn op_append_child(
         .unwrap()
         .append_child(NodeId::from(parent_id), NodeId::from(child_id));
 
-    state
-        .borrow::<Arc<Mutex<EventLoopProxy<Js>>>>()
-        .lock()
-        .unwrap()
-        .send_event(Js::RectsUpdated)
-        .unwrap();
-
     Ok(())
 }
 
@@ -84,10 +68,8 @@ extension!(
     ],
 );
 
-pub fn run_script(event_loop: Arc<Mutex<EventLoopProxy<Js>>>, gui: Arc<Mutex<Gui>>, js_path: &str) {
+pub fn run_script(gui: Arc<Mutex<Gui>>, js_path: &str) {
     let js_path_buf = Path::new(env!("CARGO_MANIFEST_DIR")).join(js_path);
-
-    let event_loop_for_thread = event_loop.clone();
 
     let _handle = thread::spawn(move || {
         let (tx, rx) = mpsc::channel();
@@ -100,7 +82,7 @@ pub fn run_script(event_loop: Arc<Mutex<EventLoopProxy<Js>>>, gui: Arc<Mutex<Gui
             )
             .unwrap();
 
-        let mut runtime = match init_runtime(event_loop.clone(), gui.clone()) {
+        let mut runtime = match init_runtime(gui.clone()) {
             Ok(runtime) => runtime,
             Err(error) => {
                 eprintln!("{error}");
@@ -136,12 +118,6 @@ pub fn run_script(event_loop: Arc<Mutex<EventLoopProxy<Js>>>, gui: Arc<Mutex<Gui
 
                             gui.lock().unwrap().clear();
 
-                            event_loop_for_thread
-                                .lock()
-                                .unwrap()
-                                .send_event(Js::RectsUpdated)
-                                .unwrap();
-
                             if let Err(error) = runtime.load_module(&module) {
                                 eprintln!("{error}");
                             }
@@ -161,21 +137,12 @@ pub fn run_script(event_loop: Arc<Mutex<EventLoopProxy<Js>>>, gui: Arc<Mutex<Gui
     });
 }
 
-fn init_runtime(
-    event_loop: Arc<Mutex<EventLoopProxy<Js>>>,
-    gui: Arc<Mutex<Gui>>,
-) -> Result<Runtime, Error> {
+fn init_runtime(gui: Arc<Mutex<Gui>>) -> Result<Runtime, Error> {
     println!("Initializing runtime...");
     let mut runtime = Runtime::new(RuntimeOptions {
         extensions: vec![rect_extension::init_ops_and_esm()],
         ..RuntimeOptions::default()
     })?;
-
-    runtime
-        .deno_runtime()
-        .op_state()
-        .borrow_mut()
-        .put(event_loop);
 
     runtime.deno_runtime().op_state().borrow_mut().put(gui);
 

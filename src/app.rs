@@ -12,29 +12,27 @@ use crate::gpu::Gpu;
 use crate::gui::Gui;
 
 #[derive(Debug)]
-pub enum Js {
-    RectsUpdated,
+pub enum CustomEvent {
+    GuiUpdate,
 }
 
 pub struct App<'window> {
     window: Option<Arc<Window>>,
     gpu: Option<Gpu<'window>>,
-    pub event_loop: Arc<Mutex<EventLoopProxy<Js>>>,
     pub gui: Arc<Mutex<Gui>>,
 }
 
 impl App<'_> {
-    pub fn new(event_loop: Arc<Mutex<EventLoopProxy<Js>>>) -> Self {
+    pub fn new(event_loop: Arc<Mutex<EventLoopProxy<CustomEvent>>>) -> Self {
         Self {
             window: None,
             gpu: None,
-            gui: Arc::new(Mutex::new(Gui::new())),
-            event_loop: event_loop.clone(),
+            gui: Arc::new(Mutex::new(Gui::new(event_loop.clone()))),
         }
     }
 }
 
-impl<'window> ApplicationHandler<Js> for App<'window> {
+impl<'window> ApplicationHandler<CustomEvent> for App<'window> {
     fn resumed(&mut self, event_loop: &ActiveEventLoop) {
         if self.window.is_none() {
             let window = Arc::new(
@@ -52,9 +50,9 @@ impl<'window> ApplicationHandler<Js> for App<'window> {
         }
     }
 
-    fn user_event(&mut self, _event_loop: &ActiveEventLoop, event: Js) {
+    fn user_event(&mut self, _event_loop: &ActiveEventLoop, event: CustomEvent) {
         match event {
-            Js::RectsUpdated => {
+            CustomEvent::GuiUpdate => {
                 println!("Rects updated event received");
                 if let Some(window) = self.window.as_ref() {
                     println!("window available, updating instances");

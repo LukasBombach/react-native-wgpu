@@ -1,9 +1,13 @@
+use crate::app::CustomEvent;
 use crate::gpu::Instance;
 use slotmap::{DefaultKey, SlotMap};
+use std::sync::Arc;
+use std::sync::Mutex;
 use taffy::{
     compute_cached_layout, compute_flexbox_layout, compute_grid_layout, compute_root_layout,
     prelude::*, Cache, Layout, Style,
 };
+use winit::event_loop::EventLoopProxy;
 
 #[derive(Debug, Copy, Clone)]
 enum NodeKind {
@@ -40,13 +44,18 @@ impl Node {
 pub struct Gui {
     pub root: NodeId,
     nodes: SlotMap<DefaultKey, Node>,
+    event_loop: Arc<Mutex<EventLoopProxy<CustomEvent>>>,
 }
 
 impl Gui {
-    pub fn new() -> Self {
+    pub fn new(event_loop: Arc<Mutex<EventLoopProxy<CustomEvent>>>) -> Self {
         let mut nodes = SlotMap::new();
         let root = nodes.insert(Self::create_root()).into();
-        Self { root, nodes }
+        Self {
+            root,
+            nodes,
+            event_loop,
+        }
     }
 
     fn create_root() -> Node {
@@ -87,11 +96,13 @@ impl Gui {
 
     pub fn append_child_to_root(&mut self, child_id: NodeId) -> () {
         self.append_child(self.root, child_id);
+        self.notify_update();
     }
 
     pub fn append_child(&mut self, parent_id: NodeId, child_id: NodeId) {
         if let Some(parent) = self.nodes.get_mut(parent_id.into()) {
-            parent.append_child(child_id)
+            parent.append_child(child_id);
+            self.notify_update();
         }
     }
 
@@ -118,6 +129,7 @@ impl Gui {
     pub fn clear(&mut self) {
         self.nodes.clear();
         self.root = self.nodes.insert(Self::create_root()).into();
+        self.notify_update();
     }
 
     pub fn compute_layout(&mut self, width: f32, height: f32) {
@@ -154,6 +166,12 @@ impl Gui {
         collect_instances(&self, self.root, 0.0, 0.0, &mut instances);
 
         Some(instances)
+    }
+
+    fn notify_update(&self) {
+        if let Ok(proxy) = self.event_loop.lock() {
+            proxy.send_event(CustomEvent::GuiUpdate).unwrap();
+        }
     }
 }
 
