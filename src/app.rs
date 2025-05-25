@@ -53,10 +53,7 @@ impl<'window> ApplicationHandler<CustomEvent> for App<'window> {
     fn user_event(&mut self, _event_loop: &ActiveEventLoop, event: CustomEvent) {
         match event {
             CustomEvent::GuiUpdate => {
-                println!("Rects updated event received");
                 if let Some(window) = self.window.as_ref() {
-                    println!("window available, updating instances");
-
                     let size = window.inner_size();
 
                     if let Some(instances) = self
@@ -66,13 +63,10 @@ impl<'window> ApplicationHandler<CustomEvent> for App<'window> {
                         .get_instances(size.width as f32, size.height as f32)
                     {
                         if let Some(gpu) = self.gpu.as_mut() {
-                            println!("GPU available, updating instance buffer");
-                            println!("Number of instances: {}", instances.len());
                             gpu.update_instance_buffer(&instances);
                         }
+                        window.request_redraw();
                     }
-                    println!("Requesting redraw");
-                    window.request_redraw();
                 }
             }
         }
@@ -98,7 +92,6 @@ impl<'window> ApplicationHandler<CustomEvent> for App<'window> {
             }
             WindowEvent::RedrawRequested => {
                 if let Some(gpu) = self.gpu.as_mut() {
-                    print!("Redrawing...\n");
                     gpu.draw();
                 }
             }
