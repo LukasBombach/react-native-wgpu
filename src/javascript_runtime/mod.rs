@@ -16,8 +16,8 @@ use std::sync::Arc;
 use std::sync::Mutex;
 use std::thread;
 use taffy::NodeId;
+use winit::event_loop::EventLoopProxy;
 
-use crate::app::AppState;
 use crate::app::Js;
 use crate::gui::Gui;
 
@@ -45,10 +45,7 @@ fn op_append_child_to_container(
         .append_child_to_root(NodeId::from(node_id));
 
     state
-        .borrow::<Arc<Mutex<AppState>>>()
-        .lock()
-        .unwrap()
-        .event_loop
+        .borrow::<Arc<Mutex<EventLoopProxy<Js>>>>()
         .lock()
         .unwrap()
         .send_event(Js::RectsUpdated)
@@ -69,10 +66,7 @@ fn op_append_child(
         .append_child(NodeId::from(parent_id), NodeId::from(child_id));
 
     state
-        .borrow::<Arc<Mutex<AppState>>>()
-        .lock()
-        .unwrap()
-        .event_loop
+        .borrow::<Arc<Mutex<EventLoopProxy<Js>>>>()
         .lock()
         .unwrap()
         .send_event(Js::RectsUpdated)
@@ -90,10 +84,10 @@ extension!(
     ],
 );
 
-pub fn run_script(app_state: Arc<Mutex<AppState>>, gui: Arc<Mutex<Gui>>, js_path: &str) {
+pub fn run_script(event_loop: Arc<Mutex<EventLoopProxy<Js>>>, gui: Arc<Mutex<Gui>>, js_path: &str) {
     let js_path_buf = Path::new(env!("CARGO_MANIFEST_DIR")).join(js_path);
 
-    let app_state_for_thread = app_state.clone();
+    let event_loop_for_thread = event_loop.clone();
 
     let _handle = thread::spawn(move || {
         let (tx, rx) = mpsc::channel();
@@ -106,7 +100,7 @@ pub fn run_script(app_state: Arc<Mutex<AppState>>, gui: Arc<Mutex<Gui>>, js_path
             )
             .unwrap();
 
-        let mut runtime = match init_runtime(app_state.clone(), gui.clone()) {
+        let mut runtime = match init_runtime(event_loop.clone(), gui.clone()) {
             Ok(runtime) => runtime,
             Err(error) => {
                 eprintln!("{error}");
@@ -142,10 +136,7 @@ pub fn run_script(app_state: Arc<Mutex<AppState>>, gui: Arc<Mutex<Gui>>, js_path
 
                             gui.lock().unwrap().clear();
 
-                            app_state_for_thread
-                                .lock()
-                                .unwrap()
-                                .event_loop
+                            event_loop_for_thread
                                 .lock()
                                 .unwrap()
                                 .send_event(Js::RectsUpdated)
@@ -170,7 +161,10 @@ pub fn run_script(app_state: Arc<Mutex<AppState>>, gui: Arc<Mutex<Gui>>, js_path
     });
 }
 
-fn init_runtime(app_state: Arc<Mutex<AppState>>, gui: Arc<Mutex<Gui>>) -> Result<Runtime, Error> {
+fn init_runtime(
+    event_loop: Arc<Mutex<EventLoopProxy<Js>>>,
+    gui: Arc<Mutex<Gui>>,
+) -> Result<Runtime, Error> {
     println!("Initializing runtime...");
     let mut runtime = Runtime::new(RuntimeOptions {
         extensions: vec![rect_extension::init_ops_and_esm()],
@@ -181,7 +175,7 @@ fn init_runtime(app_state: Arc<Mutex<AppState>>, gui: Arc<Mutex<Gui>>) -> Result
         .deno_runtime()
         .op_state()
         .borrow_mut()
-        .put(app_state);
+        .put(event_loop);
 
     runtime.deno_runtime().op_state().borrow_mut().put(gui);
 

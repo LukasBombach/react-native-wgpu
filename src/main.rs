@@ -18,7 +18,7 @@ fn main() -> Result<(), EventLoopError> {
     let event_loop_proxy = Arc::new(Mutex::new(event_loop.create_proxy()));
     let mut app = App::new(event_loop_proxy);
 
-    run_script(app.state.clone(), app.gui.clone(), "src/main.tsx");
+    run_script(app.event_loop.clone(), app.gui.clone(), "src/main.tsx");
 
     event_loop.run_app(&mut app)
 }

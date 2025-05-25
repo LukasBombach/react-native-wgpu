@@ -16,33 +16,20 @@ pub enum Js {
     RectsUpdated,
 }
 
-#[derive(Debug, Clone)]
-pub struct AppState {
-    pub event_loop: Arc<Mutex<EventLoopProxy<Js>>>,
-}
-
-impl AppState {
-    pub fn new(event_loop: Arc<Mutex<EventLoopProxy<Js>>>) -> Self {
-        Self { event_loop }
-    }
-}
-
 pub struct App<'window> {
     window: Option<Arc<Window>>,
     gpu: Option<Gpu<'window>>,
+    pub event_loop: Arc<Mutex<EventLoopProxy<Js>>>,
     pub gui: Arc<Mutex<Gui>>,
-    pub state: Arc<Mutex<AppState>>,
 }
 
 impl App<'_> {
     pub fn new(event_loop: Arc<Mutex<EventLoopProxy<Js>>>) -> Self {
-        let state = Arc::new(Mutex::new(AppState::new(event_loop)));
-
         Self {
             window: None,
             gpu: None,
             gui: Arc::new(Mutex::new(Gui::new())),
-            state: state.clone(),
+            event_loop: event_loop.clone(),
         }
     }
 }
