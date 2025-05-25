@@ -117,7 +117,7 @@ impl Gui {
 
     pub fn clear(&mut self) {
         self.nodes.clear();
-        self.root = self.nodes.insert(Node::default()).into();
+        self.root = self.nodes.insert(Self::create_root()).into();
     }
 
     pub fn compute_layout(&mut self, width: f32, height: f32) {
