@@ -7,6 +7,3 @@ ReactWGPU.render(
     <div style={{ width: "500px", height: "500px" }}></div>
   </div>
 );
-
-// import { get_style_defaults } from "rn-wgpu:rect";
-// console.dir(get_style_defaults(), { depth: Infinity });

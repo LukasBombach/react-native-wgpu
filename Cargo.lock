@@ -5920,6 +5920,7 @@ dependencies = [
  "pollster",
  "rustyscript",
  "serde",
+ "slotmap",
  "sys_traits",
  "taffy",
  "wgpu",

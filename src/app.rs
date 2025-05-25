@@ -9,47 +9,30 @@ use winit::window::Window;
 use winit::window::WindowId;
 
 use crate::gpu::Gpu;
-use crate::user_interface::UserInterface;
+use crate::gui::Gui;
 
 #[derive(Debug)]
-pub enum Js {
-    RectsUpdated,
-}
-
-#[derive(Debug, Clone)]
-pub struct AppState {
-    pub user_interface: Arc<Mutex<UserInterface>>,
-    pub event_loop: Arc<Mutex<EventLoopProxy<Js>>>,
-}
-
-impl AppState {
-    pub fn new(event_loop: Arc<Mutex<EventLoopProxy<Js>>>) -> Self {
-        Self {
-            user_interface: Arc::new(Mutex::new(UserInterface::new())),
-            event_loop,
-        }
-    }
+pub enum CustomEvent {
+    GuiUpdate,
 }
 
 pub struct App<'window> {
     window: Option<Arc<Window>>,
     gpu: Option<Gpu<'window>>,
-    pub state: Arc<Mutex<AppState>>,
+    pub gui: Arc<Mutex<Gui>>,
 }
 
 impl App<'_> {
-    pub fn new(event_loop: Arc<Mutex<EventLoopProxy<Js>>>) -> Self {
-        let state = Arc::new(Mutex::new(AppState::new(event_loop)));
-
+    pub fn new(event_loop: Arc<Mutex<EventLoopProxy<CustomEvent>>>) -> Self {
         Self {
             window: None,
             gpu: None,
-            state: state.clone(),
+            gui: Arc::new(Mutex::new(Gui::new(event_loop.clone()))),
         }
     }
 }
 
-impl<'window> ApplicationHandler<Js> for App<'window> {
+impl<'window> ApplicationHandler<CustomEvent> for App<'window> {
     fn resumed(&mut self, event_loop: &ActiveEventLoop) {
         if self.window.is_none() {
             let window = Arc::new(
@@ -67,16 +50,14 @@ impl<'window> ApplicationHandler<Js> for App<'window> {
         }
     }
 
-    fn user_event(&mut self, _event_loop: &ActiveEventLoop, event: Js) {
+    fn user_event(&mut self, _event_loop: &ActiveEventLoop, event: CustomEvent) {
         match event {
-            Js::RectsUpdated => {
+            CustomEvent::GuiUpdate => {
                 if let Some(window) = self.window.as_ref() {
                     let size = window.inner_size();
+
                     if let Some(instances) = self
-                        .state
-                        .lock()
-                        .unwrap()
-                        .user_interface
+                        .gui
                         .lock()
                         .unwrap()
                         .get_instances(size.width as f32, size.height as f32)
@@ -98,10 +79,7 @@ impl<'window> ApplicationHandler<Js> for App<'window> {
             }
             WindowEvent::Resized(size) => {
                 if let Some(instances) = self
-                    .state
-                    .lock()
-                    .unwrap()
-                    .user_interface
+                    .gui
                     .lock()
                     .unwrap()
                     .get_instances(size.width as f32, size.height as f32)
