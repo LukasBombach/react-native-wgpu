@@ -10,7 +10,7 @@ ReactWGPU.render(
       justifyContent: "center",
       padding: "10%",
       gap: "10%",
-      backgroundColor: "#000",
+      backgroundColor: "black",
     }}
   >
     <div style={{ width: "500px", height: "500px", backgroundColor: "#f00" }}></div>

@@ -49,6 +49,7 @@ pub struct Gui {
     event_loop: Arc<Mutex<EventLoopProxy<CustomEvent>>>,
 }
 
+#[allow(dead_code)]
 impl Gui {
     pub fn new(event_loop: Arc<Mutex<EventLoopProxy<CustomEvent>>>) -> Self {
         let mut nodes = SlotMap::new();

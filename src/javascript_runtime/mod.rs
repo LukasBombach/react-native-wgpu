@@ -30,19 +30,15 @@ fn op_create_instance(
     #[serde] layout: Style,
     #[string] background_color: String,
 ) -> Result<usize, JsErrorBox> {
-    let parsed_background_color =
-        parse_color(&background_color).map_err(|_| JsErrorBox::generic("Failed to parse color"))?;
-
-    println!(
-        "{:?} {:?}",
-        background_color, parsed_background_color.components
-    );
+    let parsed_background_color = parse_color(&background_color)
+        .map_err(|_| JsErrorBox::generic("Failed to parse color"))?
+        .components;
 
     let node_id = state
         .borrow::<Arc<Mutex<Gui>>>()
         .lock()
         .unwrap()
-        .create_node(layout, parsed_background_color.components);
+        .create_node(layout, parsed_background_color);
 
     Ok(usize::from(node_id))
 }
