@@ -14,6 +14,7 @@ use winit::window::Window;
 pub struct Instance {
     pos: [f32; 2],
     size: [f32; 2],
+    background_color: [f32; 4],
 }
 
 impl Instance {
@@ -21,6 +22,12 @@ impl Instance {
         Self {
             pos: [x, y],
             size: [width, height],
+            background_color: [
+                rand::random::<f32>(),
+                rand::random::<f32>(),
+                rand::random::<f32>(),
+                1.0,
+            ],
         }
     }
 }
@@ -206,6 +213,11 @@ impl<'window> Gpu<'window> {
                             wgpu::VertexAttribute {
                                 offset: std::mem::size_of::<[f32; 2]>() as wgpu::BufferAddress,
                                 shader_location: 2,
+                                format: wgpu::VertexFormat::Float32x2,
+                            },
+                            wgpu::VertexAttribute {
+                                offset: std::mem::size_of::<[f32; 4]>() as wgpu::BufferAddress,
+                                shader_location: 3,
                                 format: wgpu::VertexFormat::Float32x2,
                             },
                         ],
