@@ -11,7 +11,6 @@ fn vs_main(
     @location(1) inst_pos: vec2<f32>,
     @location(2) inst_size: vec2<f32>,
     @location(3) bg_color: vec4<f32>,
-    @builtin(vertex_index) vert_index: u32
 ) -> VertexOutput {
 
     let pos = inst_pos + vert_pos * inst_size;
