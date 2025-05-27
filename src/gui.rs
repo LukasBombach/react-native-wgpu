@@ -18,6 +18,7 @@ enum NodeKind {
 pub struct Node {
     kind: NodeKind,
     style: Style,
+    background_color: [f32; 4],
     cache: Cache,
     pub layout: Layout,
     pub children: Vec<NodeId>,
@@ -28,6 +29,7 @@ impl Default for Node {
         Node {
             kind: NodeKind::Flexbox,
             style: Style::default(),
+            background_color: [0.0, 0.0, 0.0, 1.0],
             cache: Cache::new(),
             layout: Layout::with_order(0),
             children: Vec::new(),
@@ -47,6 +49,7 @@ pub struct Gui {
     event_loop: Arc<Mutex<EventLoopProxy<CustomEvent>>>,
 }
 
+#[allow(dead_code)]
 impl Gui {
     pub fn new(event_loop: Arc<Mutex<EventLoopProxy<CustomEvent>>>) -> Self {
         let mut nodes = SlotMap::new();
@@ -75,7 +78,7 @@ impl Gui {
         }
     }
 
-    pub fn create_node(&mut self, style: Style) -> NodeId {
+    pub fn create_node(&mut self, style: Style, background_color: [f32; 4]) -> NodeId {
         // todo block layout
         let kind = if style.display == Display::Grid {
             NodeKind::Grid
@@ -85,6 +88,7 @@ impl Gui {
 
         let node = Node {
             style,
+            background_color,
             kind,
             ..Node::default()
         };
@@ -151,9 +155,18 @@ impl Gui {
             offset_y: f32,
             instances: &mut Vec<Instance>,
         ) {
-            let layout = gui.layout_from_id(node_id);
-            let (x, y) = (offset_x + layout.location.x, offset_y + layout.location.y);
-            instances.push(Instance::new(x, y, layout.size.width, layout.size.height));
+            let node = gui.node_from_id(node_id);
+            let (x, y) = (
+                offset_x + node.layout.location.x,
+                offset_y + node.layout.location.y,
+            );
+            instances.push(Instance::new(
+                x,
+                y,
+                node.layout.size.width,
+                node.layout.size.height,
+                node.background_color,
+            ));
 
             for child_id in gui.children_from_id(node_id) {
                 collect_instances(gui, *child_id, x, y, instances);

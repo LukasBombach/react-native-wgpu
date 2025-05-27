@@ -3,6 +3,7 @@
 
 use taffy::prelude::*;
 
+use color::parse_color;
 use deno_core::extension;
 use deno_core::op2;
 use deno_core::OpState;
@@ -19,14 +20,25 @@ use taffy::NodeId;
 
 use crate::gui::Gui;
 
+// op2 ref: https://docs.rs/rustjs/latest/rustjs/deno_core/attr.op2.html#parameters
+
 #[op2]
 #[bigint]
-fn op_create_instance(state: &mut OpState, #[serde] style: Style) -> Result<usize, JsErrorBox> {
+#[string]
+fn op_create_instance(
+    state: &mut OpState,
+    #[serde] layout: Style,
+    #[string] background_color: String,
+) -> Result<usize, JsErrorBox> {
+    let parsed_background_color = parse_color(&background_color)
+        .map_err(|_| JsErrorBox::generic("Failed to parse color"))?
+        .components;
+
     let node_id = state
         .borrow::<Arc<Mutex<Gui>>>()
         .lock()
         .unwrap()
-        .create_node(style);
+        .create_node(layout, parsed_background_color);
 
     Ok(usize::from(node_id))
 }

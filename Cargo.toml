@@ -18,3 +18,4 @@ winit = { version =  "0.30.9" }
 notify = "8.0.0"
 taffy = { version = "0.7.7", features = ["serde"]}
 slotmap = "1.0.7"
+color = "0.3.1"

@@ -14,13 +14,15 @@ use winit::window::Window;
 pub struct Instance {
     pos: [f32; 2],
     size: [f32; 2],
+    background_color: [f32; 4],
 }
 
 impl Instance {
-    pub fn new(x: f32, y: f32, width: f32, height: f32) -> Self {
+    pub fn new(x: f32, y: f32, width: f32, height: f32, background_color: [f32; 4]) -> Self {
         Self {
             pos: [x, y],
             size: [width, height],
+            background_color,
         }
     }
 }
@@ -207,6 +209,11 @@ impl<'window> Gpu<'window> {
                                 offset: std::mem::size_of::<[f32; 2]>() as wgpu::BufferAddress,
                                 shader_location: 2,
                                 format: wgpu::VertexFormat::Float32x2,
+                            },
+                            wgpu::VertexAttribute {
+                                offset: std::mem::size_of::<[f32; 4]>() as wgpu::BufferAddress,
+                                shader_location: 3,
+                                format: wgpu::VertexFormat::Float32x4,
                             },
                         ],
                     },
