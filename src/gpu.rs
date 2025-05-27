@@ -18,16 +18,11 @@ pub struct Instance {
 }
 
 impl Instance {
-    pub fn new(x: f32, y: f32, width: f32, height: f32) -> Self {
+    pub fn new(x: f32, y: f32, width: f32, height: f32, background_color: [f32; 4]) -> Self {
         Self {
             pos: [x, y],
             size: [width, height],
-            background_color: [
-                rand::random::<f32>(),
-                rand::random::<f32>(),
-                rand::random::<f32>(),
-                1.0,
-            ],
+            background_color,
         }
     }
 }
