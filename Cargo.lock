@@ -5924,7 +5924,6 @@ dependencies = [
  "deno_error",
  "notify 8.0.0",
  "pollster",
- "rand 0.9.1",
  "rustyscript",
  "serde",
  "slotmap",
