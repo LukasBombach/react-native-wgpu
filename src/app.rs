@@ -1,6 +1,5 @@
 use std::sync::Arc;
 use std::sync::Mutex;
-
 use winit::application::ApplicationHandler;
 use winit::event::WindowEvent;
 use winit::event_loop::ActiveEventLoop;
@@ -55,13 +54,19 @@ impl<'window> ApplicationHandler<CustomEvent> for App<'window> {
             CustomEvent::GuiUpdate => {
                 if let Some(window) = self.window.as_ref() {
                     if let Some(gpu) = self.gpu.as_mut() {
-                        let size = window.inner_size();
-                        let mut gui = self.gui.lock().unwrap();
+                        if let Ok(mut gui) = self.gui.lock() {
+                            let size = window.inner_size();
 
-                        gui.compute_layout(size.width, size.height);
-                        gpu.update_instance_buffer(gui.into_instances());
+                            gui.compute_layout(size.width, size.height);
 
-                        window.request_redraw();
+                            let instances = gui.into_instances();
+                            let len = instances.len();
+
+                            gpu.update_instance_buffer(instances);
+                            println!("buffer update {}", len);
+
+                            window.request_redraw();
+                        }
                     }
                 }
             }
@@ -75,12 +80,12 @@ impl<'window> ApplicationHandler<CustomEvent> for App<'window> {
             }
             WindowEvent::Resized(size) => {
                 if let Some(gpu) = self.gpu.as_mut() {
-                    let mut gui = self.gui.lock().unwrap();
+                    if let Ok(mut gui) = self.gui.lock() {
+                        gui.compute_layout(size.width, size.height);
+                        gpu.update_instance_buffer(gui.into_instances());
 
-                    gui.compute_layout(size.width, size.height);
-                    gpu.update_instance_buffer(gui.into_instances());
-
-                    gpu.set_size(size.width, size.height);
+                        gpu.set_size(size.width, size.height);
+                    }
                 }
             }
             WindowEvent::RedrawRequested => {
