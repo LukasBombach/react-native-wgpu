@@ -163,13 +163,20 @@ impl Gui {
                 offset_x + node.layout.location.x,
                 offset_y + node.layout.location.y,
             );
-            instances.push(Instance::new(
+            let instance = Instance::new(
                 x,
                 y,
                 node.layout.size.width,
                 node.layout.size.height,
                 node.background_color,
-            ));
+            );
+
+            println!(
+                "Instance at ({}, {}), size: ({}, {})",
+                x, y, node.layout.size.width, node.layout.size.height
+            );
+
+            instances.push(instance);
 
             for child_id in gui.children_from_id(node_id) {
                 collect_instances(gui, *child_id, x, y, instances);

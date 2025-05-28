@@ -264,6 +264,10 @@ impl<'window> Gpu<'window> {
     pub fn draw(&mut self) {
         self.device.poll(wgpu::Maintain::Wait);
 
+        if self.instance_count == 0 {
+            return;
+        }
+
         let frame = self
             .surface
             .get_current_texture()
@@ -308,6 +312,7 @@ impl<'window> Gpu<'window> {
 
         self.queue.submit(Some(encoder.finish()));
         frame.present();
+        println!("present {}", self.instance_count);
     }
 
     pub fn update_instance_buffer(&mut self, instances: Vec<Instance>) {
