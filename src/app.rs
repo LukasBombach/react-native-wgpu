@@ -54,17 +54,13 @@ impl<'window> ApplicationHandler<CustomEvent> for App<'window> {
         match event {
             CustomEvent::GuiUpdate => {
                 if let Some(window) = self.window.as_ref() {
-                    let size = window.inner_size();
+                    if let Some(gpu) = self.gpu.as_mut() {
+                        let size = window.inner_size();
+                        let mut gui = self.gui.lock().unwrap();
 
-                    if let Some(instances) = self
-                        .gui
-                        .lock()
-                        .unwrap()
-                        .get_instances(size.width as f32, size.height as f32)
-                    {
-                        if let Some(gpu) = self.gpu.as_mut() {
-                            gpu.update_instance_buffer(&instances);
-                        }
+                        gui.compute_layout(size.width, size.height);
+                        gpu.update_instance_buffer(gui.into_instances());
+
                         window.request_redraw();
                     }
                 }
@@ -78,16 +74,13 @@ impl<'window> ApplicationHandler<CustomEvent> for App<'window> {
                 event_loop.exit();
             }
             WindowEvent::Resized(size) => {
-                if let Some(instances) = self
-                    .gui
-                    .lock()
-                    .unwrap()
-                    .get_instances(size.width as f32, size.height as f32)
-                {
-                    if let Some(gpu) = self.gpu.as_mut() {
-                        gpu.update_instance_buffer(&instances);
-                        gpu.set_size(size.width, size.height);
-                    }
+                if let Some(gpu) = self.gpu.as_mut() {
+                    let mut gui = self.gui.lock().unwrap();
+
+                    gui.compute_layout(size.width, size.height);
+                    gpu.update_instance_buffer(gui.into_instances());
+
+                    gpu.set_size(size.width, size.height);
                 }
             }
             WindowEvent::RedrawRequested => {

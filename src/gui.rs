@@ -1,6 +1,7 @@
 use crate::app::CustomEvent;
 use crate::gpu::Instance;
 use slotmap::{DefaultKey, SlotMap};
+use std::convert::From;
 use std::sync::Arc;
 use std::sync::Mutex;
 use taffy::{
@@ -136,18 +137,18 @@ impl Gui {
         self.notify_update();
     }
 
-    pub fn compute_layout(&mut self, width: f32, height: f32) {
+    pub fn compute_layout(&mut self, width: u32, height: u32) {
         compute_root_layout(
             self,
             NodeId::from(self.root),
             Size {
-                width: length(width),
-                height: length(height),
+                width: length(width as f32),
+                height: length(height as f32),
             },
         );
     }
 
-    pub fn get_instances(&mut self, width: f32, height: f32) -> Option<Vec<Instance>> {
+    pub fn into_instances(&mut self) -> Vec<Instance> {
         fn collect_instances(
             gui: &Gui,
             node_id: taffy::NodeId,
@@ -173,12 +174,9 @@ impl Gui {
             }
         }
 
-        self.compute_layout(width, height);
-
         let mut instances = Vec::new();
         collect_instances(&self, self.root, 0.0, 0.0, &mut instances);
-
-        Some(instances)
+        return instances;
     }
 
     fn notify_update(&self) {
