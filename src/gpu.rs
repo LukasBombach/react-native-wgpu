@@ -61,11 +61,15 @@ impl<'window> Gpu<'window> {
         let surface = instance.create_surface(Arc::clone(&window)).unwrap();
         let push_const_size = std::mem::size_of::<[f32; 2]>() as u32;
 
-        // Jitter when resizing windows on macOS
-        // https://github.com/gfx-rs/wgpu/issues/3756
-        // https://github.com/gfx-rs/wgpu/pull/6107
-        // https://thume.ca/2019/06/19/glitchless-metal-window-resizing/
-        // https://raphlinus.github.io/rust/gui/2019/06/21/smooth-resize-test.html
+        /*
+         * Jitter when resizing windows on macOS
+         *
+         * https://github.com/gfx-rs/wgpu/issues/3756
+         * https://github.com/gfx-rs/wgpu/pull/6107
+         * https://thume.ca/2019/06/19/glitchless-metal-window-resizing/
+         * https://raphlinus.github.io/rust/gui/2019/06/21/smooth-resize-test.html
+         */
+
         #[allow(invalid_reference_casting)]
         unsafe {
             surface.as_hal::<wgpu::hal::metal::Api, _, ()>(|surface| {
@@ -76,6 +80,10 @@ impl<'window> Gpu<'window> {
                 }
             });
         }
+
+        /*
+         * adapter
+         */
 
         let adapter = instance
             .request_adapter(&wgpu::RequestAdapterOptions {
