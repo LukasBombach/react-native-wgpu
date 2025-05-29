@@ -33,7 +33,6 @@ pub struct Gpu<'window> {
     device: wgpu::Device,
     queue: wgpu::Queue,
     render_pipeline: wgpu::RenderPipeline,
-    vertex_buffer: wgpu::Buffer,
     index_buffer: wgpu::Buffer,
     num_indices: u32,
     instance_buffer: wgpu::Buffer,
@@ -122,19 +121,7 @@ impl<'window> Gpu<'window> {
          * vertices
          */
 
-        let vertices: [[f32; 2]; 4] = [
-            [0.0, 1.0], // left top
-            [0.0, 0.0], // left bottom
-            [1.0, 0.0], // right bottom
-            [1.0, 1.0], // right top
-        ];
         let indices: [u16; 6] = [0, 1, 2, 0, 2, 3];
-
-        let vertex_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-            label: Some("Vertex Buffer"),
-            contents: cast_slice(&vertices),
-            usage: wgpu::BufferUsages::VERTEX,
-        });
 
         let index_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("Index Buffer"),
@@ -185,34 +172,24 @@ impl<'window> Gpu<'window> {
                 module: &shader,
                 entry_point: Some("vs_main"),
                 buffers: &[
-                    // Vertex buffer
-                    wgpu::VertexBufferLayout {
-                        array_stride: std::mem::size_of::<[f32; 2]>() as wgpu::BufferAddress,
-                        step_mode: wgpu::VertexStepMode::Vertex,
-                        attributes: &[wgpu::VertexAttribute {
-                            offset: 0,
-                            shader_location: 0,
-                            format: wgpu::VertexFormat::Float32x2,
-                        }],
-                    },
-                    // Instance buffer
+                    // Instance buffer (vertex buffer removed since vertices are generated in shader)
                     wgpu::VertexBufferLayout {
                         array_stride: std::mem::size_of::<Instance>() as wgpu::BufferAddress,
                         step_mode: wgpu::VertexStepMode::Instance,
                         attributes: &[
                             wgpu::VertexAttribute {
                                 offset: 0,
-                                shader_location: 1,
+                                shader_location: 0,
                                 format: wgpu::VertexFormat::Float32x2,
                             },
                             wgpu::VertexAttribute {
                                 offset: std::mem::size_of::<[f32; 2]>() as wgpu::BufferAddress,
-                                shader_location: 2,
+                                shader_location: 1,
                                 format: wgpu::VertexFormat::Float32x2,
                             },
                             wgpu::VertexAttribute {
                                 offset: std::mem::size_of::<[f32; 4]>() as wgpu::BufferAddress,
-                                shader_location: 3,
+                                shader_location: 2,
                                 format: wgpu::VertexFormat::Float32x4,
                             },
                         ],
@@ -242,7 +219,6 @@ impl<'window> Gpu<'window> {
             device,
             queue,
             render_pipeline,
-            vertex_buffer,
             index_buffer,
             num_indices,
             instance_buffer,
@@ -303,8 +279,7 @@ impl<'window> Gpu<'window> {
 
             if self.instance_count > 0 {
                 rpass.set_push_constants(wgpu::ShaderStages::VERTEX, 0, bytes_of(&self.viewport));
-                rpass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
-                rpass.set_vertex_buffer(1, self.instance_buffer.slice(..));
+                rpass.set_vertex_buffer(0, self.instance_buffer.slice(..));
                 rpass.set_index_buffer(self.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
                 rpass.draw_indexed(0..self.num_indices, 0, 0..self.instance_count as _);
             }

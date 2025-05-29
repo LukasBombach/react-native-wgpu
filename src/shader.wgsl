@@ -7,11 +7,24 @@ struct VertexOutput {
 
 @vertex
 fn vs_main(
-    @location(0) vert_pos: vec2<f32>,
-    @location(1) inst_pos: vec2<f32>,
-    @location(2) inst_size: vec2<f32>,
-    @location(3) bg_color: vec4<f32>,
+    @builtin(vertex_index) vertex_index: u32,
+    @location(0) inst_pos: vec2<f32>,
+    @location(1) inst_size: vec2<f32>,
+    @location(2) bg_color: vec4<f32>,
 ) -> VertexOutput {
+
+    // Generate quad vertices based on vertex index
+    // 0: (0.0, 1.0) - left top
+    // 1: (0.0, 0.0) - left bottom  
+    // 2: (1.0, 0.0) - right bottom
+    // 3: (1.0, 1.0) - right top
+    var vert_pos: vec2<f32>;
+    switch vertex_index % 4u {
+        case 0u: { vert_pos = vec2<f32>(0.0, 1.0); }
+        case 1u: { vert_pos = vec2<f32>(0.0, 0.0); }
+        case 2u: { vert_pos = vec2<f32>(1.0, 0.0); }
+        case 3u, default: { vert_pos = vec2<f32>(1.0, 1.0); }
+    }
 
     let pos = inst_pos + vert_pos * inst_size;
     let ndc_x = (pos.x / viewport.x) * 2.0 - 1.0;
