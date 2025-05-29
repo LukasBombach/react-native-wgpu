@@ -14,7 +14,7 @@ fn vs_main(
     @location(0) instance_pos: vec2<f32>,
     @location(1) instance_size: vec2<f32>,
     @location(2) background_color: vec4<f32>,
-    // @location(3) border_radius: f32,
+    @location(3) border_radius: f32,
 ) -> VertexOutput {
 
     var vertex_pos: vec2<f32>;
@@ -35,7 +35,7 @@ fn vs_main(
 
     output.clip_position = vec4<f32>(ndc_x, ndc_y, 1.0, 1.0);
     output.background_color = background_color;
-    output.border_radius = 20.0;  // example value of 10px for border radius, will be parameterized later
+    output.border_radius = border_radius;
     output.rect_pos = vertex_pos * instance_size;
     output.rect_size = instance_size;
 

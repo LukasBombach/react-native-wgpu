@@ -20,6 +20,7 @@ pub struct Node {
     kind: NodeKind,
     style: Style,
     background_color: [f32; 4],
+    border_radius: f32,
     cache: Cache,
     pub layout: Layout,
     pub children: Vec<NodeId>,
@@ -31,6 +32,7 @@ impl Default for Node {
             kind: NodeKind::Flexbox,
             style: Style::default(),
             background_color: [0.0, 0.0, 0.0, 0.0],
+            border_radius: 0.0,
             cache: Cache::new(),
             layout: Layout::with_order(0),
             children: Vec::new(),
@@ -80,7 +82,12 @@ impl Gui {
         }
     }
 
-    pub fn create_node(&mut self, style: Style, background_color: [f32; 4]) -> NodeId {
+    pub fn create_node(
+        &mut self,
+        style: Style,
+        background_color: [f32; 4],
+        border_radius: u32,
+    ) -> NodeId {
         // todo block layout
         let kind = if style.display == Display::Grid {
             NodeKind::Grid
@@ -91,6 +98,7 @@ impl Gui {
         let node = Node {
             style,
             background_color,
+            border_radius: border_radius as f32,
             kind,
             ..Node::default()
         };
@@ -168,6 +176,7 @@ impl Gui {
                 node.layout.size.width,
                 node.layout.size.height,
                 node.background_color,
+                node.border_radius,
             );
 
             instances.push(instance);
