@@ -33,9 +33,6 @@ pub struct Gpu<'window> {
     device: wgpu::Device,
     queue: wgpu::Queue,
     render_pipeline: wgpu::RenderPipeline,
-    vertex_buffer: wgpu::Buffer,
-    index_buffer: wgpu::Buffer,
-    num_indices: u32,
     instance_buffer: wgpu::Buffer,
     instance_count: u32,
     viewport: [f32; 2],
@@ -64,11 +61,15 @@ impl<'window> Gpu<'window> {
         let surface = instance.create_surface(Arc::clone(&window)).unwrap();
         let push_const_size = std::mem::size_of::<[f32; 2]>() as u32;
 
-        // Jitter when resizing windows on macOS
-        // https://github.com/gfx-rs/wgpu/issues/3756
-        // https://github.com/gfx-rs/wgpu/pull/6107
-        // https://thume.ca/2019/06/19/glitchless-metal-window-resizing/
-        // https://raphlinus.github.io/rust/gui/2019/06/21/smooth-resize-test.html
+        /*
+         * Jitter when resizing windows on macOS
+         *
+         * https://github.com/gfx-rs/wgpu/issues/3756
+         * https://github.com/gfx-rs/wgpu/pull/6107
+         * https://thume.ca/2019/06/19/glitchless-metal-window-resizing/
+         * https://raphlinus.github.io/rust/gui/2019/06/21/smooth-resize-test.html
+         */
+
         #[allow(invalid_reference_casting)]
         unsafe {
             surface.as_hal::<wgpu::hal::metal::Api, _, ()>(|surface| {
@@ -79,6 +80,10 @@ impl<'window> Gpu<'window> {
                 }
             });
         }
+
+        /*
+         * adapter
+         */
 
         let adapter = instance
             .request_adapter(&wgpu::RequestAdapterOptions {
@@ -117,32 +122,6 @@ impl<'window> Gpu<'window> {
             stages: wgpu::ShaderStages::VERTEX,
             range: 0..push_const_size,
         };
-
-        /*
-         * vertices
-         */
-
-        let vertices: [[f32; 2]; 4] = [
-            [0.0, 1.0], // left top
-            [0.0, 0.0], // left bottom
-            [1.0, 0.0], // right bottom
-            [1.0, 1.0], // right top
-        ];
-        let indices: [u16; 6] = [0, 1, 2, 0, 2, 3];
-
-        let vertex_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-            label: Some("Vertex Buffer"),
-            contents: cast_slice(&vertices),
-            usage: wgpu::BufferUsages::VERTEX,
-        });
-
-        let index_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-            label: Some("Index Buffer"),
-            contents: cast_slice(&indices),
-            usage: wgpu::BufferUsages::INDEX,
-        });
-
-        let num_indices = indices.len() as u32;
 
         /*
          * instances
@@ -184,40 +163,27 @@ impl<'window> Gpu<'window> {
             vertex: wgpu::VertexState {
                 module: &shader,
                 entry_point: Some("vs_main"),
-                buffers: &[
-                    // Vertex buffer
-                    wgpu::VertexBufferLayout {
-                        array_stride: std::mem::size_of::<[f32; 2]>() as wgpu::BufferAddress,
-                        step_mode: wgpu::VertexStepMode::Vertex,
-                        attributes: &[wgpu::VertexAttribute {
+                buffers: &[wgpu::VertexBufferLayout {
+                    array_stride: std::mem::size_of::<Instance>() as wgpu::BufferAddress,
+                    step_mode: wgpu::VertexStepMode::Instance,
+                    attributes: &[
+                        wgpu::VertexAttribute {
                             offset: 0,
                             shader_location: 0,
                             format: wgpu::VertexFormat::Float32x2,
-                        }],
-                    },
-                    // Instance buffer
-                    wgpu::VertexBufferLayout {
-                        array_stride: std::mem::size_of::<Instance>() as wgpu::BufferAddress,
-                        step_mode: wgpu::VertexStepMode::Instance,
-                        attributes: &[
-                            wgpu::VertexAttribute {
-                                offset: 0,
-                                shader_location: 1,
-                                format: wgpu::VertexFormat::Float32x2,
-                            },
-                            wgpu::VertexAttribute {
-                                offset: std::mem::size_of::<[f32; 2]>() as wgpu::BufferAddress,
-                                shader_location: 2,
-                                format: wgpu::VertexFormat::Float32x2,
-                            },
-                            wgpu::VertexAttribute {
-                                offset: std::mem::size_of::<[f32; 4]>() as wgpu::BufferAddress,
-                                shader_location: 3,
-                                format: wgpu::VertexFormat::Float32x4,
-                            },
-                        ],
-                    },
-                ],
+                        },
+                        wgpu::VertexAttribute {
+                            offset: std::mem::size_of::<[f32; 2]>() as wgpu::BufferAddress,
+                            shader_location: 1,
+                            format: wgpu::VertexFormat::Float32x2,
+                        },
+                        wgpu::VertexAttribute {
+                            offset: std::mem::size_of::<[f32; 4]>() as wgpu::BufferAddress,
+                            shader_location: 2,
+                            format: wgpu::VertexFormat::Float32x4,
+                        },
+                    ],
+                }],
                 compilation_options: Default::default(),
             },
             fragment: Some(wgpu::FragmentState {
@@ -242,9 +208,6 @@ impl<'window> Gpu<'window> {
             device,
             queue,
             render_pipeline,
-            vertex_buffer,
-            index_buffer,
-            num_indices,
             instance_buffer,
             instance_count,
             viewport,
@@ -303,10 +266,8 @@ impl<'window> Gpu<'window> {
 
             if self.instance_count > 0 {
                 rpass.set_push_constants(wgpu::ShaderStages::VERTEX, 0, bytes_of(&self.viewport));
-                rpass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
-                rpass.set_vertex_buffer(1, self.instance_buffer.slice(..));
-                rpass.set_index_buffer(self.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
-                rpass.draw_indexed(0..self.num_indices, 0, 0..self.instance_count as _);
+                rpass.set_vertex_buffer(0, self.instance_buffer.slice(..));
+                rpass.draw(0..6, 0..self.instance_count);
             }
         }
 
