@@ -264,6 +264,10 @@ impl<'window> Gpu<'window> {
     pub fn draw(&mut self) {
         self.device.poll(wgpu::Maintain::Wait);
 
+        if self.instance_count == 0 {
+            return;
+        }
+
         let frame = self
             .surface
             .get_current_texture()

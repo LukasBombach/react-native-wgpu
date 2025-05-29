@@ -58,12 +58,7 @@ impl<'window> ApplicationHandler<CustomEvent> for App<'window> {
                             let size = window.inner_size();
 
                             gui.compute_layout(size.width, size.height);
-
-                            let instances = gui.into_instances();
-                            let len = instances.len();
-
-                            gpu.update_instance_buffer(instances);
-                            println!("buffer update {}", len);
+                            gpu.update_instance_buffer(gui.into_instances());
 
                             window.request_redraw();
                         }

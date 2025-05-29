@@ -41,6 +41,7 @@ impl Default for Node {
 impl Node {
     pub fn append_child(&mut self, node: NodeId) {
         self.children.push(node);
+        self.cache.clear();
     }
 }
 
@@ -101,14 +102,12 @@ impl Gui {
 
     pub fn append_child_to_root(&mut self, child_id: NodeId) -> () {
         self.append_child(self.root, child_id);
-        println!("append_child_to_root");
         self.notify_update();
     }
 
     pub fn append_child(&mut self, parent_id: NodeId, child_id: NodeId) {
         if let Some(parent) = self.nodes.get_mut(parent_id.into()) {
             parent.append_child(child_id);
-            println!("append_child");
             self.notify_update();
         }
     }
@@ -163,13 +162,15 @@ impl Gui {
                 offset_x + node.layout.location.x,
                 offset_y + node.layout.location.y,
             );
-            instances.push(Instance::new(
+            let instance = Instance::new(
                 x,
                 y,
                 node.layout.size.width,
                 node.layout.size.height,
                 node.background_color,
-            ));
+            );
+
+            instances.push(instance);
 
             for child_id in gui.children_from_id(node_id) {
                 collect_instances(gui, *child_id, x, y, instances);
