@@ -4,6 +4,7 @@
 use taffy::prelude::*;
 
 use color::parse_color;
+use color::DynamicColor;
 use deno_core::extension;
 use deno_core::op2;
 use deno_core::OpState;
@@ -12,6 +13,7 @@ use notify::event::ModifyKind;
 use notify::{recommended_watcher, EventKind, RecursiveMode, Watcher};
 use rustyscript::{Error, Module, Runtime, RuntimeOptions};
 use std::path::Path;
+use std::str::FromStr;
 use std::sync::mpsc;
 use std::sync::Arc;
 use std::sync::Mutex;
@@ -30,8 +32,10 @@ fn op_create_instance(
     #[serde] layout: Style,
     #[string] background_color: String,
 ) -> Result<usize, JsErrorBox> {
+    let default_background: &str = "transparent";
+
     let parsed_background_color = parse_color(&background_color)
-        .map_err(|_| JsErrorBox::generic("Failed to parse color"))?
+        .unwrap_or(DynamicColor::from_str(default_background).unwrap())
         .components;
 
     let node_id = state

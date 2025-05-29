@@ -30,7 +30,7 @@ impl Default for Node {
         Node {
             kind: NodeKind::Flexbox,
             style: Style::default(),
-            background_color: [0.0, 0.0, 0.0, 1.0],
+            background_color: [0.0, 0.0, 0.0, 0.0],
             cache: Cache::new(),
             layout: Layout::with_order(0),
             children: Vec::new(),
