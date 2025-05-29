@@ -110,7 +110,8 @@ impl<'window> Gpu<'window> {
             .await
             .expect("Failed to create device");
 
-        let config = surface.get_default_config(&adapter, width, height).unwrap();
+        let mut config = surface.get_default_config(&adapter, width, height).unwrap();
+        config.alpha_mode = wgpu::CompositeAlphaMode::PostMultiplied;
 
         surface.configure(&device, &config);
 
@@ -253,7 +254,7 @@ impl<'window> Gpu<'window> {
                     view: &view,
                     resolve_target: None,
                     ops: wgpu::Operations {
-                        load: wgpu::LoadOp::Clear(wgpu::Color::BLACK),
+                        load: wgpu::LoadOp::Clear(wgpu::Color::TRANSPARENT),
                         store: wgpu::StoreOp::Store,
                     },
                 })],
