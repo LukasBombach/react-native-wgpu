@@ -27,10 +27,12 @@ use crate::gui::Gui;
 #[op2]
 #[bigint]
 #[string]
+#[number]
 fn op_create_instance(
     state: &mut OpState,
     #[serde] layout: Style,
     #[string] background_color: String,
+    border_radius: u32,
 ) -> Result<usize, JsErrorBox> {
     let default_background: &str = "transparent";
 
@@ -42,7 +44,7 @@ fn op_create_instance(
         .borrow::<Arc<Mutex<Gui>>>()
         .lock()
         .unwrap()
-        .create_node(layout, parsed_background_color);
+        .create_node(layout, parsed_background_color, border_radius);
 
     Ok(usize::from(node_id))
 }

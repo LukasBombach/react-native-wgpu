@@ -15,14 +15,23 @@ pub struct Instance {
     pos: [f32; 2],
     size: [f32; 2],
     background_color: [f32; 4],
+    border_radius: f32,
 }
 
 impl Instance {
-    pub fn new(x: f32, y: f32, width: f32, height: f32, background_color: [f32; 4]) -> Self {
+    pub fn new(
+        x: f32,
+        y: f32,
+        width: f32,
+        height: f32,
+        background_color: [f32; 4],
+        border_radius: f32,
+    ) -> Self {
         Self {
             pos: [x, y],
             size: [width, height],
             background_color,
+            border_radius,
         }
     }
 }
@@ -182,6 +191,11 @@ impl<'window> Gpu<'window> {
                             offset: std::mem::size_of::<[f32; 4]>() as wgpu::BufferAddress,
                             shader_location: 2,
                             format: wgpu::VertexFormat::Float32x4,
+                        },
+                        wgpu::VertexAttribute {
+                            offset: std::mem::size_of::<[f32; 8]>() as wgpu::BufferAddress,
+                            shader_location: 3,
+                            format: wgpu::VertexFormat::Float32,
                         },
                     ],
                 }],

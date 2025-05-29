@@ -60,8 +60,8 @@ export const reconciler = ReactReconciler<
 
   createInstance(_type, props, _rootContainerInstance, _hostContext, _internalInstanceHandle) {
     const taffyStyle = taffyFromCss(props.style as Record<string, unknown>);
-    const { backgroundColor } = props.style;
-    const id = create_instance(taffyStyle, backgroundColor);
+    const { backgroundColor = "transparent", borderRadius = 0 } = props.style;
+    const id = create_instance(taffyStyle, backgroundColor, borderRadius);
     return { type: "div", id };
   },
 
