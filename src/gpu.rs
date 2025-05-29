@@ -111,8 +111,6 @@ impl<'window> Gpu<'window> {
             .expect("Failed to create device");
 
         let mut config = surface.get_default_config(&adapter, width, height).unwrap();
-
-        // Enable alpha compositing for transparent backgrounds
         config.alpha_mode = wgpu::CompositeAlphaMode::PostMultiplied;
 
         surface.configure(&device, &config);
@@ -193,11 +191,7 @@ impl<'window> Gpu<'window> {
                 module: &shader,
                 entry_point: Some("fs_main"),
                 compilation_options: Default::default(),
-                targets: &[Some(wgpu::ColorTargetState {
-                    format: config.format,
-                    blend: Some(wgpu::BlendState::ALPHA_BLENDING),
-                    write_mask: wgpu::ColorWrites::ALL,
-                })],
+                targets: &[Some(config.format.into())],
             }),
             primitive: wgpu::PrimitiveState {
                 topology: wgpu::PrimitiveTopology::TriangleList,
