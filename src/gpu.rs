@@ -312,7 +312,6 @@ impl<'window> Gpu<'window> {
 
         self.queue.submit(Some(encoder.finish()));
         frame.present();
-        println!("present {}", self.instance_count);
     }
 
     pub fn update_instance_buffer(&mut self, instances: Vec<Instance>) {
