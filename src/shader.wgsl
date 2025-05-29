@@ -8,33 +8,29 @@ struct VertexOutput {
 @vertex
 fn vs_main(
     @builtin(vertex_index) vertex_index: u32,
-    @location(0) inst_pos: vec2<f32>,
-    @location(1) inst_size: vec2<f32>,
-    @location(2) bg_color: vec4<f32>,
+    @location(0) instance_pos: vec2<f32>,
+    @location(1) instance_size: vec2<f32>,
+    @location(2) background_color: vec4<f32>,
 ) -> VertexOutput {
 
-    // Generate triangle vertices based on vertex index
-    // We need 6 vertices per quad (2 triangles)
-    // Triangle 1: 0, 1, 2 -> left-top, left-bottom, right-bottom
-    // Triangle 2: 0, 2, 3 -> left-top, right-bottom, right-top
-    var vert_pos: vec2<f32>;
+    var vertex_pos: vec2<f32>;
     switch vertex_index % 6u {
-        case 0u: { vert_pos = vec2<f32>(0.0, 1.0); } // left top
-        case 1u: { vert_pos = vec2<f32>(0.0, 0.0); } // left bottom
-        case 2u: { vert_pos = vec2<f32>(1.0, 0.0); } // right bottom
-        case 3u: { vert_pos = vec2<f32>(0.0, 1.0); } // left top
-        case 4u: { vert_pos = vec2<f32>(1.0, 0.0); } // right bottom
-        case 5u, default: { vert_pos = vec2<f32>(1.0, 1.0); } // right top
+        case 0u: { vertex_pos = vec2<f32>(0.0, 1.0); }           // left top
+        case 1u: { vertex_pos = vec2<f32>(0.0, 0.0); }           // left bottom
+        case 2u: { vertex_pos = vec2<f32>(1.0, 0.0); }           // right bottom
+        case 3u: { vertex_pos = vec2<f32>(0.0, 1.0); }           // left top
+        case 4u: { vertex_pos = vec2<f32>(1.0, 0.0); }           // right bottom
+        case 5u, default: { vertex_pos = vec2<f32>(1.0, 1.0); }  // right top
     }
 
-    let pos = inst_pos + vert_pos * inst_size;
+    let pos = instance_pos + vertex_pos * instance_size;
     let ndc_x = (pos.x / viewport.x) * 2.0 - 1.0;
     let ndc_y = 1.0 - (pos.y / viewport.y) * 2.0;
 
     var output: VertexOutput;
 
     output.clip_position = vec4<f32>(ndc_x, ndc_y, 1.0, 1.0);
-    output.color = bg_color;
+    output.color = background_color;
 
     return output;
 }
