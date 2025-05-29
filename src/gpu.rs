@@ -33,8 +33,6 @@ pub struct Gpu<'window> {
     device: wgpu::Device,
     queue: wgpu::Queue,
     render_pipeline: wgpu::RenderPipeline,
-    index_buffer: wgpu::Buffer,
-    num_indices: u32,
     instance_buffer: wgpu::Buffer,
     instance_count: u32,
     viewport: [f32; 2],
@@ -116,20 +114,6 @@ impl<'window> Gpu<'window> {
             stages: wgpu::ShaderStages::VERTEX,
             range: 0..push_const_size,
         };
-
-        /*
-         * vertices
-         */
-
-        let indices: [u16; 6] = [0, 1, 2, 0, 2, 3];
-
-        let index_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-            label: Some("Index Buffer"),
-            contents: cast_slice(&indices),
-            usage: wgpu::BufferUsages::INDEX,
-        });
-
-        let num_indices = indices.len() as u32;
 
         /*
          * instances
@@ -219,8 +203,6 @@ impl<'window> Gpu<'window> {
             device,
             queue,
             render_pipeline,
-            index_buffer,
-            num_indices,
             instance_buffer,
             instance_count,
             viewport,
@@ -280,8 +262,8 @@ impl<'window> Gpu<'window> {
             if self.instance_count > 0 {
                 rpass.set_push_constants(wgpu::ShaderStages::VERTEX, 0, bytes_of(&self.viewport));
                 rpass.set_vertex_buffer(0, self.instance_buffer.slice(..));
-                rpass.set_index_buffer(self.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
-                rpass.draw_indexed(0..self.num_indices, 0, 0..self.instance_count as _);
+                // Draw 6 vertices per instance (2 triangles)
+                rpass.draw(0..6, 0..self.instance_count);
             }
         }
 

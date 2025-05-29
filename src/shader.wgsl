@@ -13,17 +13,18 @@ fn vs_main(
     @location(2) bg_color: vec4<f32>,
 ) -> VertexOutput {
 
-    // Generate quad vertices based on vertex index
-    // 0: (0.0, 1.0) - left top
-    // 1: (0.0, 0.0) - left bottom  
-    // 2: (1.0, 0.0) - right bottom
-    // 3: (1.0, 1.0) - right top
+    // Generate triangle vertices based on vertex index
+    // We need 6 vertices per quad (2 triangles)
+    // Triangle 1: 0, 1, 2 -> left-top, left-bottom, right-bottom
+    // Triangle 2: 0, 2, 3 -> left-top, right-bottom, right-top
     var vert_pos: vec2<f32>;
-    switch vertex_index % 4u {
-        case 0u: { vert_pos = vec2<f32>(0.0, 1.0); }
-        case 1u: { vert_pos = vec2<f32>(0.0, 0.0); }
-        case 2u: { vert_pos = vec2<f32>(1.0, 0.0); }
-        case 3u, default: { vert_pos = vec2<f32>(1.0, 1.0); }
+    switch vertex_index % 6u {
+        case 0u: { vert_pos = vec2<f32>(0.0, 1.0); } // left top
+        case 1u: { vert_pos = vec2<f32>(0.0, 0.0); } // left bottom
+        case 2u: { vert_pos = vec2<f32>(1.0, 0.0); } // right bottom
+        case 3u: { vert_pos = vec2<f32>(0.0, 1.0); } // left top
+        case 4u: { vert_pos = vec2<f32>(1.0, 0.0); } // right bottom
+        case 5u, default: { vert_pos = vec2<f32>(1.0, 1.0); } // right top
     }
 
     let pos = inst_pos + vert_pos * inst_size;
