@@ -2,7 +2,7 @@ var<push_constant> viewport: vec2<f32>;
 
 struct VertexOutput {
     @builtin(position) clip_position: vec4<f32>,
-    @location(0) color: vec4<f32>,
+    @location(0) background_color: vec4<f32>,
 };
 
 @vertex
@@ -30,12 +30,12 @@ fn vs_main(
     var output: VertexOutput;
 
     output.clip_position = vec4<f32>(ndc_x, ndc_y, 1.0, 1.0);
-    output.color = background_color;
+    output.background_color = background_color;
 
     return output;
 }
 
 @fragment 
-fn fs_main(fsInput: VertexOutput) -> @location(0) vec4f {
-    return fsInput.color;
+fn fs_main(vs_output: VertexOutput) -> @location(0) vec4f {
+    return vs_output.background_color;
 }
