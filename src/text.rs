@@ -72,7 +72,7 @@ impl TextAtlas {
         // Add padding between glyphs to prevent texture bleeding
         let padding = 2u32; // 2-pixel padding around each glyph
 
-        // Check if glyph fits in current row (including padding)
+        // Check if glyph fits in current row (including padding on both sides)
         if self.current_x + glyph_width + padding > self.width {
             // Move to next row
             self.current_x = padding; // Start new row with padding
@@ -182,12 +182,6 @@ impl TextRenderer {
 
         // Create sampler for text texture
         let sampler = device.create_sampler(&wgpu::SamplerDescriptor {
-            address_mode_u: wgpu::AddressMode::ClampToEdge,
-            address_mode_v: wgpu::AddressMode::ClampToEdge,
-            address_mode_w: wgpu::AddressMode::ClampToEdge,
-            mag_filter: wgpu::FilterMode::Linear,
-            min_filter: wgpu::FilterMode::Linear,
-            mipmap_filter: wgpu::FilterMode::Nearest,
             ..Default::default()
         });
 
