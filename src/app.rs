@@ -109,6 +109,25 @@ impl<'window> ApplicationHandler<CustomEvent> for App<'window> {
                     }
                 }
             }
+            WindowEvent::ScaleFactorChanged { scale_factor, .. } => {
+                if let Some(gpu) = self.gpu.as_mut() {
+                    println!("Scale factor changed to: {}", scale_factor);
+                    gpu.update_scale_factor(scale_factor);
+                    
+                    // Re-render text with new scale factor
+                    if let Ok(gui) = self.gui.lock() {
+                        let text_items = gui.collect_text_instances();
+                        let mut all_text_instances = Vec::new();
+                        
+                        for (text, x, y, font_size, color) in text_items {
+                            let text_instances = gpu.render_text(&text, x, y, font_size, color, None);
+                            all_text_instances.extend(text_instances);
+                        }
+                        
+                        gpu.update_text_instances(&all_text_instances);
+                    }
+                }
+            }
             WindowEvent::RedrawRequested => {
                 if let Some(gpu) = self.gpu.as_mut() {
                     gpu.draw();

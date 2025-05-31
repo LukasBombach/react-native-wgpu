@@ -94,7 +94,7 @@ export const reconciler = ReactReconciler<
   createTextInstance(text, _rootContainerInstance, _hostContext, _internalInstanceHandle) {
     // Default text properties - could be configurable via context or props in the future
     const textColor = "white";
-    const fontSize = 16.0;
+    const fontSize = 32.0; // Increased from 16.0 to make text more visible
 
     console.debug("createTextInstance", text, {
       textColor,

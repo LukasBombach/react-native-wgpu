@@ -21,8 +21,8 @@ pub struct GlyphInfo {
     pub y: u32,
     pub width: u32,
     pub height: u32,
-    pub bearing_left: i32,  // horizontal bearing from placement
-    pub bearing_top: i32,   // vertical bearing from placement
+    pub bearing_left: i32, // horizontal bearing from placement
+    pub bearing_top: i32,  // vertical bearing from placement
 }
 
 impl TextAtlas {
@@ -50,8 +50,8 @@ impl TextAtlas {
             width,
             height,
             glyph_cache: HashMap::new(),
-            current_x: 0,
-            current_y: 0,
+            current_x: 2, // Start with padding
+            current_y: 2, // Start with padding
             row_height: 0,
         }
     }
@@ -69,16 +69,19 @@ impl TextAtlas {
             return Some(*glyph_info);
         }
 
-        // Check if glyph fits in current row
-        if self.current_x + glyph_width > self.width {
+        // Add padding between glyphs to prevent texture bleeding
+        let padding = 2u32; // 2-pixel padding around each glyph
+
+        // Check if glyph fits in current row (including padding)
+        if self.current_x + glyph_width + padding > self.width {
             // Move to next row
-            self.current_x = 0;
-            self.current_y += self.row_height;
+            self.current_x = padding; // Start new row with padding
+            self.current_y += self.row_height + padding; // Add vertical padding too
             self.row_height = 0;
         }
 
-        // Check if glyph fits in atlas
-        if self.current_y + glyph_height > self.height {
+        // Check if glyph fits in atlas (including padding)
+        if self.current_y + glyph_height + padding > self.height {
             return None; // Atlas is full
         }
 
@@ -87,8 +90,8 @@ impl TextAtlas {
             y: self.current_y,
             width: glyph_width,
             height: glyph_height,
-            bearing_left: 0,  // Default for fallback rectangles
-            bearing_top: 0,   // Default for fallback rectangles
+            bearing_left: 0, // Default for fallback rectangles
+            bearing_top: 0,  // Default for fallback rectangles
         };
 
         // Upload glyph data to texture
@@ -118,8 +121,8 @@ impl TextAtlas {
 
         self.glyph_cache.insert(cache_key, glyph_info);
 
-        // Update position for next glyph
-        self.current_x += glyph_width;
+        // Update position for next glyph (add padding to prevent bleeding)
+        self.current_x += glyph_width + padding;
         self.row_height = self.row_height.max(glyph_height);
 
         Some(glyph_info)
@@ -379,91 +382,107 @@ impl TextRenderer {
                     let cache_key = ((glyph.glyph_id as u64) << 32) | (font_size as u64);
 
                     // Try to get the glyph from cache, or render it if not cached
-                    let glyph_info = if let Some(cached_glyph) =
-                        self.atlas.glyph_cache.get(&cache_key)
-                    {
-                        *cached_glyph
-                    } else {
-                        // Render the glyph using cosmic_text
-                        println!("Rendering glyph {} to texture atlas", glyph.glyph_id);
+                    let glyph_info =
+                        if let Some(cached_glyph) = self.atlas.glyph_cache.get(&cache_key) {
+                            *cached_glyph
+                        } else {
+                            // Render the glyph using cosmic_text
+                            println!("Rendering glyph {} to texture atlas", glyph.glyph_id);
 
-                        // Create cache key for this glyph
-                        let (swash_cache_key, _, _) = cosmic_text::CacheKey::new(
-                            glyph.font_id,
-                            glyph.glyph_id,
-                            glyph.font_size,
-                            (0.0, 0.0),                          // subpixel offset
-                            cosmic_text::CacheKeyFlags::empty(), // flags
-                        );
+                            // Create cache key for this glyph
+                            let (swash_cache_key, _, _) = cosmic_text::CacheKey::new(
+                                glyph.font_id,
+                                glyph.glyph_id,
+                                glyph.font_size,
+                                (0.0, 0.0),                          // subpixel offset
+                                cosmic_text::CacheKeyFlags::empty(), // flags
+                            );
 
-                        // Get glyph image using the swash cache
-                        let image_option = self
-                            .swash_cache
-                            .get_image(&mut self.font_system, swash_cache_key);
+                            // Get glyph image using the swash cache
+                            let image_option = self
+                                .swash_cache
+                                .get_image(&mut self.font_system, swash_cache_key);
 
-                        if let Some(image) = image_option {
-                            println!(
+                            if let Some(image) = image_option {
+                                println!(
                                 "Got glyph image: {}x{} format {:?}, placement: left={}, top={}",
                                 image.placement.width, image.placement.height, image.content,
                                 image.placement.left, image.placement.top
                             );
 
-                            // Convert the image data to R8 format (alpha only)
-                            let alpha_data = match image.content {
-                                cosmic_text::SwashContent::Mask => {
-                                    // Mask data is already single-channel alpha
-                                    image.data.to_vec()
-                                }
-                                cosmic_text::SwashContent::Color => {
-                                    // Color data is BGRA, extract alpha channel
-                                    image.data.chunks(4).map(|bgra| bgra[3]).collect()
-                                }
-                                cosmic_text::SwashContent::SubpixelMask => {
-                                    // SubpixelMask is RGB, convert to grayscale
-                                    image
-                                        .data
-                                        .chunks(3)
-                                        .map(|rgb| {
-                                            (rgb[0] as f32 * 0.299
-                                                + rgb[1] as f32 * 0.587
-                                                + rgb[2] as f32 * 0.114)
-                                                as u8
-                                        })
-                                        .collect()
-                                }
-                            };
-
-                            println!("Converted glyph to {} alpha bytes", alpha_data.len());
-
-                            // Add to atlas
-                            if let Some(atlas_info) = self.atlas.get_or_insert_glyph(
-                                device,
-                                queue,
-                                cache_key,
-                                &alpha_data,
-                                image.placement.width,
-                                image.placement.height,
-                            ) {
-                                println!(
-                                    "Added glyph to atlas at ({}, {})",
-                                    atlas_info.x, atlas_info.y
-                                );
-                                // Store the glyph info with bearing information from placement
-                                let glyph_info_with_bearing = GlyphInfo {
-                                    x: atlas_info.x,
-                                    y: atlas_info.y,
-                                    width: atlas_info.width,
-                                    height: atlas_info.height,
-                                    bearing_left: image.placement.left,
-                                    bearing_top: image.placement.top,
+                                // Convert the image data to R8 format (alpha only)
+                                let alpha_data = match image.content {
+                                    cosmic_text::SwashContent::Mask => {
+                                        // Mask data is already single-channel alpha
+                                        image.data.to_vec()
+                                    }
+                                    cosmic_text::SwashContent::Color => {
+                                        // Color data is BGRA, extract alpha channel
+                                        image.data.chunks(4).map(|bgra| bgra[3]).collect()
+                                    }
+                                    cosmic_text::SwashContent::SubpixelMask => {
+                                        // SubpixelMask is RGB, convert to grayscale
+                                        image
+                                            .data
+                                            .chunks(3)
+                                            .map(|rgb| {
+                                                (rgb[0] as f32 * 0.299
+                                                    + rgb[1] as f32 * 0.587
+                                                    + rgb[2] as f32 * 0.114)
+                                                    as u8
+                                            })
+                                            .collect()
+                                    }
                                 };
-                                self.atlas.glyph_cache.insert(cache_key, glyph_info_with_bearing);
-                                glyph_info_with_bearing
-                            } else {
-                                println!(
+
+                                println!("Converted glyph to {} alpha bytes", alpha_data.len());
+
+                                // Add to atlas
+                                if let Some(atlas_info) = self.atlas.get_or_insert_glyph(
+                                    device,
+                                    queue,
+                                    cache_key,
+                                    &alpha_data,
+                                    image.placement.width,
+                                    image.placement.height,
+                                ) {
+                                    println!(
+                                        "Added glyph to atlas at ({}, {})",
+                                        atlas_info.x, atlas_info.y
+                                    );
+                                    // Store the glyph info with bearing information from placement
+                                    let glyph_info_with_bearing = GlyphInfo {
+                                        x: atlas_info.x,
+                                        y: atlas_info.y,
+                                        width: atlas_info.width,
+                                        height: atlas_info.height,
+                                        bearing_left: image.placement.left,
+                                        bearing_top: image.placement.top,
+                                    };
+                                    self.atlas
+                                        .glyph_cache
+                                        .insert(cache_key, glyph_info_with_bearing);
+                                    glyph_info_with_bearing
+                                } else {
+                                    println!(
                                     "Failed to add glyph to atlas, using white rectangle fallback"
                                 );
-                                // Fallback to white rectangle
+                                    // Fallback to white rectangle
+                                    GlyphInfo {
+                                        x: 0,
+                                        y: 0,
+                                        width: 8,
+                                        height: 8,
+                                        bearing_left: 0,
+                                        bearing_top: 0,
+                                    }
+                                }
+                            } else {
+                                println!(
+                                    "Failed to render glyph {}, using white rectangle fallback",
+                                    glyph.glyph_id
+                                );
+                                // Fallback to white rectangle for space characters or missing glyphs
                                 GlyphInfo {
                                     x: 0,
                                     y: 0,
@@ -473,31 +492,18 @@ impl TextRenderer {
                                     bearing_top: 0,
                                 }
                             }
-                        } else {
-                            println!(
-                                "Failed to render glyph {}, using white rectangle fallback",
-                                glyph.glyph_id
-                            );
-                            // Fallback to white rectangle for space characters or missing glyphs
-                            GlyphInfo {
-                                x: 0,
-                                y: 0,
-                                width: 8,
-                                height: 8,
-                                bearing_left: 0,
-                                bearing_top: 0,
-                            }
-                        }
-                    };
+                        };
 
                     // Create text instance with proper texture coordinates
+                    // No artificial padding needed since glyphs are spaced apart in atlas
                     let tex_x = glyph_info.x as f32 / self.atlas.width as f32;
                     let tex_y = glyph_info.y as f32 / self.atlas.height as f32;
                     let tex_width = glyph_info.width as f32 / self.atlas.width as f32;
                     let tex_height = glyph_info.height as f32 / self.atlas.height as f32;
 
-                    // Use the actual glyph bitmap dimensions for rendering
-                    let glyph_height = glyph_info.height as f32;
+                    // Use the actual glyph bitmap dimensions for rendering (not advance width)
+                    let render_width = glyph_info.width as f32;
+                    let render_height = glyph_info.height as f32;
 
                     // Calculate proper baseline-aligned position using bearing information
                     // bearing_left: horizontal offset from logical position to bitmap left edge
@@ -508,8 +514,8 @@ impl TextRenderer {
                     let instance = TextInstance::new(
                         render_x,
                         render_y,
-                        glyph_width,
-                        glyph_height,
+                        render_width,
+                        render_height,
                         tex_x,
                         tex_y,
                         tex_width,
@@ -519,7 +525,7 @@ impl TextRenderer {
 
                     instances.push(instance);
                     println!("Created text instance at ({}, {}) size ({}, {}) with tex coords ({}, {}, {}, {}) bearing ({}, {})", 
-                             render_x, render_y, glyph_width, glyph_height,
+                             render_x, render_y, render_width, render_height,
                              tex_x, tex_y, tex_width, tex_height,
                              glyph_info.bearing_left, glyph_info.bearing_top);
                 }

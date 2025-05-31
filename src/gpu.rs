@@ -47,6 +47,7 @@ pub struct Gpu<'window> {
     instance_buffer: wgpu::Buffer,
     instance_count: u32,
     viewport: [f32; 2],
+    scale_factor: f64,
     text_renderer: TextRenderer,
 }
 
@@ -61,6 +62,7 @@ impl<'window> Gpu<'window> {
          */
 
         let size = window.inner_size();
+        let scale_factor = window.scale_factor();
         let width = size.width.max(1);
         let height = size.height.max(1);
         let viewport = [width as f32, height as f32];
@@ -235,6 +237,7 @@ impl<'window> Gpu<'window> {
             instance_buffer,
             instance_count,
             viewport,
+            scale_factor,
             text_renderer,
         }
     }
@@ -247,6 +250,14 @@ impl<'window> Gpu<'window> {
         self.config.height = height;
         self.surface.configure(&self.device, &self.config);
         self.viewport = [width as f32, height as f32];
+    }
+
+    pub fn update_scale_factor(&mut self, scale_factor: f64) {
+        self.scale_factor = scale_factor;
+    }
+
+    pub fn get_scale_factor(&self) -> f64 {
+        self.scale_factor
     }
 
     pub fn draw(&mut self) {
@@ -323,13 +334,16 @@ impl<'window> Gpu<'window> {
         color: [f32; 4],
         max_width: Option<f32>,
     ) -> Vec<crate::text::TextInstance> {
+        // Apply DPI scaling to font size
+        let scaled_font_size = font_size * self.scale_factor as f32;
+
         self.text_renderer.render_text(
             &self.device,
             &self.queue,
             text,
             x,
             y,
-            font_size,
+            scaled_font_size,
             color,
             max_width,
         )
