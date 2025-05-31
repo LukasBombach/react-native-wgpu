@@ -376,8 +376,12 @@ impl TextRenderer {
 
         let mut instances = Vec::new();
 
-        for run in buffer.layout_runs() {
-            println!("Layout run with {} glyphs", run.glyphs.len());
+        for (line_index, run) in buffer.layout_runs().enumerate() {
+            println!("Layout run {} with {} glyphs", line_index, run.glyphs.len());
+
+            // Calculate Y offset for each line based on line height
+            let line_y_offset = line_index as f32 * font_metrics.line_height;
+
             for glyph in run.glyphs.iter() {
                 let glyph_width = glyph.w;
 
@@ -518,7 +522,8 @@ impl TextRenderer {
                     // bearing_left: horizontal offset from logical position to bitmap left edge
                     // bearing_top: distance from baseline to bitmap top edge (subtract to position correctly)
                     let render_x = x + glyph.x + glyph_info.bearing_left as f32;
-                    let render_y = baseline_y + glyph.y - glyph_info.bearing_top as f32;
+                    let render_y =
+                        baseline_y + line_y_offset + glyph.y - glyph_info.bearing_top as f32;
 
                     let instance = TextInstance::new(
                         render_x,

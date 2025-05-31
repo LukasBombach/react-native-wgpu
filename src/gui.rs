@@ -251,13 +251,14 @@ impl Gui {
         return instances;
     }
 
-    pub fn collect_text_instances(&self) -> Vec<(String, f32, f32, f32, [f32; 4])> {
+    pub fn collect_text_instances(&self) -> Vec<(String, f32, f32, f32, [f32; 4], f32)> {
         fn collect_text(
             gui: &Gui,
             node_id: taffy::NodeId,
             offset_x: f32,
             offset_y: f32,
-            text_items: &mut Vec<(String, f32, f32, f32, [f32; 4])>,
+            parent_width: f32,
+            text_items: &mut Vec<(String, f32, f32, f32, [f32; 4], f32)>,
         ) {
             let node = gui.node_from_id(node_id);
             let (x, y) = (
@@ -268,17 +269,44 @@ impl Gui {
             // Only collect text from Text nodes
             if matches!(node.kind, NodeKind::Text) {
                 if let Some(ref text) = node.text {
-                    text_items.push((text.clone(), x, y, node.font_size, node.text_color));
+                    // Use the parent container's width for text wrapping
+                    println!(
+                        "Text node: '{}' at ({}, {}) parent_width: {}, node_width: {}",
+                        text, x, y, parent_width, node.layout.size.width
+                    );
+                    text_items.push((
+                        text.clone(),
+                        x,
+                        y,
+                        node.font_size,
+                        node.text_color,
+                        parent_width,
+                    ));
                 }
+            } else {
+                println!(
+                    "Container node at ({}, {}) width: {}, height: {}",
+                    x, y, node.layout.size.width, node.layout.size.height
+                );
             }
 
+            // Pass this node's width as the container width for its children
+            let container_width = node.layout.size.width;
             for child_id in gui.children_from_id(node_id) {
-                collect_text(gui, *child_id, x, y, text_items);
+                collect_text(gui, *child_id, x, y, container_width, text_items);
             }
         }
 
         let mut text_items = Vec::new();
-        collect_text(&self, self.root, 0.0, 0.0, &mut text_items);
+        let root_node = self.node_from_id(self.root);
+        collect_text(
+            &self,
+            self.root,
+            0.0,
+            0.0,
+            root_node.layout.size.width,
+            &mut text_items,
+        );
         text_items
     }
 

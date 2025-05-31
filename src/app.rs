@@ -65,8 +65,8 @@ impl<'window> ApplicationHandler<CustomEvent> for App<'window> {
                             println!("GuiUpdate: collected {} text items", text_items.len());
                             let mut all_text_instances = Vec::new();
                             
-                            for (text, x, y, font_size, color) in text_items {
-                                let text_instances = gpu.render_text(&text, x, y, font_size, color, None);
+                            for (text, x, y, font_size, color, max_width) in text_items {
+                                let text_instances = gpu.render_text(&text, x, y, font_size, color, Some(max_width));
                                 all_text_instances.extend(text_instances);
                             }
                             
@@ -97,8 +97,8 @@ impl<'window> ApplicationHandler<CustomEvent> for App<'window> {
                         println!("Resized: collected {} text items", text_items.len());
                         let mut all_text_instances = Vec::new();
                         
-                        for (text, x, y, font_size, color) in text_items {
-                            let text_instances = gpu.render_text(&text, x, y, font_size, color, None);
+                        for (text, x, y, font_size, color, max_width) in text_items {
+                            let text_instances = gpu.render_text(&text, x, y, font_size, color, Some(max_width));
                             all_text_instances.extend(text_instances);
                         }
                         
@@ -119,8 +119,8 @@ impl<'window> ApplicationHandler<CustomEvent> for App<'window> {
                         let text_items = gui.collect_text_instances();
                         let mut all_text_instances = Vec::new();
                         
-                        for (text, x, y, font_size, color) in text_items {
-                            let text_instances = gpu.render_text(&text, x, y, font_size, color, None);
+                        for (text, x, y, font_size, color, max_width) in text_items {
+                            let text_instances = gpu.render_text(&text, x, y, font_size, color, Some(max_width));
                             all_text_instances.extend(text_instances);
                         }
                         
