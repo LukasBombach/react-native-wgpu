@@ -356,6 +356,21 @@ impl TextRenderer {
         buffer.set_wrap(&mut self.font_system, wrap);
         buffer.shape_until_scroll(&mut self.font_system, false);
 
+        // Get font metrics to calculate proper baseline offset for top-aligned text
+        let font_metrics = buffer.metrics();
+        println!(
+            "Font metrics: font_size={}, line_height={}",
+            font_metrics.font_size, font_metrics.line_height
+        );
+
+        // Use a reasonable approximation for ascent based on typical font proportions
+        // Most fonts have ascent of about 70-80% of the line height
+        let ascent = font_metrics.line_height * 0.75;
+
+        // When positioning text at the "top" of a container, we want the ascent
+        // (the height above baseline) to start at the Y coordinate
+        let baseline_y = y + ascent;
+
         // Ensure we have at least a white pixel in the atlas for fallback rendering
         self.ensure_white_pixel(device, queue);
 
@@ -503,7 +518,7 @@ impl TextRenderer {
                     // bearing_left: horizontal offset from logical position to bitmap left edge
                     // bearing_top: distance from baseline to bitmap top edge (subtract to position correctly)
                     let render_x = x + glyph.x + glyph_info.bearing_left as f32;
-                    let render_y = y + glyph.y - glyph_info.bearing_top as f32;
+                    let render_y = baseline_y + glyph.y - glyph_info.bearing_top as f32;
 
                     let instance = TextInstance::new(
                         render_x,
