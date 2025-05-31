@@ -9,6 +9,8 @@ use wgpu::MemoryHints::Performance;
 use wgpu::ShaderSource;
 use winit::window::Window;
 
+use crate::text::TextRenderer;
+
 #[repr(C)]
 #[derive(Copy, Clone, Debug, Pod, Zeroable)]
 pub struct Instance {
@@ -45,6 +47,7 @@ pub struct Gpu<'window> {
     instance_buffer: wgpu::Buffer,
     instance_count: u32,
     viewport: [f32; 2],
+    text_renderer: TextRenderer,
 }
 
 impl<'window> Gpu<'window> {
@@ -217,6 +220,12 @@ impl<'window> Gpu<'window> {
             cache: None,
         });
 
+        /*
+         * text renderer
+         */
+
+        let text_renderer = TextRenderer::new(&device, &queue, config.format);
+
         Gpu {
             surface,
             config,
@@ -226,6 +235,7 @@ impl<'window> Gpu<'window> {
             instance_buffer,
             instance_count,
             viewport,
+            text_renderer,
         }
     }
 
@@ -284,6 +294,9 @@ impl<'window> Gpu<'window> {
                 rpass.set_vertex_buffer(0, self.instance_buffer.slice(..));
                 rpass.draw(0..6, 0..self.instance_count);
             }
+
+            // Render text
+            self.text_renderer.draw(&mut rpass, self.viewport);
         }
 
         self.queue.submit(Some(encoder.finish()));
@@ -299,5 +312,35 @@ impl<'window> Gpu<'window> {
                 usage: wgpu::BufferUsages::VERTEX,
             });
         self.instance_count = instances.len() as u32;
+    }
+
+    pub fn render_text(
+        &mut self,
+        text: &str,
+        x: f32,
+        y: f32,
+        font_size: f32,
+        color: [f32; 4],
+        max_width: Option<f32>,
+    ) -> Vec<crate::text::TextInstance> {
+        self.text_renderer.render_text(
+            &self.device,
+            &self.queue,
+            text,
+            x,
+            y,
+            font_size,
+            color,
+            max_width,
+        )
+    }
+
+    pub fn update_text_instances(&mut self, instances: &[crate::text::TextInstance]) {
+        println!(
+            "GPU::update_text_instances called with {} instances",
+            instances.len()
+        );
+        self.text_renderer
+            .update_instances(&self.device, &self.queue, instances);
     }
 }

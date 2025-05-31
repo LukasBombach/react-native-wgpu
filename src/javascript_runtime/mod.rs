@@ -77,10 +77,34 @@ fn op_append_child(
     Ok(())
 }
 
+#[op2(fast)]
+#[bigint]
+fn op_create_text_node(
+    state: &mut OpState,
+    #[string] text: String,
+    #[string] text_color: String,
+    font_size: f32,
+) -> Result<usize, JsErrorBox> {
+    let default_text_color: &str = "white";
+    
+    let parsed_text_color = parse_color(&text_color)
+        .unwrap_or(DynamicColor::from_str(default_text_color).unwrap())
+        .components;
+
+    let node_id = state
+        .borrow::<Arc<Mutex<Gui>>>()
+        .lock()
+        .unwrap()
+        .create_text_node(text, parsed_text_color, font_size);
+
+    Ok(usize::from(node_id))
+}
+
 extension!(
     rect_extension,
     ops = [
         op_create_instance,
+        op_create_text_node,
         op_append_child_to_container,
         op_append_child,
     ],

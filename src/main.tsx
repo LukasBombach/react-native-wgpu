@@ -14,9 +14,14 @@ ReactWGPU.render(
       style={{
         width: "100%",
         aspectRatio: "16/9",
-        backgroundColor: "#fff",
+        backgroundColor: "transparent",
         borderRadius: 10,
+        padding: "20px",
+        flexDirection: "column",
+        justifyContent: "center",
       }}
-    ></div>
+    >
+      Hello, World! This is rendered text using WGPU!
+    </div>
   </div>
 );

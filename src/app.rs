@@ -59,6 +59,19 @@ impl<'window> ApplicationHandler<CustomEvent> for App<'window> {
 
                             gui.compute_layout(size.width, size.height);
                             gpu.update_instance_buffer(gui.into_instances());
+                            
+                            // Collect and render text instances
+                            let text_items = gui.collect_text_instances();
+                            println!("GuiUpdate: collected {} text items", text_items.len());
+                            let mut all_text_instances = Vec::new();
+                            
+                            for (text, x, y, font_size, color) in text_items {
+                                let text_instances = gpu.render_text(&text, x, y, font_size, color, None);
+                                all_text_instances.extend(text_instances);
+                            }
+                            
+                            println!("GuiUpdate: updating GPU with {} text instances", all_text_instances.len());
+                            gpu.update_text_instances(&all_text_instances);
 
                             window.request_redraw();
                         }
@@ -78,6 +91,19 @@ impl<'window> ApplicationHandler<CustomEvent> for App<'window> {
                     if let Ok(mut gui) = self.gui.lock() {
                         gui.compute_layout(size.width, size.height);
                         gpu.update_instance_buffer(gui.into_instances());
+                        
+                        // Collect and render text instances
+                        let text_items = gui.collect_text_instances();
+                        println!("Resized: collected {} text items", text_items.len());
+                        let mut all_text_instances = Vec::new();
+                        
+                        for (text, x, y, font_size, color) in text_items {
+                            let text_instances = gpu.render_text(&text, x, y, font_size, color, None);
+                            all_text_instances.extend(text_instances);
+                        }
+                        
+                        println!("Resized: updating GPU with {} text instances", all_text_instances.len());
+                        gpu.update_text_instances(&all_text_instances);
 
                         gpu.set_size(size.width, size.height);
                     }
