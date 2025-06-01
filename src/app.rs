@@ -59,6 +59,10 @@ impl<'window> ApplicationHandler<CustomEvent> for App<'window> {
 
                             gui.compute_layout(size.width, size.height);
                             gpu.update_instance_buffer(gui.into_instances());
+                            
+                            // Render text areas
+                            let text_areas = gui.into_text_areas();
+                            gpu.prepare_text_areas(text_areas);
 
                             window.request_redraw();
                         }
@@ -78,6 +82,10 @@ impl<'window> ApplicationHandler<CustomEvent> for App<'window> {
                     if let Ok(mut gui) = self.gui.lock() {
                         gui.compute_layout(size.width, size.height);
                         gpu.update_instance_buffer(gui.into_instances());
+                        
+                        // Render text areas
+                        let text_areas = gui.into_text_areas();
+                        gpu.prepare_text_areas(text_areas);
 
                         gpu.set_size(size.width, size.height);
                     }

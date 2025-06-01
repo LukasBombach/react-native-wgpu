@@ -27,6 +27,23 @@ use crate::gui::Gui;
 #[op2]
 #[bigint]
 #[string]
+fn op_create_text_instance(
+    state: &mut OpState,
+    #[string] text: String,
+    #[serde] layout: Style,
+) -> Result<usize, JsErrorBox> {
+    let node_id = state
+        .borrow::<Arc<Mutex<Gui>>>()
+        .lock()
+        .unwrap()
+        .create_text_node(text, layout);
+
+    Ok(usize::from(node_id))
+}
+
+#[op2]
+#[bigint]
+#[string]
 #[number]
 fn op_create_instance(
     state: &mut OpState,
@@ -81,6 +98,7 @@ extension!(
     rect_extension,
     ops = [
         op_create_instance,
+        op_create_text_instance,
         op_append_child_to_container,
         op_append_child,
     ],

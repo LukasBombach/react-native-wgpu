@@ -14,6 +14,7 @@ use winit::event_loop::EventLoopProxy;
 enum NodeKind {
     Flexbox,
     Grid,
+    Text,
 }
 
 pub struct Node {
@@ -24,6 +25,7 @@ pub struct Node {
     cache: Cache,
     pub layout: Layout,
     pub children: Vec<NodeId>,
+    pub text_content: Option<String>,
 }
 
 impl Default for Node {
@@ -36,6 +38,7 @@ impl Default for Node {
             cache: Cache::new(),
             layout: Layout::with_order(0),
             children: Vec::new(),
+            text_content: None,
         }
     }
 }
@@ -78,6 +81,7 @@ impl Gui {
         Node {
             style,
             kind: NodeKind::Flexbox,
+            text_content: None,
             ..Node::default()
         }
     }
@@ -88,8 +92,23 @@ impl Gui {
         background_color: [f32; 4],
         border_radius: u32,
     ) -> NodeId {
-        // todo block layout
-        let kind = if style.display == Display::Grid {
+        self.create_node_with_text(style, background_color, border_radius, None)
+    }
+
+    pub fn create_text_node(&mut self, text_content: String, style: Style) -> NodeId {
+        self.create_node_with_text(style, [0.0, 0.0, 0.0, 1.0], 0, Some(text_content))
+    }
+
+    fn create_node_with_text(
+        &mut self,
+        style: Style,
+        background_color: [f32; 4],
+        border_radius: u32,
+        text_content: Option<String>,
+    ) -> NodeId {
+        let kind = if text_content.is_some() {
+            NodeKind::Text
+        } else if style.display == Display::Grid {
             NodeKind::Grid
         } else {
             NodeKind::Flexbox
@@ -100,11 +119,11 @@ impl Gui {
             background_color,
             border_radius: border_radius as f32,
             kind,
+            text_content,
             ..Node::default()
         };
 
         let id = self.nodes.insert(node);
-
         id.into()
     }
 
@@ -191,6 +210,95 @@ impl Gui {
         return instances;
     }
 
+    pub fn into_text_areas(&self) -> Vec<(String, f32, f32, f32, f32)> {
+        fn collect_text_areas(
+            gui: &Gui,
+            node_id: taffy::NodeId,
+            offset_x: f32,
+            offset_y: f32,
+            text_areas: &mut Vec<(String, f32, f32, f32, f32)>,
+        ) {
+            let node = gui.node_from_id(node_id);
+            let (x, y) = (
+                offset_x + node.layout.location.x,
+                offset_y + node.layout.location.y,
+            );
+
+            // If this is a text node, add it to the text areas
+            if let (NodeKind::Text, Some(ref text_content)) = (&node.kind, &node.text_content) {
+                text_areas.push((
+                    text_content.clone(),
+                    x,
+                    y,
+                    node.layout.size.width,
+                    node.layout.size.height,
+                ));
+            }
+
+            // Recursively collect text from children
+            for child_id in gui.children_from_id(node_id) {
+                collect_text_areas(gui, *child_id, x, y, text_areas);
+            }
+        }
+
+        let mut text_areas = Vec::new();
+        collect_text_areas(&self, self.root, 0.0, 0.0, &mut text_areas);
+        text_areas
+    }
+
+    // Add text measurement method with DPI awareness
+    fn measure_text(text: &str, available_space: &Size<AvailableSpace>) -> Size<f32> {
+        // For now, use a more accurate heuristic based on character count and line breaks
+        // This should be replaced with proper text measurement using glyphon in the future
+        if text.is_empty() {
+            return Size::ZERO;
+        }
+
+        // Better text measurement - more accurate character width and height estimates
+        let base_font_size = 16.0;
+        let char_width = base_font_size * 0.6; // More accurate character width ratio
+        let line_height = base_font_size * 1.4; // Standard line height ratio
+
+        // Calculate how much width is available
+        let max_width = match available_space.width {
+            AvailableSpace::Definite(w) => w,
+            AvailableSpace::MaxContent => f32::INFINITY,
+            AvailableSpace::MinContent => 0.0,
+        };
+
+        // Count lines and estimate width with better wrapping logic
+        let lines: Vec<&str> = text.lines().collect();
+        let mut total_height = 0.0;
+        let mut max_line_width = 0.0;
+
+        for line in lines {
+            let line_chars = line.chars().count();
+            let estimated_line_width = line_chars as f32 * char_width;
+
+            // If we have a width constraint and the line is too long, it will wrap
+            if max_width.is_finite() && estimated_line_width > max_width {
+                let chars_per_line = (max_width / char_width).floor() as usize;
+                if chars_per_line > 0 {
+                    let wrapped_lines = (line_chars + chars_per_line - 1) / chars_per_line;
+                    total_height += line_height * wrapped_lines as f32;
+                    max_line_width = f32::max(max_line_width, max_width);
+                } else {
+                    // Very narrow container, still need one line
+                    total_height += line_height;
+                    max_line_width = f32::max(max_line_width, estimated_line_width);
+                }
+            } else {
+                total_height += line_height;
+                max_line_width = f32::max(max_line_width, estimated_line_width);
+            }
+        }
+
+        Size {
+            width: max_line_width,
+            height: total_height,
+        }
+    }
+
     fn notify_update(&self) {
         if let Ok(proxy) = self.event_loop.lock() {
             proxy.send_event(CustomEvent::GuiUpdate).unwrap();
@@ -250,6 +358,21 @@ impl taffy::LayoutPartialTree for Gui {
             match node.kind {
                 NodeKind::Flexbox => compute_flexbox_layout(gui, node_id, inputs),
                 NodeKind::Grid => compute_grid_layout(gui, node_id, inputs),
+                NodeKind::Text => {
+                    // For text nodes, calculate the actual text size
+                    let empty_string = String::new();
+                    let text_content = node.text_content.as_ref().unwrap_or(&empty_string);
+                    let text_size = Self::measure_text(text_content, &inputs.available_space);
+
+                    taffy::tree::LayoutOutput {
+                        size: text_size,
+                        content_size: text_size,
+                        first_baselines: taffy::Point::NONE,
+                        top_margin: taffy::CollapsibleMarginSet::ZERO,
+                        bottom_margin: taffy::CollapsibleMarginSet::ZERO,
+                        margins_can_collapse_through: false,
+                    }
+                }
             }
         })
     }
