@@ -59,18 +59,22 @@ impl<'window> ApplicationHandler<CustomEvent> for App<'window> {
 
                             gui.compute_layout(size.width, size.height);
                             gpu.update_instance_buffer(gui.into_instances());
-                            
+
                             // Collect and render text instances
                             let text_items = gui.collect_text_instances();
                             println!("GuiUpdate: collected {} text items", text_items.len());
                             let mut all_text_instances = Vec::new();
-                            
+
                             for (text, x, y, font_size, color, max_width) in text_items {
-                                let text_instances = gpu.render_text(&text, x, y, font_size, color, Some(max_width));
+                                let text_instances =
+                                    gpu.render_text(&text, x, y, font_size, color, Some(max_width));
                                 all_text_instances.extend(text_instances);
                             }
-                            
-                            println!("GuiUpdate: updating GPU with {} text instances", all_text_instances.len());
+
+                            println!(
+                                "GuiUpdate: updating GPU with {} text instances",
+                                all_text_instances.len()
+                            );
                             gpu.update_text_instances(&all_text_instances);
 
                             window.request_redraw();
@@ -91,18 +95,22 @@ impl<'window> ApplicationHandler<CustomEvent> for App<'window> {
                     if let Ok(mut gui) = self.gui.lock() {
                         gui.compute_layout(size.width, size.height);
                         gpu.update_instance_buffer(gui.into_instances());
-                        
+
                         // Collect and render text instances
                         let text_items = gui.collect_text_instances();
                         println!("Resized: collected {} text items", text_items.len());
                         let mut all_text_instances = Vec::new();
-                        
+
                         for (text, x, y, font_size, color, max_width) in text_items {
-                            let text_instances = gpu.render_text(&text, x, y, font_size, color, Some(max_width));
+                            let text_instances =
+                                gpu.render_text(&text, x, y, font_size, color, Some(max_width));
                             all_text_instances.extend(text_instances);
                         }
-                        
-                        println!("Resized: updating GPU with {} text instances", all_text_instances.len());
+
+                        println!(
+                            "Resized: updating GPU with {} text instances",
+                            all_text_instances.len()
+                        );
                         gpu.update_text_instances(&all_text_instances);
 
                         gpu.set_size(size.width, size.height);
@@ -113,17 +121,18 @@ impl<'window> ApplicationHandler<CustomEvent> for App<'window> {
                 if let Some(gpu) = self.gpu.as_mut() {
                     println!("Scale factor changed to: {}", scale_factor);
                     gpu.update_scale_factor(scale_factor);
-                    
+
                     // Re-render text with new scale factor
                     if let Ok(gui) = self.gui.lock() {
                         let text_items = gui.collect_text_instances();
                         let mut all_text_instances = Vec::new();
-                        
+
                         for (text, x, y, font_size, color, max_width) in text_items {
-                            let text_instances = gpu.render_text(&text, x, y, font_size, color, Some(max_width));
+                            let text_instances =
+                                gpu.render_text(&text, x, y, font_size, color, Some(max_width));
                             all_text_instances.extend(text_instances);
                         }
-                        
+
                         gpu.update_text_instances(&all_text_instances);
                     }
                 }
