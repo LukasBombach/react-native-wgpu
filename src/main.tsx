@@ -9,7 +9,6 @@ ReactWGPU.render(
       width: "100%",
       height: "100%",
       alignItems: "start",
-      backgroundColor: "#000",
       padding: 20,
     }}
   >
