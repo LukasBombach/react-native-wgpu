@@ -10,8 +10,17 @@ ReactWGPU.render(
       height: "100%",
       alignItems: "start",
       backgroundColor: "#000",
+      padding: 20,
     }}
   >
+    <div
+      style={{
+        width: "100%",
+        aspectRatio: "16/9",
+        backgroundColor: "#f00",
+        borderRadius: 10,
+      }}
+    ></div>
     <div style={{ width: "100%", backgroundColor: "#f00" }}>Hello, World!</div>
     <div style={{ width: "100%", backgroundColor: "#00f" }}>This is rendered text using WGPU!</div>
   </div>
