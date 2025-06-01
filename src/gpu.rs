@@ -2,6 +2,10 @@ use bytemuck::bytes_of;
 use bytemuck::cast_slice;
 use bytemuck::Pod;
 use bytemuck::Zeroable;
+use glyphon::{
+    Attrs, Buffer, Cache, Color, Family, FontSystem, Metrics, Shaping, SwashCache, TextArea,
+    TextAtlas, TextBounds, TextRenderer, Viewport, Weight,
+};
 use std::borrow::Cow;
 use std::sync::Arc;
 use wgpu::util::DeviceExt;
@@ -45,6 +49,14 @@ pub struct Gpu<'window> {
     instance_buffer: wgpu::Buffer,
     instance_count: u32,
     viewport: [f32; 2],
+    scale_factor: f64,
+    // Text rendering components
+    font_system: FontSystem,
+    swash_cache: SwashCache,
+    cache: Cache,
+    text_atlas: TextAtlas,
+    text_renderer: TextRenderer,
+    text_buffers: Vec<(Buffer, f32, f32)>, // Buffer with x, y position
 }
 
 impl<'window> Gpu<'window> {
@@ -58,6 +70,7 @@ impl<'window> Gpu<'window> {
          */
 
         let size = window.inner_size();
+        let scale_factor = window.scale_factor();
         let width = size.width.max(1);
         let height = size.height.max(1);
         let viewport = [width as f32, height as f32];
@@ -104,18 +117,16 @@ impl<'window> Gpu<'window> {
             .expect("Failed to find an appropriate adapter");
 
         let (device, queue) = adapter
-            .request_device(
-                &wgpu::DeviceDescriptor {
-                    label: None,
-                    required_features: wgpu::Features::PUSH_CONSTANTS,
-                    required_limits: wgpu::Limits {
-                        max_push_constant_size: push_const_size,
-                        ..Default::default()
-                    },
-                    memory_hints: Performance,
+            .request_device(&wgpu::DeviceDescriptor {
+                label: None,
+                required_features: wgpu::Features::PUSH_CONSTANTS,
+                required_limits: wgpu::Limits {
+                    max_push_constant_size: push_const_size,
+                    ..Default::default()
                 },
-                None,
-            )
+                memory_hints: Performance,
+                trace: Default::default(),
+            })
             .await
             .expect("Failed to create device");
 
@@ -217,6 +228,18 @@ impl<'window> Gpu<'window> {
             cache: None,
         });
 
+        // Initialize text rendering components
+        let font_system = FontSystem::new();
+        let swash_cache = SwashCache::new();
+        let cache = Cache::new(&device);
+        let mut text_atlas =
+            TextAtlas::new(&device, &queue, &cache, wgpu::TextureFormat::Bgra8UnormSrgb);
+        let text_renderer = TextRenderer::new(
+            &mut text_atlas,
+            &device,
+            wgpu::MultisampleState::default(),
+            None,
+        );
         Gpu {
             surface,
             config,
@@ -226,6 +249,13 @@ impl<'window> Gpu<'window> {
             instance_buffer,
             instance_count,
             viewport,
+            scale_factor,
+            font_system,
+            swash_cache,
+            cache,
+            text_atlas,
+            text_renderer,
+            text_buffers: Vec::new(),
         }
     }
 
@@ -240,7 +270,7 @@ impl<'window> Gpu<'window> {
     }
 
     pub fn draw(&mut self) {
-        self.device.poll(wgpu::Maintain::Wait);
+        let _ = self.device.poll(wgpu::MaintainBase::Wait);
 
         if self.instance_count == 0 {
             return;
@@ -261,6 +291,7 @@ impl<'window> Gpu<'window> {
                 label: Some("Draw Encoder"),
             });
 
+        // Render background rectangles
         {
             let mut rpass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                 label: None,
@@ -286,6 +317,68 @@ impl<'window> Gpu<'window> {
             }
         }
 
+        // Render text on top of rectangles
+        if !self.text_buffers.is_empty() {
+            // Prepare text areas for rendering
+            let text_areas: Vec<TextArea> = self
+                .text_buffers
+                .iter()
+                .map(|(buffer, x, y)| {
+                    TextArea {
+                        buffer,
+                        left: *x,
+                        top: *y,
+                        scale: 1.0,
+                        bounds: TextBounds {
+                            left: 0,
+                            top: 0,
+                            right: self.viewport[0] as i32,
+                            bottom: self.viewport[1] as i32,
+                        },
+                        default_color: Color::rgb(0, 0, 0), // Black text
+                        custom_glyphs: &[],
+                    }
+                })
+                .collect();
+
+            let viewport = Viewport::new(&self.device, &self.cache);
+
+            self.text_renderer
+                .prepare(
+                    &self.device,
+                    &self.queue,
+                    &mut self.font_system,
+                    &mut self.text_atlas,
+                    &viewport,
+                    text_areas,
+                    &mut self.swash_cache,
+                )
+                .expect("Failed to prepare text");
+
+            {
+                let mut rpass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                    label: Some("Text Render Pass"),
+                    color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                        view: &view,
+                        resolve_target: None,
+                        ops: wgpu::Operations {
+                            load: wgpu::LoadOp::Load, // Don't clear, preserve background
+                            store: wgpu::StoreOp::Store,
+                        },
+                    })],
+                    depth_stencil_attachment: None,
+                    timestamp_writes: None,
+                    occlusion_query_set: None,
+                });
+
+                let viewport = Viewport::new(&self.device, &self.cache);
+
+                self.text_renderer
+                    .render(&mut self.text_atlas, &viewport, &mut rpass)
+                    .expect("Failed to render text");
+            }
+        }
+
         self.queue.submit(Some(encoder.finish()));
         frame.present();
     }
@@ -299,5 +392,58 @@ impl<'window> Gpu<'window> {
                 usage: wgpu::BufferUsages::VERTEX,
             });
         self.instance_count = instances.len() as u32;
+    }
+
+    // Store text areas for rendering
+    pub fn prepare_text_areas(&mut self, text_areas: Vec<(String, f32, f32, f32, f32)>) {
+        // Clear existing text buffers
+        self.text_buffers.clear();
+
+        if text_areas.is_empty() {
+            return;
+        }
+
+        println!("Preparing {} text areas for rendering", text_areas.len());
+
+        // Process each text area
+        for (text_content, x, y, width, height) in text_areas {
+            println!(
+                "Text area: '{}' at ({}, {}) size {}x{}",
+                text_content.chars().take(50).collect::<String>(),
+                x,
+                y,
+                width,
+                height
+            );
+
+            // Create a new buffer for this text area with DPI-aware font size
+            let font_size = 16.0 * self.scale_factor as f32;
+            let line_height = font_size * 1.4;
+            let mut buffer =
+                Buffer::new(&mut self.font_system, Metrics::new(font_size, line_height));
+            buffer.set_size(&mut self.font_system, Some(width), Some(height));
+
+            // Configure text attributes - using red color for better visibility
+            let attrs = Attrs::new()
+                .family(Family::SansSerif)
+                .weight(Weight::NORMAL)
+                .color(glyphon::Color::rgb(255, 0, 0)); // Red color for debugging
+
+            // Set text content with proper shaping
+            buffer.set_text(
+                &mut self.font_system,
+                &text_content,
+                &attrs,
+                Shaping::Advanced,
+            );
+
+            // Perform text layout to wrap lines within bounds
+            buffer.shape_until_scroll(&mut self.font_system, false);
+
+            // Store the buffer with its position
+            self.text_buffers.push((buffer, x, y));
+        }
+
+        println!("Text buffers prepared: {}", self.text_buffers.len());
     }
 }
