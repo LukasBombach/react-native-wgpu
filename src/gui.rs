@@ -14,6 +14,7 @@ use winit::event_loop::EventLoopProxy;
 enum NodeKind {
     Flexbox,
     Grid,
+    Text,
 }
 
 pub struct Node {
@@ -21,6 +22,9 @@ pub struct Node {
     style: Style,
     background_color: [f32; 4],
     border_radius: f32,
+    text: Option<String>,
+    text_color: [f32; 4],
+    font_size: f32,
     cache: Cache,
     pub layout: Layout,
     pub children: Vec<NodeId>,
@@ -33,6 +37,9 @@ impl Default for Node {
             style: Style::default(),
             background_color: [0.0, 0.0, 0.0, 0.0],
             border_radius: 0.0,
+            text: None,
+            text_color: [1.0, 1.0, 1.0, 1.0], // White by default
+            font_size: 16.0,
             cache: Cache::new(),
             layout: Layout::with_order(0),
             children: Vec::new(),
@@ -88,6 +95,25 @@ impl Gui {
         background_color: [f32; 4],
         border_radius: u32,
     ) -> NodeId {
+        self.create_node_with_text(
+            style,
+            background_color,
+            border_radius,
+            None,
+            [1.0, 1.0, 1.0, 1.0],
+            16.0,
+        )
+    }
+
+    pub fn create_node_with_text(
+        &mut self,
+        style: Style,
+        background_color: [f32; 4],
+        border_radius: u32,
+        text: Option<String>,
+        text_color: [f32; 4],
+        font_size: f32,
+    ) -> NodeId {
         // todo block layout
         let kind = if style.display == Display::Grid {
             NodeKind::Grid
@@ -99,12 +125,43 @@ impl Gui {
             style,
             background_color,
             border_radius: border_radius as f32,
+            text,
+            text_color,
+            font_size,
             kind,
             ..Node::default()
         };
 
         let id = self.nodes.insert(node);
 
+        id.into()
+    }
+
+    pub fn create_text_node(
+        &mut self,
+        text: String,
+        text_color: [f32; 4],
+        font_size: f32,
+    ) -> NodeId {
+        let node = Node {
+            kind: NodeKind::Text,
+            style: Style::default(),
+            background_color: [0.0, 0.0, 0.0, 0.0], // Transparent background for text
+            border_radius: 0.0,
+            text: Some(text),
+            text_color,
+            font_size,
+            cache: Cache::new(),
+            layout: Layout::with_order(0),
+            children: Vec::new(),
+        };
+
+        println!(
+            "create_text_node {:?} {:?} {:?}",
+            node.text, node.text_color, node.font_size
+        );
+
+        let id = self.nodes.insert(node);
         id.into()
     }
 
@@ -170,16 +227,19 @@ impl Gui {
                 offset_x + node.layout.location.x,
                 offset_y + node.layout.location.y,
             );
-            let instance = Instance::new(
-                x,
-                y,
-                node.layout.size.width,
-                node.layout.size.height,
-                node.background_color,
-                node.border_radius,
-            );
 
-            instances.push(instance);
+            // Only create background rectangles for non-text nodes
+            if !matches!(node.kind, NodeKind::Text) {
+                let instance = Instance::new(
+                    x,
+                    y,
+                    node.layout.size.width,
+                    node.layout.size.height,
+                    node.background_color,
+                    node.border_radius,
+                );
+                instances.push(instance);
+            }
 
             for child_id in gui.children_from_id(node_id) {
                 collect_instances(gui, *child_id, x, y, instances);
@@ -189,6 +249,65 @@ impl Gui {
         let mut instances = Vec::new();
         collect_instances(&self, self.root, 0.0, 0.0, &mut instances);
         return instances;
+    }
+
+    pub fn collect_text_instances(&self) -> Vec<(String, f32, f32, f32, [f32; 4], f32)> {
+        fn collect_text(
+            gui: &Gui,
+            node_id: taffy::NodeId,
+            offset_x: f32,
+            offset_y: f32,
+            parent_width: f32,
+            text_items: &mut Vec<(String, f32, f32, f32, [f32; 4], f32)>,
+        ) {
+            let node = gui.node_from_id(node_id);
+            let (x, y) = (
+                offset_x + node.layout.location.x,
+                offset_y + node.layout.location.y,
+            );
+
+            // Only collect text from Text nodes
+            if matches!(node.kind, NodeKind::Text) {
+                if let Some(ref text) = node.text {
+                    // Use the parent container's width for text wrapping
+                    println!(
+                        "Text node: '{}' at ({}, {}) parent_width: {}, node_width: {}",
+                        text, x, y, parent_width, node.layout.size.width
+                    );
+                    text_items.push((
+                        text.clone(),
+                        x,
+                        y,
+                        node.font_size,
+                        node.text_color,
+                        parent_width,
+                    ));
+                }
+            } else {
+                println!(
+                    "Container node at ({}, {}) width: {}, height: {}",
+                    x, y, node.layout.size.width, node.layout.size.height
+                );
+            }
+
+            // Pass this node's width as the container width for its children
+            let container_width = node.layout.size.width;
+            for child_id in gui.children_from_id(node_id) {
+                collect_text(gui, *child_id, x, y, container_width, text_items);
+            }
+        }
+
+        let mut text_items = Vec::new();
+        let root_node = self.node_from_id(self.root);
+        collect_text(
+            &self,
+            self.root,
+            0.0,
+            0.0,
+            root_node.layout.size.width,
+            &mut text_items,
+        );
+        text_items
     }
 
     fn notify_update(&self) {
@@ -250,6 +369,22 @@ impl taffy::LayoutPartialTree for Gui {
             match node.kind {
                 NodeKind::Flexbox => compute_flexbox_layout(gui, node_id, inputs),
                 NodeKind::Grid => compute_grid_layout(gui, node_id, inputs),
+                NodeKind::Text => {
+                    // Text nodes are leaf nodes with intrinsic size
+                    taffy::tree::LayoutOutput {
+                        size: taffy::Size {
+                            width: node.font_size
+                                * node.text.as_ref().map_or(0, |t| t.len()) as f32
+                                * 0.6, // Rough text width estimation
+                            height: node.font_size,
+                        },
+                        content_size: taffy::Size::ZERO,
+                        first_baselines: taffy::Point::NONE,
+                        top_margin: taffy::CollapsibleMarginSet::ZERO,
+                        bottom_margin: taffy::CollapsibleMarginSet::ZERO,
+                        margins_can_collapse_through: false,
+                    }
+                }
             }
         })
     }
