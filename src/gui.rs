@@ -290,46 +290,56 @@ impl taffy::LayoutPartialTree for Gui {
                     // Get text content first
                     let text_content = gui.node_from_id(node_id).text_content.clone();
                     let needs_buffer_creation = gui.node_from_id(node_id).text_buffer.is_none();
-                    
+
                     // Create buffer if needed
                     if needs_buffer_creation && text_content.is_some() {
                         let text = text_content.as_ref().unwrap();
-                        let mut buffer = glyphon::Buffer::new(&mut gui.font_system, glyphon::Metrics::new(16.0, 20.0));
+                        let mut buffer = glyphon::Buffer::new(
+                            &mut gui.font_system,
+                            glyphon::Metrics::new(16.0, 20.0),
+                        );
                         let attrs = glyphon::Attrs::new().family(glyphon::Family::SansSerif);
-                        buffer.set_text(&mut gui.font_system, text, &attrs, glyphon::Shaping::Advanced);
+                        buffer.set_text(
+                            &mut gui.font_system,
+                            text,
+                            &attrs,
+                            glyphon::Shaping::Advanced,
+                        );
                         gui.node_from_id_mut(node_id).text_buffer = Some(buffer);
                     }
-                    
+
                     if text_content.is_some() {
                         let available_space = inputs.available_space;
                         let known_dimensions = inputs.known_dimensions;
 
                         // Set width constraint
-                        let width_constraint = known_dimensions.width.or(match available_space.width {
-                            AvailableSpace::MinContent => Some(0.0),
-                            AvailableSpace::MaxContent => None,
-                            AvailableSpace::Definite(width) => Some(width),
-                        });
+                        let width_constraint =
+                            known_dimensions.width.or(match available_space.width {
+                                AvailableSpace::MinContent => Some(0.0),
+                                AvailableSpace::MaxContent => None,
+                                AvailableSpace::Definite(width) => Some(width),
+                            });
 
                         // Now handle layout computation - split mutable borrows properly
                         let node = gui.node_from_id_mut(node_id);
                         if node.text_buffer.is_some() {
                             // We need to get font_system reference after getting the node reference
                             // This creates a borrowing issue, so we need a different approach
-                            
+
                             // Store the text buffer temporarily to avoid double borrow
                             let mut temp_buffer = node.text_buffer.take().unwrap();
-                            
+
                             // Now we can borrow font_system mutably
                             temp_buffer.set_size(&mut gui.font_system, width_constraint, None);
                             temp_buffer.shape_until_scroll(&mut gui.font_system, false);
 
                             // Determine measured size of text
-                            let (width, total_lines) = temp_buffer
-                                .layout_runs()
-                                .fold((0.0, 0usize), |(width, total_lines), run| {
+                            let (width, total_lines) = temp_buffer.layout_runs().fold(
+                                (0.0, 0usize),
+                                |(width, total_lines), run| {
                                     (run.line_w.max(width), total_lines + 1)
-                                });
+                                },
+                            );
                             let height = total_lines as f32 * temp_buffer.metrics().line_height;
 
                             // Put the buffer back
@@ -345,7 +355,7 @@ impl taffy::LayoutPartialTree for Gui {
                             };
                         }
                     }
-                    
+
                     // Fallback for empty text or no buffer
                     return taffy::tree::LayoutOutput {
                         size: taffy::Size {
