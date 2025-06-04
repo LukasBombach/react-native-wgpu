@@ -4,6 +4,7 @@ use slotmap::{DefaultKey, SlotMap};
 use std::convert::From;
 use std::sync::Arc;
 use std::sync::Mutex;
+use taffy::util::print_tree;
 use taffy::{
     compute_cached_layout, compute_flexbox_layout, compute_grid_layout, compute_root_layout,
     prelude::*, Cache, Layout, Style,
@@ -232,6 +233,10 @@ impl Gui {
             proxy.send_event(CustomEvent::GuiUpdate).unwrap();
         }
     }
+
+    pub fn print_tree(&mut self) {
+        print_tree(self, self.root);
+    }
 }
 
 pub struct ChildIter<'a>(std::slice::Iter<'a, NodeId>);
@@ -443,5 +448,19 @@ impl taffy::CacheTree for Gui {
 
     fn cache_clear(&mut self, node_id: NodeId) {
         self.node_from_id_mut(node_id).cache.clear();
+    }
+}
+
+impl taffy::PrintTree for Gui {
+    fn get_debug_label(&self, node_id: NodeId) -> &'static str {
+        match self.node_from_id(node_id).kind {
+            NodeKind::Flexbox => "FLEX",
+            NodeKind::Grid => "GRID",
+            NodeKind::Text => "TEXT",
+        }
+    }
+
+    fn get_final_layout(&self, node_id: NodeId) -> &Layout {
+        &self.node_from_id(node_id).layout
     }
 }

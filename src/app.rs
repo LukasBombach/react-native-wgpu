@@ -60,6 +60,8 @@ impl<'window> ApplicationHandler<CustomEvent> for App<'window> {
                             gui.compute_layout(size.width, size.height);
                             gpu.update_instance_buffer(gui.into_instances());
 
+                            gui.print_tree();
+
                             window.request_redraw();
                         }
                     }
