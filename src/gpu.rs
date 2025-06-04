@@ -55,6 +55,7 @@ pub struct Gpu<'window> {
     glyphon_viewport: glyphon::Viewport,
     atlas: glyphon::TextAtlas,
     text_renderer: glyphon::TextRenderer,
+    text_areas: Vec<glyphon::TextArea<'window>>,
 }
 
 impl<'window> Gpu<'window> {
@@ -154,6 +155,7 @@ impl<'window> Gpu<'window> {
         let cache = Cache::new(&device);
         let glyphon_viewport = glyphon::Viewport::new(&device, &cache);
         let mut atlas = TextAtlas::new(&device, &queue, &cache, swapchain_format);
+        let text_areas: Vec<glyphon::TextArea<'window>> = Vec::new();
         let text_renderer =
             TextRenderer::new(&mut atlas, &device, wgpu::MultisampleState::default(), None);
 
@@ -265,6 +267,7 @@ impl<'window> Gpu<'window> {
             glyphon_viewport,
             atlas,
             text_renderer,
+            text_areas,
         }
     }
 
@@ -285,6 +288,18 @@ impl<'window> Gpu<'window> {
             return;
         }
 
+        self.text_renderer
+            .prepare(
+                &self.device,
+                &self.queue,
+                &mut self.font_system,
+                &mut self.atlas,
+                &self.glyphon_viewport,
+                self.text_areas.clone(),
+                &mut self.swash_cache,
+            )
+            .unwrap();
+
         let frame = self
             .surface
             .get_current_texture()
@@ -301,7 +316,7 @@ impl<'window> Gpu<'window> {
             });
 
         {
-            let mut rpass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+            let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                 label: None,
                 color_attachments: &[Some(wgpu::RenderPassColorAttachment {
                     view: &view,
@@ -316,13 +331,17 @@ impl<'window> Gpu<'window> {
                 occlusion_query_set: None,
             });
 
-            rpass.set_pipeline(&self.render_pipeline);
+            pass.set_pipeline(&self.render_pipeline);
 
             if self.instance_count > 0 {
-                rpass.set_push_constants(wgpu::ShaderStages::VERTEX, 0, bytes_of(&self.viewport));
-                rpass.set_vertex_buffer(0, self.instance_buffer.slice(..));
-                rpass.draw(0..6, 0..self.instance_count);
+                pass.set_push_constants(wgpu::ShaderStages::VERTEX, 0, bytes_of(&self.viewport));
+                pass.set_vertex_buffer(0, self.instance_buffer.slice(..));
+                pass.draw(0..6, 0..self.instance_count);
             }
+
+            self.text_renderer
+                .render(&self.atlas, &self.glyphon_viewport, &mut pass)
+                .unwrap();
         }
 
         self.queue.submit(Some(encoder.finish()));
@@ -338,5 +357,9 @@ impl<'window> Gpu<'window> {
                 usage: wgpu::BufferUsages::VERTEX,
             });
         self.instance_count = instances.len() as u32;
+    }
+
+    pub fn update_text_areas(&mut self, text_areas: Vec<glyphon::TextArea<'window>>) {
+        self.text_areas = text_areas;
     }
 }
