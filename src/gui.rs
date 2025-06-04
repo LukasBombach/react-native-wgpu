@@ -14,6 +14,7 @@ use winit::event_loop::EventLoopProxy;
 enum NodeKind {
     Flexbox,
     Grid,
+    Text,
 }
 
 pub struct Node {
@@ -22,8 +23,10 @@ pub struct Node {
     background_color: [f32; 4],
     border_radius: f32,
     cache: Cache,
+    text_buffer: Option<glyphon::Buffer>,
     pub layout: Layout,
     pub children: Vec<NodeId>,
+    pub text_content: Option<String>,
 }
 
 impl Default for Node {
@@ -36,6 +39,8 @@ impl Default for Node {
             cache: Cache::new(),
             layout: Layout::with_order(0),
             children: Vec::new(),
+            text_content: None,
+            text_buffer: None,
         }
     }
 }
@@ -50,6 +55,7 @@ impl Node {
 pub struct Gui {
     pub root: NodeId,
     nodes: SlotMap<DefaultKey, Node>,
+    font_system: glyphon::FontSystem,
     event_loop: Arc<Mutex<EventLoopProxy<CustomEvent>>>,
 }
 
@@ -58,9 +64,11 @@ impl Gui {
     pub fn new(event_loop: Arc<Mutex<EventLoopProxy<CustomEvent>>>) -> Self {
         let mut nodes = SlotMap::new();
         let root = nodes.insert(Self::create_root()).into();
+        let font_system = glyphon::FontSystem::new();
         Self {
             root,
             nodes,
+            font_system,
             event_loop,
         }
     }
@@ -108,6 +116,18 @@ impl Gui {
         id.into()
     }
 
+    pub fn create_text_node(&mut self, text: String) -> NodeId {
+        let node = Node {
+            kind: NodeKind::Text,
+            text_content: Some(text),
+            ..Node::default()
+        };
+
+        let id = self.nodes.insert(node);
+
+        id.into()
+    }
+
     pub fn append_child_to_root(&mut self, child_id: NodeId) -> () {
         self.append_child(self.root, child_id);
         self.notify_update();
@@ -139,6 +159,11 @@ impl Gui {
     pub fn layout_from_id(&self, node_id: NodeId) -> &Layout {
         &self.nodes.get(node_id.into()).unwrap().layout
     }
+
+    /* #[inline(always)]
+    pub fn text_buffer_from_id_mut(&self, node_id: NodeId) -> &mut Option<glyphon::Buffer> {
+        &self.nodes.get_mut(node_id.into()).unwrap().text_buffer
+    } */
 
     pub fn clear(&mut self) {
         self.nodes.clear();
@@ -189,6 +214,17 @@ impl Gui {
         let mut instances = Vec::new();
         collect_instances(&self, self.root, 0.0, 0.0, &mut instances);
         return instances;
+    }
+
+    pub fn update_text_content(&mut self, node_id: NodeId, new_text: String) {
+        if let Some(node) = self.nodes.get_mut(node_id.into()) {
+            node.text_content = Some(new_text.clone());
+            // Clear the text buffer so it gets recreated with the new content
+            node.text_buffer = None;
+            // Clear cache to force layout recalculation
+            node.cache.clear();
+            self.notify_update();
+        }
     }
 
     fn notify_update(&self) {
@@ -245,11 +281,84 @@ impl taffy::LayoutPartialTree for Gui {
         inputs: taffy::tree::LayoutInput,
     ) -> taffy::tree::LayoutOutput {
         compute_cached_layout(self, node_id, inputs, |gui, node_id, inputs| {
-            let node = gui.node_from_id_mut(node_id);
+            let node_kind = gui.node_from_id(node_id).kind;
 
-            match node.kind {
+            match node_kind {
                 NodeKind::Flexbox => compute_flexbox_layout(gui, node_id, inputs),
                 NodeKind::Grid => compute_grid_layout(gui, node_id, inputs),
+                NodeKind::Text => {
+                    // Get text content first
+                    let text_content = gui.node_from_id(node_id).text_content.clone();
+                    let needs_buffer_creation = gui.node_from_id(node_id).text_buffer.is_none();
+                    
+                    // Create buffer if needed
+                    if needs_buffer_creation && text_content.is_some() {
+                        let text = text_content.as_ref().unwrap();
+                        let mut buffer = glyphon::Buffer::new(&mut gui.font_system, glyphon::Metrics::new(16.0, 20.0));
+                        let attrs = glyphon::Attrs::new().family(glyphon::Family::SansSerif);
+                        buffer.set_text(&mut gui.font_system, text, &attrs, glyphon::Shaping::Advanced);
+                        gui.node_from_id_mut(node_id).text_buffer = Some(buffer);
+                    }
+                    
+                    if text_content.is_some() {
+                        let available_space = inputs.available_space;
+                        let known_dimensions = inputs.known_dimensions;
+
+                        // Set width constraint
+                        let width_constraint = known_dimensions.width.or(match available_space.width {
+                            AvailableSpace::MinContent => Some(0.0),
+                            AvailableSpace::MaxContent => None,
+                            AvailableSpace::Definite(width) => Some(width),
+                        });
+
+                        // Now handle layout computation - split mutable borrows properly
+                        let node = gui.node_from_id_mut(node_id);
+                        if node.text_buffer.is_some() {
+                            // We need to get font_system reference after getting the node reference
+                            // This creates a borrowing issue, so we need a different approach
+                            
+                            // Store the text buffer temporarily to avoid double borrow
+                            let mut temp_buffer = node.text_buffer.take().unwrap();
+                            
+                            // Now we can borrow font_system mutably
+                            temp_buffer.set_size(&mut gui.font_system, width_constraint, None);
+                            temp_buffer.shape_until_scroll(&mut gui.font_system, false);
+
+                            // Determine measured size of text
+                            let (width, total_lines) = temp_buffer
+                                .layout_runs()
+                                .fold((0.0, 0usize), |(width, total_lines), run| {
+                                    (run.line_w.max(width), total_lines + 1)
+                                });
+                            let height = total_lines as f32 * temp_buffer.metrics().line_height;
+
+                            // Put the buffer back
+                            gui.node_from_id_mut(node_id).text_buffer = Some(temp_buffer);
+
+                            return taffy::tree::LayoutOutput {
+                                size: taffy::Size { width, height },
+                                content_size: taffy::Size::ZERO,
+                                first_baselines: taffy::Point::NONE,
+                                top_margin: taffy::CollapsibleMarginSet::ZERO,
+                                bottom_margin: taffy::CollapsibleMarginSet::ZERO,
+                                margins_can_collapse_through: false,
+                            };
+                        }
+                    }
+                    
+                    // Fallback for empty text or no buffer
+                    return taffy::tree::LayoutOutput {
+                        size: taffy::Size {
+                            width: 0.0,
+                            height: 0.0,
+                        },
+                        content_size: taffy::Size::ZERO,
+                        first_baselines: taffy::Point::NONE,
+                        top_margin: taffy::CollapsibleMarginSet::ZERO,
+                        bottom_margin: taffy::CollapsibleMarginSet::ZERO,
+                        margins_can_collapse_through: false,
+                    };
+                }
             }
         })
     }

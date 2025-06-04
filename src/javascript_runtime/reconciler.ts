@@ -4,6 +4,8 @@ import { taffyFromCss } from "./taffy.ts";
 // @ts-expect-error not typed yet
 export const create_instance = Deno.core.ops.op_create_instance;
 // @ts-expect-error not typed yet
+export const create_text_instance = Deno.core.ops.op_create_text_instance;
+// @ts-expect-error not typed yet
 export const append_child_to_container = Deno.core.ops.op_append_child_to_container;
 // @ts-expect-error not typed yet
 export const append_child = Deno.core.ops.op_append_child;
@@ -14,14 +16,14 @@ export const debug = Deno.core.ops.op_debug;
 
 import type { CSSProperties, ReactNode } from "react";
 
-type RectId = number;
+type InstanceId = number;
 type RectProps = { style: CSSProperties };
 
 type Type = Pick<Container | Instance | TextInstance | HostContext, "type">;
 type Props = RectProps;
 type Container = { type: "container" };
-type Instance = { type: "div"; id: RectId };
-type TextInstance = { type: "text" };
+type Instance = { type: "div"; id: InstanceId };
+type TextInstance = { type: "text"; id: InstanceId };
 type SuspenseInstance = never;
 type HydratableInstance = never;
 type PublicInstance = { type: string };
@@ -65,8 +67,13 @@ export const reconciler = ReactReconciler<
     return { type: "div", id };
   },
 
+  createTextInstance(text, _rootContainerInstance, _hostContext, _internalInstanceHandle) {
+    const id = create_text_instance(text);
+    return { type: "text", id };
+  },
+
   appendChildToContainer(_container, child) {
-    if (child.type === "div") {
+    if (["div", "text"].includes(child.type)) {
       append_child_to_container(child.id);
     } else {
       console.warn("appendChildToContainer: Ignoring child", child);
@@ -74,7 +81,7 @@ export const reconciler = ReactReconciler<
   },
 
   appendInitialChild(parent, child) {
-    if (child.type === "div") {
+    if (["div", "text"].includes(child.type)) {
       append_child(parent.id, child.id);
     } else {
       console.warn("appendInitialChild: Ignoring child", child);
@@ -82,15 +89,11 @@ export const reconciler = ReactReconciler<
   },
 
   appendChild(parent, child) {
-    if (child.type === "div") {
+    if (["div", "text"].includes(child.type)) {
       append_child(parent.id, child.id);
     } else {
       console.warn("appendChild: Ignoring child", child);
     }
-  },
-
-  createTextInstance(_text, _rootContainerInstance, _hostContext, _internalInstanceHandle) {
-    return { type: "text" };
   },
 
   clearContainer: () => false,

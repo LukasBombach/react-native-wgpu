@@ -2,6 +2,10 @@ use bytemuck::bytes_of;
 use bytemuck::cast_slice;
 use bytemuck::Pod;
 use bytemuck::Zeroable;
+use glyphon::{
+    Attrs, Buffer, Cache, Color, Family, FontSystem, Metrics, Resolution, Shaping, SwashCache,
+    TextArea, TextAtlas, TextBounds, TextRenderer,
+};
 use std::borrow::Cow;
 use std::sync::Arc;
 use wgpu::util::DeviceExt;
@@ -45,6 +49,13 @@ pub struct Gpu<'window> {
     instance_buffer: wgpu::Buffer,
     instance_count: u32,
     viewport: [f32; 2],
+
+    font_system: FontSystem,
+    swash_cache: SwashCache,
+    glyphon_viewport: glyphon::Viewport,
+    atlas: glyphon::TextAtlas,
+    text_renderer: glyphon::TextRenderer,
+    text_buffer: glyphon::Buffer,
 }
 
 impl<'window> Gpu<'window> {
@@ -61,6 +72,7 @@ impl<'window> Gpu<'window> {
         let width = size.width.max(1);
         let height = size.height.max(1);
         let viewport = [width as f32, height as f32];
+        let scale_factor = window.scale_factor();
 
         /*
          * wgpu
@@ -69,6 +81,7 @@ impl<'window> Gpu<'window> {
         let instance = wgpu::Instance::default();
         let surface = instance.create_surface(Arc::clone(&window)).unwrap();
         let push_const_size = std::mem::size_of::<[f32; 2]>() as u32;
+        let swapchain_format = wgpu::TextureFormat::Bgra8UnormSrgb;
 
         /*
          * Jitter when resizing windows on macOS
@@ -104,25 +117,55 @@ impl<'window> Gpu<'window> {
             .expect("Failed to find an appropriate adapter");
 
         let (device, queue) = adapter
-            .request_device(
-                &wgpu::DeviceDescriptor {
-                    label: None,
-                    required_features: wgpu::Features::PUSH_CONSTANTS,
-                    required_limits: wgpu::Limits {
-                        max_push_constant_size: push_const_size,
-                        ..Default::default()
-                    },
-                    memory_hints: Performance,
+            .request_device(&wgpu::DeviceDescriptor {
+                label: None,
+                required_features: wgpu::Features::PUSH_CONSTANTS,
+                required_limits: wgpu::Limits {
+                    max_push_constant_size: push_const_size,
+                    ..Default::default()
                 },
-                None,
-            )
+                memory_hints: Performance,
+                ..Default::default()
+            })
             .await
             .expect("Failed to create device");
 
-        let mut config = surface.get_default_config(&adapter, width, height).unwrap();
-        config.alpha_mode = wgpu::CompositeAlphaMode::PostMultiplied;
+        // let mut config = surface.get_default_config(&adapter, width, height).unwrap();
+        // config.alpha_mode = wgpu::CompositeAlphaMode::PostMultiplied;
+
+        let config = wgpu::SurfaceConfiguration {
+            usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
+            format: swapchain_format,
+            width: width,
+            height: height,
+            present_mode: wgpu::PresentMode::Fifo,
+            alpha_mode: wgpu::CompositeAlphaMode::PostMultiplied,
+            view_formats: vec![],
+            desired_maximum_frame_latency: 2,
+        };
 
         surface.configure(&device, &config);
+
+        /*
+         * font system
+         */
+
+        let mut font_system = FontSystem::new();
+        let swash_cache = SwashCache::new();
+        let cache = Cache::new(&device);
+        let glyphon_viewport = glyphon::Viewport::new(&device, &cache);
+        let mut atlas = TextAtlas::new(&device, &queue, &cache, swapchain_format);
+        let text_renderer =
+            TextRenderer::new(&mut atlas, &device, wgpu::MultisampleState::default(), None);
+        let mut text_buffer = Buffer::new(&mut font_system, Metrics::new(30.0, 42.0));
+
+        text_buffer.set_size(
+            &mut font_system,
+            Some((width as f64 * scale_factor) as f32),
+            Some((height as f64 * scale_factor) as f32),
+        );
+        text_buffer.set_text(&mut font_system, "Hello world! 👋\nThis is rendered with 🦅 glyphon 🦁\nThe text below should be partially clipped.\na b c d e f g h i j k l m n o p q r s t u v w x y z", &Attrs::new().family(Family::SansSerif), Shaping::Advanced);
+        text_buffer.shape_until_scroll(&mut font_system, false);
 
         /*
          * push constants
@@ -226,6 +269,13 @@ impl<'window> Gpu<'window> {
             instance_buffer,
             instance_count,
             viewport,
+
+            font_system,
+            swash_cache,
+            glyphon_viewport,
+            atlas,
+            text_renderer,
+            text_buffer,
         }
     }
 
@@ -240,7 +290,7 @@ impl<'window> Gpu<'window> {
     }
 
     pub fn draw(&mut self) {
-        self.device.poll(wgpu::Maintain::Wait);
+        let _ = self.device.poll(wgpu::PollType::Wait);
 
         if self.instance_count == 0 {
             return;
