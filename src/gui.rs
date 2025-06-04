@@ -308,7 +308,10 @@ impl taffy::LayoutPartialTree for Gui {
                         gui.node_from_id_mut(node_id).text_buffer = Some(buffer);
                     }
 
-                    if text_content.is_some() {
+                    // Now handle layout computation - split mutable borrows properly
+                    let node = gui.node_from_id_mut(node_id);
+
+                    if text_content.is_some() && node.text_buffer.is_some() {
                         let available_space = inputs.available_space;
                         let known_dimensions = inputs.known_dimensions;
 
@@ -320,40 +323,35 @@ impl taffy::LayoutPartialTree for Gui {
                                 AvailableSpace::Definite(width) => Some(width),
                             });
 
-                        // Now handle layout computation - split mutable borrows properly
-                        let node = gui.node_from_id_mut(node_id);
-                        if node.text_buffer.is_some() {
-                            // We need to get font_system reference after getting the node reference
-                            // This creates a borrowing issue, so we need a different approach
+                        // We need to get font_system reference after getting the node reference
+                        // This creates a borrowing issue, so we need a different approach
 
-                            // Store the text buffer temporarily to avoid double borrow
-                            let mut temp_buffer = node.text_buffer.take().unwrap();
+                        // Store the text buffer temporarily to avoid double borrow
+                        let mut temp_buffer = node.text_buffer.take().unwrap();
 
-                            // Now we can borrow font_system mutably
-                            temp_buffer.set_size(&mut gui.font_system, width_constraint, None);
-                            temp_buffer.shape_until_scroll(&mut gui.font_system, false);
+                        // Now we can borrow font_system mutably
+                        temp_buffer.set_size(&mut gui.font_system, width_constraint, None);
+                        temp_buffer.shape_until_scroll(&mut gui.font_system, false);
 
-                            // Determine measured size of text
-                            let (width, total_lines) = temp_buffer.layout_runs().fold(
-                                (0.0, 0usize),
-                                |(width, total_lines), run| {
-                                    (run.line_w.max(width), total_lines + 1)
-                                },
-                            );
-                            let height = total_lines as f32 * temp_buffer.metrics().line_height;
+                        // Determine measured size of text
+                        let (width, total_lines) = temp_buffer
+                            .layout_runs()
+                            .fold((0.0, 0usize), |(width, total_lines), run| {
+                                (run.line_w.max(width), total_lines + 1)
+                            });
+                        let height = total_lines as f32 * temp_buffer.metrics().line_height;
 
-                            // Put the buffer back
-                            gui.node_from_id_mut(node_id).text_buffer = Some(temp_buffer);
+                        // Put the buffer back
+                        gui.node_from_id_mut(node_id).text_buffer = Some(temp_buffer);
 
-                            return taffy::tree::LayoutOutput {
-                                size: taffy::Size { width, height },
-                                content_size: taffy::Size::ZERO,
-                                first_baselines: taffy::Point::NONE,
-                                top_margin: taffy::CollapsibleMarginSet::ZERO,
-                                bottom_margin: taffy::CollapsibleMarginSet::ZERO,
-                                margins_can_collapse_through: false,
-                            };
-                        }
+                        return taffy::tree::LayoutOutput {
+                            size: taffy::Size { width, height },
+                            content_size: taffy::Size::ZERO,
+                            first_baselines: taffy::Point::NONE,
+                            top_margin: taffy::CollapsibleMarginSet::ZERO,
+                            bottom_margin: taffy::CollapsibleMarginSet::ZERO,
+                            margins_can_collapse_through: false,
+                        };
                     }
 
                     // Fallback for empty text or no buffer
