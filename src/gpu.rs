@@ -55,7 +55,6 @@ pub struct Gpu<'window> {
     glyphon_viewport: glyphon::Viewport,
     atlas: glyphon::TextAtlas,
     text_renderer: glyphon::TextRenderer,
-    text_buffer: glyphon::Buffer,
 }
 
 impl<'window> Gpu<'window> {
@@ -119,12 +118,12 @@ impl<'window> Gpu<'window> {
         let (device, queue) = adapter
             .request_device(&wgpu::DeviceDescriptor {
                 label: None,
+                memory_hints: Performance,
                 required_features: wgpu::Features::PUSH_CONSTANTS,
                 required_limits: wgpu::Limits {
                     max_push_constant_size: push_const_size,
                     ..Default::default()
                 },
-                memory_hints: Performance,
                 ..Default::default()
             })
             .await
@@ -157,15 +156,6 @@ impl<'window> Gpu<'window> {
         let mut atlas = TextAtlas::new(&device, &queue, &cache, swapchain_format);
         let text_renderer =
             TextRenderer::new(&mut atlas, &device, wgpu::MultisampleState::default(), None);
-        let mut text_buffer = Buffer::new(&mut font_system, Metrics::new(30.0, 42.0));
-
-        text_buffer.set_size(
-            &mut font_system,
-            Some((width as f64 * scale_factor) as f32),
-            Some((height as f64 * scale_factor) as f32),
-        );
-        text_buffer.set_text(&mut font_system, "Hello world! 👋\nThis is rendered with 🦅 glyphon 🦁\nThe text below should be partially clipped.\na b c d e f g h i j k l m n o p q r s t u v w x y z", &Attrs::new().family(Family::SansSerif), Shaping::Advanced);
-        text_buffer.shape_until_scroll(&mut font_system, false);
 
         /*
          * push constants
@@ -275,7 +265,6 @@ impl<'window> Gpu<'window> {
             glyphon_viewport,
             atlas,
             text_renderer,
-            text_buffer,
         }
     }
 
