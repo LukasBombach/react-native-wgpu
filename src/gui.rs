@@ -219,25 +219,47 @@ impl Gui {
         return instances;
     }
 
-    pub fn into_text_areas(&mut self) -> Vec<glyphon::Buffer> {
-        fn collect_text_buffers(
+    pub fn into_text_areas(&mut self) -> Vec<glyphon::TextArea> {
+        const FONT_COLOR: glyphon::Color = glyphon::Color::rgb(0, 0, 0);
+
+        fn collect_text_areas(
             gui: &Gui,
             node_id: taffy::NodeId,
-            buffers: &mut Vec<glyphon::Buffer>,
+            offset_x: f32,
+            offset_y: f32,
+            text_areas: &mut Vec<glyphon::TextArea>,
         ) {
             let node = gui.node_from_id(node_id);
             if let Some(buffer) = &node.text_buffer {
-                buffers.push(buffer.clone());
-            }
+                let (left, top) = (
+                    offset_x + node.layout.location.x,
+                    offset_y + node.layout.location.y,
+                );
 
-            for child_id in gui.children_from_id(node_id) {
-                collect_text_buffers(gui, *child_id, buffers);
+                text_areas.push(glyphon::TextArea {
+                    buffer: &buffer,
+                    top,
+                    left,
+                    scale: 2.0,
+                    bounds: glyphon::TextBounds {
+                        left: left.floor() as i32,
+                        top: top.floor() as i32,
+                        right: (left + node.layout.size.width).floor() as i32,
+                        bottom: (top + node.layout.size.height).floor() as i32,
+                    },
+                    default_color: FONT_COLOR,
+                    custom_glyphs: &[],
+                });
+
+                for child_id in gui.children_from_id(node_id) {
+                    collect_text_areas(gui, *child_id, left, top, text_areas);
+                }
             }
         }
 
-        let mut buffers = Vec::new();
-        collect_text_buffers(self, self.root, &mut buffers);
-        return buffers;
+        let mut text_areas = Vec::new();
+        collect_text_areas(&self, self.root, 0.0, 0.0, &mut text_areas);
+        return text_areas;
     }
 
     /* pub fn update_text_content(&mut self, node_id: NodeId, new_text: String) {
