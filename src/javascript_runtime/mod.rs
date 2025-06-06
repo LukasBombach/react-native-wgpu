@@ -50,6 +50,22 @@ fn op_create_instance(
 }
 
 #[op2(fast)]
+#[bigint]
+#[string]
+fn op_create_text_instance(
+    state: &mut OpState,
+    #[string] text: String,
+) -> Result<usize, JsErrorBox> {
+    let node_id = state
+        .borrow::<Arc<Mutex<Gui>>>()
+        .lock()
+        .unwrap()
+        .create_text_node(text);
+
+    Ok(usize::from(node_id))
+}
+
+#[op2(fast)]
 fn op_append_child_to_container(
     state: &mut OpState,
     #[bigint] node_id: usize,
@@ -81,6 +97,7 @@ extension!(
     rect_extension,
     ops = [
         op_create_instance,
+        op_create_text_instance,
         op_append_child_to_container,
         op_append_child,
     ],

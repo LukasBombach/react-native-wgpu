@@ -2,6 +2,7 @@ use bytemuck::bytes_of;
 use bytemuck::cast_slice;
 use bytemuck::Pod;
 use bytemuck::Zeroable;
+use glyphon::{Cache, FontSystem, SwashCache, TextAtlas, TextRenderer};
 use std::borrow::Cow;
 use std::sync::Arc;
 use wgpu::util::DeviceExt;
@@ -45,6 +46,12 @@ pub struct Gpu<'window> {
     instance_buffer: wgpu::Buffer,
     instance_count: u32,
     viewport: [f32; 2],
+
+    font_system: FontSystem,
+    swash_cache: SwashCache,
+    glyphon_viewport: glyphon::Viewport,
+    atlas: glyphon::TextAtlas,
+    text_renderer: glyphon::TextRenderer,
 }
 
 impl<'window> Gpu<'window> {
@@ -69,6 +76,7 @@ impl<'window> Gpu<'window> {
         let instance = wgpu::Instance::default();
         let surface = instance.create_surface(Arc::clone(&window)).unwrap();
         let push_const_size = std::mem::size_of::<[f32; 2]>() as u32;
+        let swapchain_format = wgpu::TextureFormat::Bgra8UnormSrgb;
 
         /*
          * Jitter when resizing windows on macOS
@@ -104,25 +112,46 @@ impl<'window> Gpu<'window> {
             .expect("Failed to find an appropriate adapter");
 
         let (device, queue) = adapter
-            .request_device(
-                &wgpu::DeviceDescriptor {
-                    label: None,
-                    required_features: wgpu::Features::PUSH_CONSTANTS,
-                    required_limits: wgpu::Limits {
-                        max_push_constant_size: push_const_size,
-                        ..Default::default()
-                    },
-                    memory_hints: Performance,
+            .request_device(&wgpu::DeviceDescriptor {
+                label: None,
+                memory_hints: Performance,
+                required_features: wgpu::Features::PUSH_CONSTANTS,
+                required_limits: wgpu::Limits {
+                    max_push_constant_size: push_const_size,
+                    ..Default::default()
                 },
-                None,
-            )
+                ..Default::default()
+            })
             .await
             .expect("Failed to create device");
 
-        let mut config = surface.get_default_config(&adapter, width, height).unwrap();
-        config.alpha_mode = wgpu::CompositeAlphaMode::PostMultiplied;
+        // let mut config = surface.get_default_config(&adapter, width, height).unwrap();
+        // config.alpha_mode = wgpu::CompositeAlphaMode::PostMultiplied;
+
+        let config = wgpu::SurfaceConfiguration {
+            usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
+            format: swapchain_format,
+            width: width,
+            height: height,
+            present_mode: wgpu::PresentMode::Fifo,
+            alpha_mode: wgpu::CompositeAlphaMode::PostMultiplied,
+            view_formats: vec![],
+            desired_maximum_frame_latency: 2,
+        };
 
         surface.configure(&device, &config);
+
+        /*
+         * font system
+         */
+
+        let font_system = FontSystem::new();
+        let swash_cache = SwashCache::new();
+        let cache = Cache::new(&device);
+        let glyphon_viewport = glyphon::Viewport::new(&device, &cache);
+        let mut atlas = TextAtlas::new(&device, &queue, &cache, swapchain_format);
+        let text_renderer =
+            TextRenderer::new(&mut atlas, &device, wgpu::MultisampleState::default(), None);
 
         /*
          * push constants
@@ -226,6 +255,12 @@ impl<'window> Gpu<'window> {
             instance_buffer,
             instance_count,
             viewport,
+
+            font_system,
+            swash_cache,
+            glyphon_viewport,
+            atlas,
+            text_renderer,
         }
     }
 
@@ -240,7 +275,7 @@ impl<'window> Gpu<'window> {
     }
 
     pub fn draw(&mut self) {
-        self.device.poll(wgpu::Maintain::Wait);
+        let _ = self.device.poll(wgpu::PollType::Wait);
 
         if self.instance_count == 0 {
             return;
@@ -262,7 +297,7 @@ impl<'window> Gpu<'window> {
             });
 
         {
-            let mut rpass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+            let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                 label: None,
                 color_attachments: &[Some(wgpu::RenderPassColorAttachment {
                     view: &view,
@@ -277,13 +312,17 @@ impl<'window> Gpu<'window> {
                 occlusion_query_set: None,
             });
 
-            rpass.set_pipeline(&self.render_pipeline);
+            pass.set_pipeline(&self.render_pipeline);
 
             if self.instance_count > 0 {
-                rpass.set_push_constants(wgpu::ShaderStages::VERTEX, 0, bytes_of(&self.viewport));
-                rpass.set_vertex_buffer(0, self.instance_buffer.slice(..));
-                rpass.draw(0..6, 0..self.instance_count);
+                pass.set_push_constants(wgpu::ShaderStages::VERTEX, 0, bytes_of(&self.viewport));
+                pass.set_vertex_buffer(0, self.instance_buffer.slice(..));
+                pass.draw(0..6, 0..self.instance_count);
             }
+
+            self.text_renderer
+                .render(&self.atlas, &self.glyphon_viewport, &mut pass)
+                .unwrap();
         }
 
         self.queue.submit(Some(encoder.finish()));
@@ -299,5 +338,20 @@ impl<'window> Gpu<'window> {
                 usage: wgpu::BufferUsages::VERTEX,
             });
         self.instance_count = instances.len() as u32;
+    }
+
+    pub fn prepare_text_rendering(&mut self, gui: &crate::gui::Gui) {
+        let text_areas = gui.into_text_areas();
+        self.text_renderer
+            .prepare(
+                &self.device,
+                &self.queue,
+                &mut self.font_system,
+                &mut self.atlas,
+                &self.glyphon_viewport,
+                text_areas,
+                &mut self.swash_cache,
+            )
+            .unwrap();
     }
 }
