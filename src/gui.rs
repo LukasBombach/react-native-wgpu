@@ -219,7 +219,28 @@ impl Gui {
         return instances;
     }
 
-    pub fn update_text_content(&mut self, node_id: NodeId, new_text: String) {
+    pub fn into_text_areas(&mut self) -> Vec<glyphon::Buffer> {
+        fn collect_text_buffers(
+            gui: &Gui,
+            node_id: taffy::NodeId,
+            buffers: &mut Vec<glyphon::Buffer>,
+        ) {
+            let node = gui.node_from_id(node_id);
+            if let Some(buffer) = &node.text_buffer {
+                buffers.push(buffer.clone());
+            }
+
+            for child_id in gui.children_from_id(node_id) {
+                collect_text_buffers(gui, *child_id, buffers);
+            }
+        }
+
+        let mut buffers = Vec::new();
+        collect_text_buffers(self, self.root, &mut buffers);
+        return buffers;
+    }
+
+    /* pub fn update_text_content(&mut self, node_id: NodeId, new_text: String) {
         if let Some(node) = self.nodes.get_mut(node_id.into()) {
             node.text_content = Some(new_text.clone());
             // Clear the text buffer so it gets recreated with the new content
@@ -228,7 +249,7 @@ impl Gui {
             node.cache.clear();
             self.notify_update();
         }
-    }
+    } */
 
     fn notify_update(&self) {
         if let Ok(proxy) = self.event_loop.lock() {

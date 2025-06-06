@@ -59,6 +59,7 @@ impl<'window> ApplicationHandler<CustomEvent> for App<'window> {
 
                             gui.compute_layout(size.width, size.height);
                             gpu.update_instance_buffer(gui.into_instances());
+                            gpu.update_text_areas(gui.into_text_areas());
 
                             gui.print_tree();
 
@@ -80,6 +81,7 @@ impl<'window> ApplicationHandler<CustomEvent> for App<'window> {
                     if let Ok(mut gui) = self.gui.lock() {
                         gui.compute_layout(size.width, size.height);
                         gpu.update_instance_buffer(gui.into_instances());
+                        gpu.update_text_areas(gui.into_text_areas());
 
                         gpu.set_size(size.width, size.height);
                     }
