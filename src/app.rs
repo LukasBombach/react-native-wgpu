@@ -45,7 +45,7 @@ impl<'window> ApplicationHandler<CustomEvent> for App<'window> {
             );
 
             self.window = Some(window.clone());
-            self.gpu = Some(Gpu::new(window.clone()));
+            self.gpu = Some(Gpu::<'window>::new(window.clone()));
         }
     }
 
@@ -59,7 +59,7 @@ impl<'window> ApplicationHandler<CustomEvent> for App<'window> {
 
                             gui.compute_layout(size.width, size.height);
                             gpu.update_instance_buffer(gui.into_instances());
-                            gpu.update_text_areas(gui.into_text_areas());
+                            gpu.prepare_text_rendering(&gui);
 
                             gui.print_tree();
 
@@ -81,7 +81,7 @@ impl<'window> ApplicationHandler<CustomEvent> for App<'window> {
                     if let Ok(mut gui) = self.gui.lock() {
                         gui.compute_layout(size.width, size.height);
                         gpu.update_instance_buffer(gui.into_instances());
-                        gpu.update_text_areas(gui.into_text_areas());
+                        gpu.prepare_text_rendering(&gui);
 
                         gpu.set_size(size.width, size.height);
                     }
@@ -94,5 +94,34 @@ impl<'window> ApplicationHandler<CustomEvent> for App<'window> {
             }
             _ => (),
         }
+    }
+
+    fn new_events(&mut self, event_loop: &ActiveEventLoop, cause: winit::event::StartCause) {
+        let _ = (event_loop, cause);
+    }
+
+    fn device_event(
+        &mut self,
+        event_loop: &ActiveEventLoop,
+        device_id: winit::event::DeviceId,
+        event: winit::event::DeviceEvent,
+    ) {
+        let _ = (event_loop, device_id, event);
+    }
+
+    fn about_to_wait(&mut self, event_loop: &ActiveEventLoop) {
+        let _ = event_loop;
+    }
+
+    fn suspended(&mut self, event_loop: &ActiveEventLoop) {
+        let _ = event_loop;
+    }
+
+    fn exiting(&mut self, event_loop: &ActiveEventLoop) {
+        let _ = event_loop;
+    }
+
+    fn memory_warning(&mut self, event_loop: &ActiveEventLoop) {
+        let _ = event_loop;
     }
 }

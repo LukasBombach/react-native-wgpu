@@ -2,10 +2,7 @@ use bytemuck::bytes_of;
 use bytemuck::cast_slice;
 use bytemuck::Pod;
 use bytemuck::Zeroable;
-use glyphon::{
-    Attrs, Buffer, Cache, Color, Family, FontSystem, Metrics, Resolution, Shaping, SwashCache,
-    TextArea, TextAtlas, TextBounds, TextRenderer,
-};
+use glyphon::{Cache, FontSystem, SwashCache, TextAtlas, TextRenderer};
 use std::borrow::Cow;
 use std::sync::Arc;
 use wgpu::util::DeviceExt;
@@ -55,7 +52,6 @@ pub struct Gpu<'window> {
     glyphon_viewport: glyphon::Viewport,
     atlas: glyphon::TextAtlas,
     text_renderer: glyphon::TextRenderer,
-    text_areas: Vec<glyphon::TextArea<'window>>,
 }
 
 impl<'window> Gpu<'window> {
@@ -72,7 +68,6 @@ impl<'window> Gpu<'window> {
         let width = size.width.max(1);
         let height = size.height.max(1);
         let viewport = [width as f32, height as f32];
-        let scale_factor = window.scale_factor();
 
         /*
          * wgpu
@@ -150,12 +145,11 @@ impl<'window> Gpu<'window> {
          * font system
          */
 
-        let mut font_system = FontSystem::new();
+        let font_system = FontSystem::new();
         let swash_cache = SwashCache::new();
         let cache = Cache::new(&device);
         let glyphon_viewport = glyphon::Viewport::new(&device, &cache);
         let mut atlas = TextAtlas::new(&device, &queue, &cache, swapchain_format);
-        let text_areas: Vec<glyphon::TextArea<'window>> = Vec::new();
         let text_renderer =
             TextRenderer::new(&mut atlas, &device, wgpu::MultisampleState::default(), None);
 
@@ -267,7 +261,6 @@ impl<'window> Gpu<'window> {
             glyphon_viewport,
             atlas,
             text_renderer,
-            text_areas,
         }
     }
 
@@ -287,18 +280,6 @@ impl<'window> Gpu<'window> {
         if self.instance_count == 0 {
             return;
         }
-
-        self.text_renderer
-            .prepare(
-                &self.device,
-                &self.queue,
-                &mut self.font_system,
-                &mut self.atlas,
-                &self.glyphon_viewport,
-                self.text_areas.clone(),
-                &mut self.swash_cache,
-            )
-            .unwrap();
 
         let frame = self
             .surface
@@ -359,7 +340,18 @@ impl<'window> Gpu<'window> {
         self.instance_count = instances.len() as u32;
     }
 
-    pub fn update_text_areas(&mut self, text_areas: Vec<glyphon::TextArea<'window>>) {
-        self.text_areas = text_areas;
+    pub fn prepare_text_rendering(&mut self, gui: &crate::gui::Gui) {
+        let text_areas = gui.into_text_areas();
+        self.text_renderer
+            .prepare(
+                &self.device,
+                &self.queue,
+                &mut self.font_system,
+                &mut self.atlas,
+                &self.glyphon_viewport,
+                text_areas,
+                &mut self.swash_cache,
+            )
+            .unwrap();
     }
 }
