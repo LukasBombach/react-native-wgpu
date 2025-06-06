@@ -112,6 +112,8 @@ impl Gui {
             ..Node::default()
         };
 
+        println!("Creating node with border_radius: {:?}", node.border_radius);
+
         let id = self.nodes.insert(node);
 
         id.into()

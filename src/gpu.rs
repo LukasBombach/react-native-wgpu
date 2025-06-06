@@ -323,6 +323,10 @@ impl<'window> Gpu<'window> {
                 rpass.set_vertex_buffer(0, self.instance_buffer.slice(..));
                 rpass.draw(0..6, 0..self.instance_count);
             }
+
+            self.text_renderer
+                .render(&self.atlas, &self.glyphon_viewport, &mut rpass)
+                .unwrap();
         }
 
         self.queue.submit(Some(encoder.finish()));
