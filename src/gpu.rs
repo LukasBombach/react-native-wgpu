@@ -340,7 +340,7 @@ impl<'window> Gpu<'window> {
             }
 
             self.text_renderer
-                .render(&self.atlas, &self.glyphon_viewport, &mut rpass)
+                .render(&self.atlas, &self.glyphon_viewport, &mut pass)
                 .unwrap();
         }
 

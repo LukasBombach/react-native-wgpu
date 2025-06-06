@@ -219,15 +219,15 @@ impl Gui {
         return instances;
     }
 
-    pub fn into_text_areas(&mut self) -> Vec<glyphon::TextArea> {
+    pub fn into_text_areas(&self) -> Vec<glyphon::TextArea> {
         const FONT_COLOR: glyphon::Color = glyphon::Color::rgb(0, 0, 0);
 
-        fn collect_text_areas(
-            gui: &Gui,
+        fn collect_text_areas<'a>(
+            gui: &'a Gui,
             node_id: taffy::NodeId,
             offset_x: f32,
             offset_y: f32,
-            text_areas: &mut Vec<glyphon::TextArea>,
+            text_areas: &mut Vec<glyphon::TextArea<'a>>,
         ) {
             let node = gui.node_from_id(node_id);
             if let Some(buffer) = &node.text_buffer {
@@ -237,7 +237,7 @@ impl Gui {
                 );
 
                 text_areas.push(glyphon::TextArea {
-                    buffer: &buffer,
+                    buffer,
                     top,
                     left,
                     scale: 2.0,
