@@ -20,7 +20,7 @@ ReactWGPU.render(
         borderRadius: 10,
       }}
     ></div>
-    <div style={{ width: "100%", backgroundColor: "#f00" }}>Hello, World!</div>
-    <div style={{ width: "100%", backgroundColor: "#00f" }}>This is rendered text using WGPU!</div>
+    <div style={{ width: "100%", backgroundColor: "#f00", borderRadius: 1 }}>Hello, World!</div>
+    <div style={{ width: "100%", backgroundColor: "#00f", borderRadius: 1 }}>This is rendered text using WGPU!</div>
   </div>
 );
