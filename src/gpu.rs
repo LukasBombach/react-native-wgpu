@@ -9,6 +9,8 @@ use wgpu::MemoryHints::Performance;
 use wgpu::ShaderSource;
 use winit::window::Window;
 
+use crate::text::TextRenderer;
+
 #[repr(C)]
 #[derive(Copy, Clone, Debug, Pod, Zeroable)]
 pub struct Instance {
@@ -45,6 +47,8 @@ pub struct Gpu<'window> {
     instance_buffer: wgpu::Buffer,
     instance_count: u32,
     viewport: [f32; 2],
+    scale_factor: f64,
+    text_renderer: TextRenderer,
 }
 
 impl<'window> Gpu<'window> {
@@ -58,6 +62,7 @@ impl<'window> Gpu<'window> {
          */
 
         let size = window.inner_size();
+        let scale_factor = window.scale_factor();
         let width = size.width.max(1);
         let height = size.height.max(1);
         let viewport = [width as f32, height as f32];
@@ -217,6 +222,12 @@ impl<'window> Gpu<'window> {
             cache: None,
         });
 
+        /*
+         * text renderer
+         */
+
+        let text_renderer = TextRenderer::new(&device, &queue, config.format);
+
         Gpu {
             surface,
             config,
@@ -226,6 +237,8 @@ impl<'window> Gpu<'window> {
             instance_buffer,
             instance_count,
             viewport,
+            scale_factor,
+            text_renderer,
         }
     }
 
@@ -237,6 +250,14 @@ impl<'window> Gpu<'window> {
         self.config.height = height;
         self.surface.configure(&self.device, &self.config);
         self.viewport = [width as f32, height as f32];
+    }
+
+    pub fn update_scale_factor(&mut self, scale_factor: f64) {
+        self.scale_factor = scale_factor;
+    }
+
+    pub fn get_scale_factor(&self) -> f64 {
+        self.scale_factor
     }
 
     pub fn draw(&mut self) {
@@ -284,6 +305,9 @@ impl<'window> Gpu<'window> {
                 rpass.set_vertex_buffer(0, self.instance_buffer.slice(..));
                 rpass.draw(0..6, 0..self.instance_count);
             }
+
+            // Render text
+            self.text_renderer.draw(&mut rpass, self.viewport);
         }
 
         self.queue.submit(Some(encoder.finish()));
@@ -299,5 +323,38 @@ impl<'window> Gpu<'window> {
                 usage: wgpu::BufferUsages::VERTEX,
             });
         self.instance_count = instances.len() as u32;
+    }
+
+    pub fn render_text(
+        &mut self,
+        text: &str,
+        x: f32,
+        y: f32,
+        font_size: f32,
+        color: [f32; 4],
+        max_width: Option<f32>,
+    ) -> Vec<crate::text::TextInstance> {
+        // Apply DPI scaling to font size
+        let scaled_font_size = font_size * self.scale_factor as f32;
+
+        self.text_renderer.render_text(
+            &self.device,
+            &self.queue,
+            text,
+            x,
+            y,
+            scaled_font_size,
+            color,
+            max_width,
+        )
+    }
+
+    pub fn update_text_instances(&mut self, instances: &[crate::text::TextInstance]) {
+        println!(
+            "GPU::update_text_instances called with {} instances",
+            instances.len()
+        );
+        self.text_renderer
+            .update_instances(&self.device, &self.queue, instances);
     }
 }
