@@ -57,9 +57,6 @@ impl<'window> ApplicationHandler<CustomEvent> for App<'window> {
                         if let Ok(mut gui) = self.gui.lock() {
                             let size = window.inner_size();
 
-                            gui.compute_layout(size.width, size.height);
-                            gpu.update_instance_buffer(gui.into_instances());
-
                             // Collect and render text instances
                             let text_items = gui.collect_text_instances();
                             println!("GuiUpdate: collected {} text items", text_items.len());
@@ -77,6 +74,9 @@ impl<'window> ApplicationHandler<CustomEvent> for App<'window> {
                             );
                             gpu.update_text_instances(&all_text_instances);
 
+                            gui.compute_layout(size.width, size.height);
+                            gpu.update_instance_buffer(gui.into_instances());
+
                             window.request_redraw();
                         }
                     }
@@ -93,9 +93,6 @@ impl<'window> ApplicationHandler<CustomEvent> for App<'window> {
             WindowEvent::Resized(size) => {
                 if let Some(gpu) = self.gpu.as_mut() {
                     if let Ok(mut gui) = self.gui.lock() {
-                        gui.compute_layout(size.width, size.height);
-                        gpu.update_instance_buffer(gui.into_instances());
-
                         // Collect and render text instances
                         let text_items = gui.collect_text_instances();
                         println!("Resized: collected {} text items", text_items.len());
@@ -112,6 +109,9 @@ impl<'window> ApplicationHandler<CustomEvent> for App<'window> {
                             all_text_instances.len()
                         );
                         gpu.update_text_instances(&all_text_instances);
+
+                        gui.compute_layout(size.width, size.height);
+                        gpu.update_instance_buffer(gui.into_instances());
 
                         gpu.set_size(size.width, size.height);
                     }
