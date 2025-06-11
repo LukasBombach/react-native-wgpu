@@ -1,7 +1,5 @@
 use crate::app::CustomEvent;
-use crate::gpu::Instance;
-use crate::gui::block_node::BlockNode;
-use crate::gui::text_node::TextNode;
+use crate::gui::node::Node;
 use slotmap::{DefaultKey, SlotMap};
 use std::convert::From;
 use std::sync::Arc;
@@ -14,9 +12,20 @@ use winit::event_loop::EventLoopProxy;
 
 pub struct Gui {
     pub root: NodeId,
-    block_nodes: SlotMap<DefaultKey, BlockNode>,
-    text_nodes: SlotMap<DefaultKey, TextNode>,
+    nodes: SlotMap<DefaultKey, Node>,
     event_loop: Arc<Mutex<EventLoopProxy<CustomEvent>>>,
+}
+
+impl Gui {
+    #[inline(always)]
+    pub fn node_from_id(&self, node_id: NodeId) -> &Node {
+        &self.nodes.get(node_id.into()).unwrap()
+    }
+
+    #[inline(always)]
+    pub fn node_from_id_mut(&mut self, node_id: NodeId) -> &mut Node {
+        self.nodes.get_mut(node_id.into()).unwrap()
+    }
 }
 
 pub struct ChildIter<'a>(std::slice::Iter<'a, NodeId>);
@@ -68,26 +77,7 @@ impl taffy::LayoutPartialTree for Gui {
         compute_cached_layout(self, node_id, inputs, |gui, node_id, inputs| {
             let node = gui.node_from_id_mut(node_id);
 
-            match node.kind {
-                NodeKind::Flexbox => compute_flexbox_layout(gui, node_id, inputs),
-                NodeKind::Grid => compute_grid_layout(gui, node_id, inputs),
-                NodeKind::Text => {
-                    // Text nodes are leaf nodes with intrinsic size
-                    taffy::tree::LayoutOutput {
-                        size: taffy::Size {
-                            width: node.font_size
-                                * node.text.as_ref().map_or(0, |t| t.len()) as f32
-                                * 0.6, // Rough text width estimation
-                            height: node.font_size,
-                        },
-                        content_size: taffy::Size::ZERO,
-                        first_baselines: taffy::Point::NONE,
-                        top_margin: taffy::CollapsibleMarginSet::ZERO,
-                        bottom_margin: taffy::CollapsibleMarginSet::ZERO,
-                        margins_can_collapse_through: false,
-                    }
-                }
-            }
+            match node.kind {}
         })
     }
 }
