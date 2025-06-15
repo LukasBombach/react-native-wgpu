@@ -50,13 +50,17 @@ fn fs_main(vs_output: VertexOutput) -> @location(0) vec4f {
     
     // Calculate distance from corners for rounded rectangle
     let corner_radius = min(radius, min(rect_size.x, rect_size.y) * 0.5);
-    
-    // Calculate the distance to the nearest corner
-    let corner_distance = length(max(abs(rect_pos - rect_size * 0.5) - (rect_size * 0.5 - corner_radius), vec2<f32>(0.0, 0.0)));
-    
+
+    var alpha: f32;
+
+    if (corner_radius == 0.0) {
+        alpha = 1.0;
+    } else {
+        let corner_distance = length(max(abs(rect_pos - rect_size * 0.5) - (rect_size * 0.5 - corner_radius), vec2<f32>(0.0, 0.0)));
     // Anti-aliased edge
-    let edge_softness = 1.0;
-    let alpha = 1.0 - smoothstep(corner_radius - edge_softness, corner_radius, corner_distance);
-    
+        let edge_softness = 1.0;
+        alpha = 1.0 - smoothstep(corner_radius - edge_softness, corner_radius, corner_distance);
+    }
+
     return vec4<f32>(vs_output.background_color.rgb, vs_output.background_color.a * alpha);
 }
