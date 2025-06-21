@@ -17,6 +17,14 @@ pub struct Gui {
 }
 
 impl Gui {
+    pub fn recompute_layout(&mut self, width: u32, height: u32) {
+        let width = length(width as f32);
+        let height = length(height as f32);
+        compute_root_layout(self, self.root, Size { width, height });
+    }
+}
+
+impl Gui {
     #[inline(always)]
     pub fn node_from_id(&self, node_id: NodeId) -> &Node {
         &self.nodes.get(node_id.into()).unwrap()
@@ -43,15 +51,15 @@ impl taffy::TraversePartialTree for Gui {
     type ChildIter<'a> = ChildIter<'a>;
 
     fn child_ids(&self, node_id: NodeId) -> Self::ChildIter<'_> {
-        ChildIter(self.node_from_id(node_id).children.iter())
+        ChildIter(self.node_from_id(node_id).children().iter())
     }
 
     fn child_count(&self, node_id: NodeId) -> usize {
-        self.node_from_id(node_id).children.len()
+        self.node_from_id(node_id).children().len()
     }
 
     fn get_child_id(&self, node_id: NodeId, index: usize) -> NodeId {
-        NodeId::from(self.node_from_id(node_id).children[index])
+        NodeId::from(self.node_from_id(node_id).children()[index])
     }
 }
 
