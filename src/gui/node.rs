@@ -9,15 +9,15 @@ pub trait Node {
 } */
 
 pub enum Node {
-    BlockNode,
-    TextNode,
+    BlockNode(BlockNode),
+    TextNode(TextNode),
 }
 
 impl Node {
     pub fn children(&self) -> &Vec<NodeId> {
         match self {
-            BlockNode(block_node) => &block_node.children,
-            TextNode(text_node) => &text_node.children,
+            Node::BlockNode(block_node) => &block_node.children,
+            Node::TextNode(text_node) => &text_node.children,
         }
     }
 }
