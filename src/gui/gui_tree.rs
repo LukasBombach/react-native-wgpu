@@ -37,6 +37,8 @@ impl Iterator for ChildIter<'_> {
     }
 }
 
+impl taffy::TraverseTree for Gui {}
+
 impl taffy::TraversePartialTree for Gui {
     type ChildIter<'a> = ChildIter<'a>;
 
@@ -52,8 +54,6 @@ impl taffy::TraversePartialTree for Gui {
         NodeId::from(self.node_from_id(node_id).children[index])
     }
 }
-
-impl taffy::TraverseTree for Gui {}
 
 impl taffy::LayoutPartialTree for Gui {
     type CoreContainerStyle<'a>
