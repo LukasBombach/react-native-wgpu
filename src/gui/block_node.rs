@@ -1,17 +1,7 @@
-// use crate::gui::Node;
-use taffy::NodeId;
+use taffy::prelude::*;
 
 pub struct BlockNode {
+    pub layout: Layout,
+    pub style: Style,
     pub children: Vec<NodeId>,
 }
-
-/* impl Node for BlockNode {
-    fn children(&self) -> &[NodeId] {
-        &self.children
-    }
-
-    fn children_mut(&mut self) -> &mut Vec<NodeId> {
-        &mut self.children
-    }
-}
- */

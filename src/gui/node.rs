@@ -1,12 +1,6 @@
 use crate::gui::BlockNode;
 use crate::gui::TextNode;
-use taffy::NodeId;
-/* ;
-
-pub trait Node {
-    fn children(&self) -> &[NodeId];
-    fn children_mut(&mut self) -> &mut Vec<NodeId>;
-} */
+use taffy::prelude::*;
 
 pub enum Node {
     BlockNode(BlockNode),
@@ -18,6 +12,20 @@ impl Node {
         match self {
             Node::BlockNode(block_node) => &block_node.children,
             Node::TextNode(text_node) => &text_node.children,
+        }
+    }
+
+    pub fn layout(&self) -> &Layout {
+        match self {
+            Node::BlockNode(block_node) => &block_node.layout,
+            Node::TextNode(text_node) => &text_node.layout,
+        }
+    }
+
+    pub fn style(&self) -> &Style {
+        match self {
+            Node::BlockNode(block_node) => &block_node.style,
+            Node::TextNode(text_node) => &text_node.style,
         }
     }
 }
