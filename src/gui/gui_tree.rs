@@ -5,8 +5,8 @@ use std::convert::From;
 use std::sync::Arc;
 use std::sync::Mutex;
 use taffy::{
-    compute_cached_layout, compute_flexbox_layout, compute_grid_layout, compute_root_layout,
-    prelude::*, Cache, Layout, Style,
+    compute_block_layout, compute_cached_layout, compute_flexbox_layout, compute_grid_layout,
+    compute_root_layout, prelude::*, Cache, Layout, Style,
 };
 use winit::event_loop::EventLoopProxy;
 
@@ -74,7 +74,7 @@ impl taffy::LayoutPartialTree for Gui {
     }
 
     fn set_unrounded_layout(&mut self, node_id: NodeId, layout: &Layout) {
-        self.node_from_id_mut(node_id).layout = *layout
+        self.node_from_id_mut(node_id).set_layout(*layout)
     }
 
     fn compute_child_layout(
@@ -85,7 +85,22 @@ impl taffy::LayoutPartialTree for Gui {
         compute_cached_layout(self, node_id, inputs, |gui, node_id, inputs| {
             let node = gui.node_from_id_mut(node_id);
 
-            match node.kind {}
+            match node {
+                Node::GridNode(block_node) => compute_grid_layout(gui, node_id, inputs),
+                Node::FlexNode(block_node) => compute_flexbox_layout(gui, node_id, inputs),
+                Node::BlockNode(block_node) => compute_block_layout(gui, node_id, inputs),
+                Node::TextNode(text_node) => {
+                    // For text nodes, we can just return the layout as is
+                    // since they don't have children or complex layout requirements.
+                    Layout {
+                        size: Size {
+                            width: inputs.available_space.width,
+                            height: inputs.available_space.height,
+                        },
+                        ..Default::default()
+                    }
+                }
+            }
         })
     }
 }
@@ -102,11 +117,11 @@ impl taffy::LayoutFlexboxContainer for Gui {
         Self: 'a;
 
     fn get_flexbox_container_style(&self, node_id: NodeId) -> Self::FlexboxContainerStyle<'_> {
-        &self.node_from_id(node_id).style
+        &self.node_from_id(node_id).style()
     }
 
     fn get_flexbox_child_style(&self, child_node_id: NodeId) -> Self::FlexboxItemStyle<'_> {
-        &self.node_from_id(child_node_id).style
+        &self.node_from_id(child_node_id).style()
     }
 }
 
@@ -122,11 +137,31 @@ impl taffy::LayoutGridContainer for Gui {
         Self: 'a;
 
     fn get_grid_container_style(&self, node_id: NodeId) -> Self::GridContainerStyle<'_> {
-        &self.node_from_id(node_id).style
+        &self.node_from_id(node_id).style()
     }
 
     fn get_grid_child_style(&self, child_node_id: NodeId) -> Self::GridItemStyle<'_> {
-        &self.node_from_id(child_node_id).style
+        &self.node_from_id(child_node_id).style()
+    }
+}
+
+impl taffy::LayoutBlockContainer for Gui {
+    type BlockContainerStyle<'a>
+        = &'a Style
+    where
+        Self: 'a;
+
+    type BlockItemStyle<'a>
+        = &'a Style
+    where
+        Self: 'a;
+
+    fn get_block_container_style(&self, node_id: NodeId) -> Self::BlockContainerStyle<'_> {
+        &self.node_from_id(node_id).style()
+    }
+
+    fn get_block_child_style(&self, child_node_id: NodeId) -> Self::BlockItemStyle<'_> {
+        &self.node_from_id(child_node_id).style()
     }
 }
 
