@@ -1,4 +1,4 @@
-use taffy::prelude::{Layout, NodeId, Style};
+use taffy::{Cache, Layout, NodeId, Style};
 
 pub enum Node {
     GridNode(GridNode),
@@ -11,24 +11,28 @@ pub struct GridNode {
     pub layout: Layout,
     pub style: Style,
     pub children: Vec<NodeId>,
+    pub cache: Cache,
 }
 
 pub struct FlexNode {
     pub layout: Layout,
     pub style: Style,
     pub children: Vec<NodeId>,
+    pub cache: Cache,
 }
 
 pub struct BlockNode {
     pub layout: Layout,
     pub style: Style,
     pub children: Vec<NodeId>,
+    pub cache: Cache,
 }
 
 pub struct TextNode {
     pub layout: Layout,
     pub style: Style,
     pub children: Vec<NodeId>,
+    pub cache: Cache,
 }
 
 impl Node {
@@ -65,6 +69,24 @@ impl Node {
             Node::FlexNode(block_node) => &block_node.style,
             Node::BlockNode(block_node) => &block_node.style,
             Node::TextNode(text_node) => &text_node.style,
+        }
+    }
+
+    pub fn cache(&self) -> &Cache {
+        match self {
+            Node::GridNode(block_node) => &block_node.cache,
+            Node::FlexNode(block_node) => &block_node.cache,
+            Node::BlockNode(block_node) => &block_node.cache,
+            Node::TextNode(text_node) => &text_node.cache,
+        }
+    }
+
+    pub fn cache_mut(&mut self) -> &mut Cache {
+        match self {
+            Node::GridNode(block_node) => &mut block_node.cache,
+            Node::FlexNode(block_node) => &mut block_node.cache,
+            Node::BlockNode(block_node) => &mut block_node.cache,
+            Node::TextNode(text_node) => &mut text_node.cache,
         }
     }
 }

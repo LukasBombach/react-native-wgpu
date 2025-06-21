@@ -174,7 +174,7 @@ impl taffy::CacheTree for Gui {
         run_mode: taffy::RunMode,
     ) -> Option<taffy::LayoutOutput> {
         self.node_from_id(node_id)
-            .cache
+            .cache()
             .get(known_dimensions, available_space, run_mode)
     }
 
@@ -186,7 +186,7 @@ impl taffy::CacheTree for Gui {
         run_mode: taffy::RunMode,
         layout_output: taffy::LayoutOutput,
     ) {
-        self.node_from_id_mut(node_id).cache.store(
+        self.node_from_id_mut(node_id).cache_mut().store(
             known_dimensions,
             available_space,
             run_mode,
@@ -195,6 +195,6 @@ impl taffy::CacheTree for Gui {
     }
 
     fn cache_clear(&mut self, node_id: NodeId) {
-        self.node_from_id_mut(node_id).cache.clear();
+        self.node_from_id_mut(node_id).cache_mut().clear();
     }
 }
