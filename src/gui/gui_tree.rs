@@ -47,8 +47,11 @@ impl Iterator for ChildIter<'_> {
 
 impl taffy::TraverseTree for Gui<'_> {}
 
-impl taffy::TraversePartialTree for Gui {
-    type ChildIter<'a> = ChildIter<'a>;
+impl taffy::TraversePartialTree for Gui<'_> {
+    type ChildIter<'a>
+        = ChildIter<'a>
+    where
+        Self: 'a;
 
     fn child_ids(&self, node_id: NodeId) -> Self::ChildIter<'_> {
         ChildIter(self.node_from_id(node_id).children().iter())
