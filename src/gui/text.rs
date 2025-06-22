@@ -1,4 +1,5 @@
-use cosmic_text::{Buffer, FontSystem, Metrics, SwashCache};
+use crate::gui::node::TextNode;
+use cosmic_text::{Buffer, FontSystem, SwashCache};
 use taffy::{AvailableSpace, LayoutInput, LayoutOutput, Size};
 
 pub struct TextRenderer {
@@ -9,15 +10,14 @@ pub struct TextRenderer {
 impl TextRenderer {
     pub fn compute_text_layout(
         &mut self,
-        text: &str,
-        metrics: Metrics,
+        mut text_node: TextNode,
         inputs: LayoutInput,
     ) -> LayoutOutput {
         // A Buffer provides shaping and layout for a UTF-8 string, create one per text widget
-        let mut buffer = Buffer::new(&mut self.font_system, metrics);
+        // let mut buffer = Buffer::new(&mut self.font_system, text_node.metrics);
 
         // Borrow buffer together with the font system for more convenient method calls
-        let mut buffer = buffer.borrow_with(&mut self.font_system);
+        let mut buffer = text_node.buffer.borrow_with(&mut self.font_system);
 
         // determine the width the text has to fit into
         let available_space = inputs.available_space;

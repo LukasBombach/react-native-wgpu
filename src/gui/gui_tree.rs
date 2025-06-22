@@ -11,9 +11,10 @@ use taffy::{
 use winit::event_loop::EventLoopProxy;
 
 pub struct Gui<'a> {
-    pub root: NodeId,
+    root: NodeId,
     nodes: SlotMap<DefaultKey, Node<'a>>,
     event_loop: Arc<Mutex<EventLoopProxy<CustomEvent>>>,
+    text_renderer: crate::gui::text::TextRenderer,
 }
 
 impl<'a> Gui<'a> {
@@ -93,15 +94,7 @@ impl taffy::LayoutPartialTree for Gui<'_> {
                 Node::FlexNode(block_node) => compute_flexbox_layout(gui, node_id, inputs),
                 Node::BlockNode(block_node) => compute_block_layout(gui, node_id, inputs),
                 Node::TextNode(text_node) => {
-                    // For text nodes, we can just return the layout as is
-                    // since they don't have children or complex layout requirements.
-                    Layout {
-                        size: Size {
-                            width: inputs.available_space.width,
-                            height: inputs.available_space.height,
-                        },
-                        ..Default::default()
-                    }
+                    self.text_renderer.compute_text_layout(text_node, inputs)
                 }
             }
         })

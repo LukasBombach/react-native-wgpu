@@ -37,9 +37,9 @@ pub struct TextNode<'a> {
 
     pub text: &'a str,
 
-    metrics: Metrics, // Text metrics indicate the font size and line height of a buffer
-    buffer: Buffer, // A Buffer provides shaping and layout for a UTF-8 string, create one per text widget
-    attrs: Attrs<'a>, // Attributes indicate what font to choose
+    pub metrics: Metrics, // Text metrics indicate the font size and line height of a buffer
+    pub buffer: Buffer, // A Buffer provides shaping and layout for a UTF-8 string, create one per text widget
+    pub attrs: Attrs<'a>, // Attributes indicate what font to choose
 }
 
 /* impl TextNode<'_> {
