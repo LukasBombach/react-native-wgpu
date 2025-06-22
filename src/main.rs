@@ -12,6 +12,7 @@ mod app;
 mod gpu;
 mod gui;
 mod javascript_runtime;
+mod text;
 
 fn main() -> Result<(), EventLoopError> {
     let event_loop = EventLoop::<CustomEvent>::with_user_event().build()?;
