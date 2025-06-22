@@ -10,13 +10,13 @@ use taffy::{
 };
 use winit::event_loop::EventLoopProxy;
 
-pub struct Gui {
+pub struct Gui<'a> {
     pub root: NodeId,
-    nodes: SlotMap<DefaultKey, Node>,
+    nodes: SlotMap<DefaultKey, Node<'a>>,
     event_loop: Arc<Mutex<EventLoopProxy<CustomEvent>>>,
 }
 
-impl Gui {
+impl<'a> Gui<'a> {
     pub fn recompute_layout(&mut self, width: u32, height: u32) {
         let width = length(width as f32);
         let height = length(height as f32);
@@ -24,14 +24,14 @@ impl Gui {
     }
 }
 
-impl Gui {
+impl<'a> Gui<'a> {
     #[inline(always)]
-    pub fn node_from_id(&self, node_id: NodeId) -> &Node {
+    pub fn node_from_id(&self, node_id: NodeId) -> &Node<'a> {
         &self.nodes.get(node_id.into()).unwrap()
     }
 
     #[inline(always)]
-    pub fn node_from_id_mut(&mut self, node_id: NodeId) -> &mut Node {
+    pub fn node_from_id_mut(&mut self, node_id: NodeId) -> &mut Node<'a> {
         self.nodes.get_mut(node_id.into()).unwrap()
     }
 }
@@ -45,7 +45,7 @@ impl Iterator for ChildIter<'_> {
     }
 }
 
-impl taffy::TraverseTree for Gui {}
+impl taffy::TraverseTree for Gui<'_> {}
 
 impl taffy::TraversePartialTree for Gui {
     type ChildIter<'a> = ChildIter<'a>;
@@ -63,7 +63,7 @@ impl taffy::TraversePartialTree for Gui {
     }
 }
 
-impl taffy::LayoutPartialTree for Gui {
+impl taffy::LayoutPartialTree for Gui<'_> {
     type CoreContainerStyle<'a>
         = &'a Style
     where
@@ -105,7 +105,7 @@ impl taffy::LayoutPartialTree for Gui {
     }
 }
 
-impl taffy::LayoutFlexboxContainer for Gui {
+impl taffy::LayoutFlexboxContainer for Gui<'_> {
     type FlexboxContainerStyle<'a>
         = &'a Style
     where
@@ -125,7 +125,7 @@ impl taffy::LayoutFlexboxContainer for Gui {
     }
 }
 
-impl taffy::LayoutGridContainer for Gui {
+impl taffy::LayoutGridContainer for Gui<'_> {
     type GridContainerStyle<'a>
         = &'a Style
     where
@@ -145,7 +145,7 @@ impl taffy::LayoutGridContainer for Gui {
     }
 }
 
-impl taffy::LayoutBlockContainer for Gui {
+impl taffy::LayoutBlockContainer for Gui<'_> {
     type BlockContainerStyle<'a>
         = &'a Style
     where
@@ -165,7 +165,7 @@ impl taffy::LayoutBlockContainer for Gui {
     }
 }
 
-impl taffy::CacheTree for Gui {
+impl taffy::CacheTree for Gui<'_> {
     fn cache_get(
         &self,
         node_id: NodeId,

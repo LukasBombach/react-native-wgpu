@@ -1,10 +1,11 @@
+use cosmic_text::{Attrs, Buffer, Metrics};
 use taffy::{Cache, Layout, NodeId, Style};
 
-pub enum Node {
+pub enum Node<'a> {
     GridNode(GridNode),
     FlexNode(FlexNode),
     BlockNode(BlockNode),
-    TextNode(TextNode),
+    TextNode(TextNode<'a>),
 }
 
 pub struct GridNode {
@@ -28,14 +29,18 @@ pub struct BlockNode {
     pub cache: Cache,
 }
 
-pub struct TextNode {
+pub struct TextNode<'a> {
     pub layout: Layout,
     pub style: Style,
     pub children: Vec<NodeId>,
     pub cache: Cache,
+
+    metrics: Metrics, // Text metrics indicate the font size and line height of a buffer
+    buffer: Buffer, // A Buffer provides shaping and layout for a UTF-8 string, create one per text widget
+    attrs: Attrs<'a>, // Attributes indicate what font to choose
 }
 
-impl Node {
+impl Node<'_> {
     pub fn children(&self) -> &Vec<NodeId> {
         match self {
             Node::GridNode(block_node) => &block_node.children,
