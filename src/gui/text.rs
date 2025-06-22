@@ -14,6 +14,7 @@ impl TextRenderer {
         // Borrow buffer together with the font system for more convenient method calls
         let mut buffer = buffer.borrow_with(&mut self.font_system);
 
+        // determine the width constraint
         let available_space = inputs.available_space;
         let known_dimensions = inputs.known_dimensions;
 
@@ -24,5 +25,7 @@ impl TextRenderer {
         });
 
         buffer.set_size(width_constraint, None);
+
+        buffer.shape_until_scroll(true);
     }
 }
