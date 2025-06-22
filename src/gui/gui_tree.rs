@@ -94,7 +94,7 @@ impl taffy::LayoutPartialTree for Gui<'_> {
                 Node::FlexNode(block_node) => compute_flexbox_layout(gui, node_id, inputs),
                 Node::BlockNode(block_node) => compute_block_layout(gui, node_id, inputs),
                 Node::TextNode(text_node) => {
-                    self.text_renderer.compute_text_layout(text_node, inputs)
+                    self.text_renderer.compute_text_layout(*text_node, inputs)
                 }
             }
         })
