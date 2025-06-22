@@ -1,4 +1,4 @@
-use cosmic_text::{Attrs, Buffer, Metrics};
+use cosmic_text::{Attrs, Buffer, Metrics, Shaping};
 use taffy::{Cache, Layout, NodeId, Style};
 
 pub enum Node<'a> {
@@ -35,10 +35,18 @@ pub struct TextNode<'a> {
     pub children: Vec<NodeId>,
     pub cache: Cache,
 
+    pub text: &'a str,
+
     metrics: Metrics, // Text metrics indicate the font size and line height of a buffer
     buffer: Buffer, // A Buffer provides shaping and layout for a UTF-8 string, create one per text widget
     attrs: Attrs<'a>, // Attributes indicate what font to choose
 }
+
+/* impl TextNode<'_> {
+    pub fn compute_layout(&mut self) {
+        let mut buffer = Buffer::new(&self.font_system, self.metrics);
+    }
+} */
 
 impl Node<'_> {
     pub fn children(&self) -> &Vec<NodeId> {
