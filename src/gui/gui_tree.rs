@@ -197,14 +197,14 @@ impl taffy::CacheTree for Gui<'_> {
 }
 
 impl LayoutTextContainer for Gui<'_> {
-    fn node_from_id_mut(&mut self, node_id: NodeId) -> &mut crate::gui::text::TextNode {
+    fn node_from_id_mut(&mut self, node_id: NodeId) -> &mut crate::gui::node::TextNode {
         match self.node_from_id_mut(node_id) {
             Node::TextNode(text_node) => text_node,
             _ => panic!("Node is not a TextNode"),
         }
     }
 
-    fn node_from_id(&self, node_id: NodeId) -> &crate::gui::text::TextNode {
+    fn node_from_id(&self, node_id: NodeId) -> &crate::gui::node::TextNode {
         match self.node_from_id(node_id) {
             Node::TextNode(text_node) => text_node,
             _ => panic!("Node is not a TextNode"),
