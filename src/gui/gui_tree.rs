@@ -1,13 +1,16 @@
 use crate::app::CustomEvent;
 use crate::gui::node::Node;
-use crate::gui::text::LayoutTextContainer;
+use cosmic_text::{FontSystem, SwashCache};
+use rustyscript::extensions::deno_io::fs;
 use slotmap::{DefaultKey, SlotMap};
+use std::cell::RefCell;
 use std::convert::From;
+use std::rc::Rc;
 use std::sync::Arc;
 use std::sync::Mutex;
 use taffy::{
     compute_block_layout, compute_cached_layout, compute_flexbox_layout, compute_grid_layout,
-    compute_root_layout, prelude::*, Layout, Style,
+    compute_root_layout, prelude::*, Layout, LayoutOutput, Style,
 };
 use winit::event_loop::EventLoopProxy;
 
@@ -16,6 +19,8 @@ pub struct Gui<'a> {
     nodes: SlotMap<DefaultKey, Node<'a>>,
     event_loop: Arc<Mutex<EventLoopProxy<CustomEvent>>>,
     text_renderer: crate::gui::text::TextRenderer,
+    pub font_system: Rc<RefCell<FontSystem>>,
+    pub swash_cache: Rc<RefCell<SwashCache>>,
 }
 
 impl<'a> Gui<'a> {
@@ -95,7 +100,35 @@ impl taffy::LayoutPartialTree for Gui<'_> {
                 Node::FlexNode(block_node) => compute_flexbox_layout(gui, node_id, inputs),
                 Node::BlockNode(block_node) => compute_block_layout(gui, node_id, inputs),
                 Node::TextNode(text_node) => {
-                    self.text_renderer.compute_text_layout(gui, node_id, inputs)
+                    let fs = gui.font_system.clone();
+                    let mut fs = fs.borrow_mut();
+                    let mut buffer = text_node.buffer.borrow_with(&mut fs);
+
+                    // determine the width the text has to fit into
+                    let available_space = inputs.available_space;
+                    let known_dimensions = inputs.known_dimensions;
+
+                    let width_constraint = known_dimensions.width.or(match available_space.width {
+                        AvailableSpace::MinContent => Some(0.0),
+                        AvailableSpace::MaxContent => None,
+                        AvailableSpace::Definite(width) => Some(width),
+                    });
+
+                    buffer.set_size(width_constraint, None);
+
+                    // Perform shaping as desired
+                    buffer.shape_until_scroll(true);
+
+                    // Determine measured width and height of text
+                    let (width, total_lines) = buffer
+                        .layout_runs()
+                        .fold((0.0, 0usize), |(width, total_lines), run| {
+                            (run.line_w.max(width), total_lines + 1)
+                        });
+
+                    let height = total_lines as f32 * buffer.metrics().line_height;
+
+                    return LayoutOutput::from_outer_size(Size { width, height });
                 }
             }
         })
@@ -193,21 +226,5 @@ impl taffy::CacheTree for Gui<'_> {
 
     fn cache_clear(&mut self, node_id: NodeId) {
         self.node_from_id_mut(node_id).cache_mut().clear();
-    }
-}
-
-impl LayoutTextContainer for Gui<'_> {
-    fn node_from_id_mut(&mut self, node_id: NodeId) -> &mut crate::gui::node::TextNode {
-        match self.node_from_id_mut(node_id) {
-            Node::TextNode(text_node) => text_node,
-            _ => panic!("Node is not a TextNode"),
-        }
-    }
-
-    fn node_from_id(&self, node_id: NodeId) -> &crate::gui::node::TextNode {
-        match self.node_from_id(node_id) {
-            Node::TextNode(text_node) => text_node,
-            _ => panic!("Node is not a TextNode"),
-        }
     }
 }
