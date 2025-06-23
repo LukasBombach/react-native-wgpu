@@ -1,7 +1,6 @@
 use crate::app::CustomEvent;
 use crate::gui::node::Node;
 use cosmic_text::{FontSystem, SwashCache};
-use rustyscript::extensions::deno_io::fs;
 use slotmap::{DefaultKey, SlotMap};
 use std::cell::RefCell;
 use std::convert::From;
