@@ -1,5 +1,6 @@
 use crate::app::CustomEvent;
 use crate::gui::node::Node;
+use crate::gui::text::LayoutTextContainer;
 use slotmap::{DefaultKey, SlotMap};
 use std::convert::From;
 use std::sync::Arc;
@@ -94,7 +95,7 @@ impl taffy::LayoutPartialTree for Gui<'_> {
                 Node::FlexNode(block_node) => compute_flexbox_layout(gui, node_id, inputs),
                 Node::BlockNode(block_node) => compute_block_layout(gui, node_id, inputs),
                 Node::TextNode(text_node) => {
-                    self.text_renderer.compute_text_layout(*text_node, inputs)
+                    self.text_renderer.compute_text_layout(gui, node_id, inputs)
                 }
             }
         })
@@ -192,5 +193,21 @@ impl taffy::CacheTree for Gui<'_> {
 
     fn cache_clear(&mut self, node_id: NodeId) {
         self.node_from_id_mut(node_id).cache_mut().clear();
+    }
+}
+
+impl LayoutTextContainer for Gui<'_> {
+    fn node_from_id_mut(&mut self, node_id: NodeId) -> &mut crate::gui::text::TextNode {
+        match self.node_from_id_mut(node_id) {
+            Node::TextNode(text_node) => text_node,
+            _ => panic!("Node is not a TextNode"),
+        }
+    }
+
+    fn node_from_id(&self, node_id: NodeId) -> &crate::gui::text::TextNode {
+        match self.node_from_id(node_id) {
+            Node::TextNode(text_node) => text_node,
+            _ => panic!("Node is not a TextNode"),
+        }
     }
 }
