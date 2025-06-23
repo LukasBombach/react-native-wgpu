@@ -93,16 +93,22 @@ impl taffy::LayoutPartialTree for Gui<'_> {
         inputs: taffy::tree::LayoutInput,
     ) -> taffy::tree::LayoutOutput {
         compute_cached_layout(self, node_id, inputs, |gui, node_id, inputs| {
-            let node = gui.node_from_id_mut(node_id);
+            // Only borrow font_system mutably when needed, before any mutable borrow of gui
+            let node_ref = gui.node_from_id(node_id);
 
-            match node {
+            match node_ref {
                 Node::GridNode(block_node) => compute_grid_layout(gui, node_id, inputs),
                 Node::FlexNode(block_node) => compute_flexbox_layout(gui, node_id, inputs),
                 Node::BlockNode(block_node) => compute_block_layout(gui, node_id, inputs),
-                Node::TextNode(text_node) => {
+                Node::TextNode(_) => {
                     let fs = gui.font_system.clone();
                     let mut fs = fs.borrow_mut();
-                    let mut buffer = text_node.buffer.borrow_with(&mut fs);
+                    // Get a mutable reference to the TextNode
+                    let text_node_mut = match gui.node_from_id_mut(node_id) {
+                        Node::TextNode(text_node_mut) => text_node_mut,
+                        _ => unreachable!(),
+                    };
+                    let mut buffer = text_node_mut.buffer.borrow_with(&mut fs);
 
                     // determine the width the text has to fit into
                     let available_space = inputs.available_space;
