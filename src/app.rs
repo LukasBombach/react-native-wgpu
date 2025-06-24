@@ -56,6 +56,7 @@ impl<'window> ApplicationHandler<CustomEvent> for App<'window> {
                     if let Some(gpu) = self.gpu.as_mut() {
                         if let Ok(mut gui) = self.gui.lock() {
                             let size = window.inner_size();
+                            gui.recompute_layout(size.width, size.height);
 
                             // Collect and render text instances
                             let text_items = gui.collect_text_instances();
