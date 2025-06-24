@@ -1,4 +1,4 @@
-use cosmic_text::{Attrs, Buffer, Metrics, Shaping};
+use cosmic_text::{Attrs, Buffer, Metrics};
 use taffy::{Cache, Layout, NodeId, Style};
 
 pub enum Node<'a> {
@@ -37,14 +37,56 @@ pub struct TextNode<'a> {
 
     pub text: &'a str,
 
-    pub metrics: Metrics, // Text metrics indicate the font size and line height of a buffer
-    pub buffer: Buffer, // A Buffer provides shaping and layout for a UTF-8 string, create one per text widget
-    pub attrs: Attrs<'a>, // Attributes indicate what font to choose
+    pub metrics: Metrics,
+    pub buffer: Buffer,
+    pub attrs: Attrs<'a>,
 }
 
-/* impl TextNode<'_> {
-    pub fn compute_layout(&mut self) {
-        let mut buffer = Buffer::new(&self.font_system, self.metrics);
+impl Default for GridNode {
+    fn default() -> Self {
+        Self {
+            layout: Layout::default(),
+            style: Style::default(),
+            children: Vec::new(),
+            cache: Cache::default(),
+        }
+    }
+}
+
+impl Default for FlexNode {
+    fn default() -> Self {
+        Self {
+            layout: Layout::default(),
+            style: Style::default(),
+            children: Vec::new(),
+            cache: Cache::default(),
+        }
+    }
+}
+
+impl Default for BlockNode {
+    fn default() -> Self {
+        Self {
+            layout: Layout::default(),
+            style: Style::default(),
+            children: Vec::new(),
+            cache: Cache::default(),
+        }
+    }
+}
+
+/* impl<'a> Default for TextNode<'a> {
+    fn default() -> Self {
+        Self {
+            layout: Layout::default(),
+            style: Style::default(),
+            children: Vec::new(),
+            cache: Cache::default(),
+            text: "",
+            metrics: Metrics::default(),
+            buffer: Buffer::new(),
+            attrs: Attrs::default(),
+        }
     }
 } */
 

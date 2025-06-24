@@ -1,3 +1,3 @@
-pub use gui_tree::Gui;
-mod gui_tree;
+pub use gui::Gui;
+mod gui;
 mod node;

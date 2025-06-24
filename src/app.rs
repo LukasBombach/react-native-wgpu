@@ -18,7 +18,7 @@ pub enum CustomEvent {
 pub struct App<'window> {
     window: Option<Arc<Window>>,
     gpu: Option<Gpu<'window>>,
-    pub gui: Arc<Mutex<Gui>>,
+    pub gui: Arc<Mutex<Gui<'window>>>,
 }
 
 impl App<'_> {

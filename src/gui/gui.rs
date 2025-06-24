@@ -1,4 +1,5 @@
 use crate::app::CustomEvent;
+use crate::gui::node::BlockNode;
 use crate::gui::node::Node;
 use cosmic_text::{FontSystem, SwashCache};
 use slotmap::{DefaultKey, SlotMap};
@@ -22,6 +23,36 @@ pub struct Gui<'a> {
 }
 
 impl<'a> Gui<'a> {
+    pub fn new(event_loop: Arc<Mutex<EventLoopProxy<CustomEvent>>>) -> Self {
+        let font_system = Rc::new(RefCell::new(FontSystem::new()));
+        let swash_cache = Rc::new(RefCell::new(SwashCache::new()));
+
+        let mut nodes = SlotMap::new();
+        let root = nodes.insert(Self::create_root_node()).into();
+
+        Self {
+            root,
+            nodes,
+            event_loop,
+            font_system,
+            swash_cache,
+        }
+    }
+
+    fn create_root_node() -> Node<'a> {
+        Node::BlockNode(BlockNode {
+            style: Style {
+                display: Display::Block,
+                size: Size {
+                    width: percent(1.0),
+                    height: percent(1.0),
+                },
+                ..Default::default()
+            },
+            ..BlockNode::default()
+        })
+    }
+
     pub fn recompute_layout(&mut self, width: u32, height: u32) {
         let width = length(width as f32);
         let height = length(height as f32);
