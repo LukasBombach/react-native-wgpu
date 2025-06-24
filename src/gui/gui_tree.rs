@@ -17,7 +17,6 @@ pub struct Gui<'a> {
     root: NodeId,
     nodes: SlotMap<DefaultKey, Node<'a>>,
     event_loop: Arc<Mutex<EventLoopProxy<CustomEvent>>>,
-    text_renderer: crate::gui::text::TextRenderer,
     pub font_system: Rc<RefCell<FontSystem>>,
     pub swash_cache: Rc<RefCell<SwashCache>>,
 }
